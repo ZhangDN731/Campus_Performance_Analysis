@@ -1,0 +1,30 @@
+# ===== 依赖与构建产物（不发布到站点） =====
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-error.log*
+yarn-debug.log*
+
+# ===== 截图自检产物（本地开发用，不发布） =====
+_shots/
+**/_shots/
+_verify/
+**/_verify/
+*.local
+
+# ===== 临时与备份文件 =====
+_tmp*
+**/_tmp*
+_backup/
+**/_backup/
+*.log
+*.tmp
+*.bak
+
+# ===== 系统与编辑器 =====
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.idea/
+.vscode/

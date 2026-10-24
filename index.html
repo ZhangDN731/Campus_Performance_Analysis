@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>河北尚学单招成绩分析系统</title>
+<meta name="description" content="河北尚学单招成绩分析系统：校区周测成绩分析、学习目标对照与达标分析、河北省高职单招2024-2026大类信息查询，毛玻璃响应式，数据本地解析。">
+<style>
+:root{
+  --primary:#4f46e5;--primary-dark:#4338ca;--primary-darker:#3730a3;
+  --accent:#06b6d4;--accent-dark:#0891b2;
+  --text-main:#0f172a;--text-sub:#334155;--text-muted:#64748b;
+  --up:#16a34a;--down:#dc2626;--warn:#d97706;
+  --glass:rgba(255,255,255,.72);
+  --glass-strong:rgba(255,255,255,.86);
+  --stroke:rgba(255,255,255,.72);
+  --stroke-soft:rgba(15,23,42,.07);
+  --shadow-s:0 2px 10px rgba(15,23,42,.05);
+  --shadow-m:0 8px 30px rgba(15,23,42,.08);
+  --shadow-l:0 18px 50px rgba(15,23,42,.12);
+  --radius:20px;--radius-s:14px;
+  --blur:saturate(180%) blur(20px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  min-height:100vh;min-height:100dvh;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  color:var(--text-main);background:#eef2f9;
+  padding:clamp(18px,3vw,44px) clamp(14px,2.5vw,28px) clamp(24px,3vw,40px);
+  -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;
+  line-height:1.6;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:
+    radial-gradient(900px 620px at 12% 8%, rgba(99,102,241,.20), transparent 62%),
+    radial-gradient(820px 560px at 88% 12%, rgba(6,182,212,.18), transparent 60%),
+    radial-gradient(760px 700px at 70% 92%, rgba(168,85,247,.14), transparent 62%),
+    radial-gradient(700px 520px at 20% 88%, rgba(59,130,246,.14), transparent 60%),
+    linear-gradient(160deg,#f4f7fd 0%,#eaeff8 45%,#f2f5fb 100%);
+  background-attachment:fixed;
+}
+#particles{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.34}
+
+.wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto}
+
+/* ===== 页头 ===== */
+.page-header{text-align:center;margin-bottom:clamp(20px,3vw,34px)}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:5px 14px;border-radius:99px;margin-bottom:14px;
+  background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  border:1px solid var(--stroke);box-shadow:var(--shadow-s);
+  font-size:.72rem;font-weight:800;letter-spacing:1.6px;color:var(--primary-dark);
+}
+.eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);flex:0 0 auto}
+h1{
+  font-size:clamp(1.5rem,4.2vw,2.35rem);font-weight:800;letter-spacing:-.8px;
+  line-height:1.25;margin-bottom:10px;color:var(--text-main);
+}
+h1 .accent{
+  background:linear-gradient(120deg,var(--primary) 0%,var(--accent) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.page-sub{font-size:clamp(.78rem,1.5vw,.9rem);color:var(--text-muted);letter-spacing:.6px;font-weight:500}
+
+/* ===== 总览数据条：突出数据，整条居中 ===== */
+.overview{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:clamp(10px,1.4vw,16px);
+  max-width:1000px;margin-left:auto;margin-right:auto;
+  margin-bottom:clamp(18px,2.6vw,28px);
+}
+.ov-card{
+  padding:clamp(14px,2vw,20px) clamp(12px,1.6vw,18px);border-radius:var(--radius-s);
+  background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  border:1px solid var(--stroke);box-shadow:var(--shadow-m);text-align:center;
+  transition:transform .22s,box-shadow .22s;
+}
+.ov-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-l)}
+.ov-upload{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  text-decoration:none;min-width:130px;padding:clamp(12px,1.6vw,16px) clamp(14px,1.8vw,20px);
+  background:linear-gradient(135deg,rgba(8,145,178,.12),rgba(79,70,229,.1));
+  border:1px solid rgba(8,145,178,.3);cursor:pointer;
+}
+.ov-upload:hover{border-color:rgba(8,145,178,.55);box-shadow:0 6px 24px rgba(8,145,178,.18)}
+.ov-upload-icon{font-size:24px;line-height:1}
+.ov-upload-text{font-size:.88rem;font-weight:800;color:#0e7490}
+.ov-upload-sub{font-size:.68rem;color:var(--text-muted)}
+.ov-label{
+  font-size:.7rem;font-weight:800;letter-spacing:1px;color:var(--text-muted);
+  text-transform:uppercase;margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ov-value{
+  font-size:clamp(1.55rem,3.6vw,2.1rem);font-weight:800;line-height:1.1;
+  letter-spacing:-1px;font-variant-numeric:tabular-nums;color:var(--primary-darker);
+}
+.ov-value .unit{font-size:.44em;font-weight:700;color:var(--text-muted);margin-left:3px;letter-spacing:0}
+.ov-value.cyan{color:var(--accent-dark)}
+.ov-value.green{color:var(--up)}
+.ov-sub{font-size:.7rem;color:var(--text-muted);font-weight:600;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ===== 区块标题 ===== */
+.section{margin-bottom:clamp(16px,2.4vw,26px)}
+.section-label{
+  display:flex;align-items:center;gap:11px;margin-bottom:clamp(11px,1.6vw,16px);
+  font-size:.78rem;font-weight:800;letter-spacing:1.6px;color:var(--text-muted);
+}
+.section-label::before{
+  content:'';width:4px;height:15px;border-radius:2px;flex:0 0 auto;
+  background:linear-gradient(180deg,var(--accent),var(--primary));
+}
+.section-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(15,23,42,.10),transparent)}
+
+/* ===== 校区卡片 ===== */
+.grid{display:grid;gap:clamp(12px,1.6vw,18px);grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{
+  position:relative;display:flex;flex-direction:column;gap:12px;
+  padding:clamp(18px,2.4vw,26px) clamp(17px,2.2vw,24px);
+  text-decoration:none;color:inherit;border-radius:var(--radius);
+  background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  border:1px solid var(--stroke);box-shadow:var(--shadow-m);
+  transition:transform .24s cubic-bezier(.4,0,.2,1),box-shadow .24s,border-color .24s;
+  overflow:hidden;min-width:0;
+}
+.card::before{
+  content:'';position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .24s;
+  background:linear-gradient(135deg,rgba(79,70,229,.09),transparent 52%);
+}
+.card:hover{transform:translateY(-5px);box-shadow:var(--shadow-l);border-color:rgba(79,70,229,.30)}
+.card:hover::before{opacity:1}
+.card:active{transform:translateY(-3px)}
+.card.disabled{cursor:not-allowed;opacity:.86}
+.card.disabled:hover{transform:none;box-shadow:var(--shadow-m);border-color:var(--stroke)}
+
+.card-top{display:flex;align-items:center;gap:13px}
+.card-icon{
+  width:48px;height:48px;flex:0 0 auto;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;font-size:23px;line-height:1;
+  background:linear-gradient(135deg,rgba(79,70,229,.14),rgba(6,182,212,.14));
+  border:1px solid var(--stroke);
+}
+.card-titles{min-width:0}
+.card-title{
+  font-size:clamp(1.12rem,2.1vw,1.42rem);font-weight:800;letter-spacing:-.4px;
+  color:var(--text-main);line-height:1.25;
+}
+.card-en{font-size:.7rem;color:var(--text-muted);font-weight:700;letter-spacing:1.1px;margin-top:3px}
+
+/* 卡片内数据：这是首页的重点 */
+.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.metric{
+  padding:9px 11px;border-radius:11px;background:rgba(255,255,255,.66);
+  border:1px solid var(--stroke-soft);text-align:left;min-width:0;
+}
+.metric-k{
+  font-size:.66rem;font-weight:800;letter-spacing:.6px;color:var(--text-muted);
+  margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.metric-v{
+  font-size:1.06rem;font-weight:800;line-height:1.2;letter-spacing:-.4px;
+  font-variant-numeric:tabular-nums;color:var(--primary-darker);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.metric-v .unit{font-size:.62em;font-weight:700;color:var(--text-muted);margin-left:2px}
+.metric-v.cyan{color:var(--accent-dark)}
+.metric-v.muted{color:var(--text-muted);font-size:.9rem}
+.metric.wide{grid-column:1/-1}
+
+.badge{
+  display:inline-flex;align-items:center;gap:6px;align-self:flex-start;
+  padding:4px 12px;border-radius:99px;font-size:.71rem;font-weight:800;letter-spacing:.3px;
+  margin-top:auto;
+}
+.badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 7px currentColor;flex:0 0 auto}
+.badge-ok{color:#15803d;background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.22)}
+.badge-load{color:var(--accent-dark);background:rgba(6,182,212,.12);border:1px solid rgba(6,182,212,.22)}
+.badge-off{color:var(--warn);background:rgba(217,119,6,.11);border:1px solid rgba(217,119,6,.22)}
+.badge-upload{color:#0e7490;background:rgba(8,145,178,.1);border:1px solid rgba(8,145,178,.2)}
+.card-upload{border-color:rgba(8,145,178,.25);background:linear-gradient(135deg,rgba(240,253,250,.9),rgba(236,254,255,.9))}
+.card-upload:hover{border-color:rgba(8,145,178,.5);box-shadow:0 8px 30px rgba(8,145,178,.15)}
+.badge-warn{color:#b45309;background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.26)}
+.badge-generic{color:#7c3aed;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.22)}
+.card-generic{border-color:rgba(124,58,237,.25);background:linear-gradient(135deg,rgba(250,245,255,.9),rgba(245,243,255,.9))}
+.card-generic:hover{border-color:rgba(124,58,237,.5);box-shadow:0 8px 30px rgba(124,58,237,.15)}
+/* 学习目标卡：青绿强调 */
+.badge-learn{color:#0e7490;background:rgba(8,145,178,.11);border:1px solid rgba(8,145,178,.22)}
+.card-learning{border-color:rgba(6,182,212,.28);background:linear-gradient(135deg,rgba(236,254,255,.9),rgba(240,249,255,.9))}
+.card-learning:hover{border-color:rgba(6,182,212,.55);box-shadow:0 8px 30px rgba(6,182,212,.16)}
+/* 大类信息卡：靛蓝强调 */
+.badge-admission{color:#4338ca;background:rgba(79,70,229,.11);border:1px solid rgba(79,70,229,.22)}
+.card-admission{border-color:rgba(79,70,229,.28);background:linear-gradient(135deg,rgba(238,242,255,.9),rgba(245,243,255,.9))}
+.card-admission:hover{border-color:rgba(79,70,229,.55);box-shadow:0 8px 30px rgba(79,70,229,.16)}
+/* 两列功能网格 */
+.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+.arrow{
+  margin-left:auto;align-self:center;font-size:1.05rem;color:var(--text-muted);
+  transition:transform .24s,color .24s;flex:0 0 auto;
+}
+.card:hover .arrow{transform:translateX(5px);color:var(--primary)}
+
+/* ===== 功能说明 ===== */
+.features{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;
+  padding:clamp(16px,2.2vw,22px);border-radius:var(--radius);
+  background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  border:1px solid var(--stroke);box-shadow:var(--shadow-m);
+}
+.feat{padding:11px 13px;border-radius:var(--radius-s);background:rgba(255,255,255,.62);border:1px solid var(--stroke-soft)}
+.feat-t{font-size:.84rem;font-weight:800;color:var(--primary-darker);margin-bottom:5px;display:flex;align-items:center;gap:7px}
+.feat-t i{font-style:normal;font-size:.95rem}
+.feat-d{font-size:.74rem;color:var(--text-sub);line-height:1.7}
+.feat.hl{background:linear-gradient(135deg,rgba(236,254,255,.85),rgba(238,242,255,.72));border-color:rgba(6,182,212,.26)}
+.feat.hl .feat-t{color:#0e7490}
+
+/* ===== 页脚 ===== */
+.footer{
+  margin-top:clamp(22px,3vw,34px);padding-top:clamp(15px,2vw,20px);
+  border-top:1px solid var(--stroke-soft);text-align:center;
+  font-size:.74rem;color:var(--text-muted);line-height:1.95;
+}
+.footer #currentTime{font-variant-numeric:tabular-nums;font-weight:700;color:var(--text-sub);letter-spacing:.5px}
+.footer-author{margin-top:4px;font-size:.72rem;color:var(--text-muted)}
+.footer-author b{color:var(--text-sub);font-weight:800}
+.footer a{color:var(--primary-dark);text-decoration:none;font-weight:700}
+.footer a:hover{text-decoration:underline}
+
+/* ===== 功能介绍（仅大屏幕显示） ===== */
+.features-section{display:none;margin-top:clamp(16px,2.5vw,28px)}
+@media (min-width:1024px){
+  .features-section{display:block}
+  .features-grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+    padding:18px 22px;border-radius:16px;
+    background:rgba(255,255,255,.55);
+    border:1px solid rgba(15,23,42,.06);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  }
+  .feature-item{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;transition:background .2s}
+  .feature-item:hover{background:rgba(79,70,229,.06)}
+  .feature-icon{
+    width:38px;height:38px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    font-size:18px;border-radius:10px;background:rgba(79,70,229,.1);
+  }
+  .feature-title{font-size:.85rem;font-weight:800;color:var(--text-main);line-height:1.3}
+  .feature-desc{font-size:.72rem;color:var(--text-muted);margin-top:2px;line-height:1.4}
+}
+
+/* ===== 响应式 ===== */
+@media (max-width:900px){
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .overview{max-width:none}
+}
+@media (max-width:620px){
+  body{padding:16px 12px 26px}
+  .grid,.grid-2{grid-template-columns:1fr}
+  .overview{grid-template-columns:1fr}
+  .ov-upload{display:none}
+  .card:hover{transform:translateY(-3px)}
+  .card-icon{width:42px;height:42px;font-size:20px;border-radius:12px}
+  .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:400px){
+  .overview{gap:8px}
+  .ov-value{font-size:1.4rem}
+  .metrics{grid-template-columns:1fr}
+}
+@media (hover:none){#particles{opacity:.2}}
+@media print{
+  body::before,#particles{display:none!important}
+  .card,.ov-card,.features{background:#fff!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:none!important}
+}
+</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+
+<div class="wrap">
+
+  <header class="page-header">
+    <div class="eyebrow"><span class="dot"></span>HEBEI SHANGXUE · SCORE ANALYTICS</div>
+    <h1>河北尚学单招<span class="accent">成绩分析系统</span></h1>
+
+  </header>
+
+  <!-- ===== 总览：跨校区汇总的真实数据 ===== -->
+  <div class="overview" id="overview">
+    <div class="ov-card">
+      <div class="ov-label">覆盖班级</div>
+      <div class="ov-value cyan" id="ovClasses">—</div>
+      <div class="ov-sub" id="ovClassesSub">正在读取成绩文件…</div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-label">成绩记录</div>
+      <div class="ov-value" id="ovStudents">—</div>
+      <div class="ov-sub">学生 × 考试 条数</div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-label">最新周测</div>
+      <div class="ov-value green" id="ovExam">—</div>
+      <div class="ov-sub" id="ovExamSub">正在读取…</div>
+    </div>
+    <a href="pages/upload.html" class="ov-card ov-upload">
+      <div class="ov-upload-icon">📤</div>
+      <div class="ov-upload-text">成绩上传</div>
+      <div class="ov-upload-sub">登录后同步</div>
+    </a>
+  </div>
+
+  <!-- ===== 校区入口 ===== -->
+  <section class="section">
+    <div class="section-label">校区入口</div>
+    <div class="grid">
+
+      <a href="pages/龙泉校区.html" class="card" id="card-lq">
+        <div class="card-top">
+          <div class="card-icon">🏫</div>
+          <div class="card-titles">
+            <div class="card-title">龙泉校区</div>
+            <div class="card-en">LONGQUAN CAMPUS</div>
+          </div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="metrics" id="m-lq">
+          <div class="metric"><div class="metric-k">班级</div><div class="metric-v" data-k="classes">—</div></div>
+          <div class="metric"><div class="metric-k">考试次数</div><div class="metric-v cyan" data-k="exams">—</div></div>
+          <div class="metric"><div class="metric-k">最新周测</div><div class="metric-v cyan" data-k="latest">—</div></div>
+          <div class="metric"><div class="metric-k" data-kl="updateLabel">上周六周测</div><div class="metric-v" data-k="update">—</div></div>
+        </div>
+        <span class="badge badge-load" data-k="badge">正在读取成绩…</span>
+      </a>
+
+      <a href="pages/星耀校区.html" class="card" id="card-xy">
+        <div class="card-top">
+          <div class="card-icon">🏫</div>
+          <div class="card-titles">
+            <div class="card-title">星耀校区</div>
+            <div class="card-en">XINGYAO CAMPUS</div>
+          </div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="metrics" id="m-xy">
+          <div class="metric"><div class="metric-k">班级</div><div class="metric-v" data-k="classes">—</div></div>
+          <div class="metric"><div class="metric-k">考试次数</div><div class="metric-v cyan" data-k="exams">—</div></div>
+          <div class="metric"><div class="metric-k">最新周测</div><div class="metric-v cyan" data-k="latest">—</div></div>
+          <div class="metric"><div class="metric-k" data-kl="updateLabel">上周六周测</div><div class="metric-v" data-k="update">—</div></div>
+        </div>
+        <span class="badge badge-load" data-k="badge">正在读取成绩…</span>
+      </a>
+
+      <a href="pages/睿智校区.html" class="card" id="card-rz">
+        <div class="card-top">
+          <div class="card-icon">🏫</div>
+          <div class="card-titles">
+            <div class="card-title">睿智校区</div>
+            <div class="card-en">RUIZHI CAMPUS</div>
+          </div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="metrics" id="m-rz">
+          <div class="metric"><div class="metric-k">班级</div><div class="metric-v" data-k="classes">—</div></div>
+          <div class="metric"><div class="metric-k">考试次数</div><div class="metric-v cyan" data-k="exams">—</div></div>
+          <div class="metric"><div class="metric-k">最新周测</div><div class="metric-v cyan" data-k="latest">—</div></div>
+          <div class="metric"><div class="metric-k" data-kl="updateLabel">上周六周测</div><div class="metric-v" data-k="update">—</div></div>
+        </div>
+        <span class="badge badge-load" data-k="badge">正在读取成绩…</span>
+      </a>
+
+      <a href="pages/通用成绩分析.html" class="card card-generic" id="card-generic">
+        <div class="card-top">
+          <div class="card-icon">📊</div>
+          <div class="card-titles">
+            <div class="card-title">通用分析</div>
+            <div class="card-en">GENERIC ANALYSIS</div>
+          </div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="metrics" style="grid-template-columns:1fr">
+          <div class="metric"><div class="metric-k">说明</div><div class="metric-v cyan">手动上传任意成绩文件分析</div></div>
+        </div>
+        <span class="badge badge-generic">手动上传</span>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ===== 学习规划与数据查询 ===== -->
+  <section class="section">
+    <div class="section-label">学习规划与数据查询</div>
+    <div class="grid grid-2">
+
+      <a href="pages/learning-objectives.html" class="card card-learning">
+        <div class="card-top">
+          <div class="card-icon">🎯</div>
+          <div class="card-titles">
+            <div class="card-title">学习目标</div>
+            <div class="card-en">LEARNING OBJECTIVES</div>
+          </div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="metrics" style="grid-template-columns:1fr">
+          <div class="metric"><div class="metric-k">说明</div><div class="metric-v cyan">目标院校对照 · 达标分析 · 个人提升建议</div></div>
+        </div>
+        <span class="badge badge-learn">默认成绩 · 目标对照</span>
+      </a>
+
+      <a href="pages/admission-info.html" class="card card-admission">
+        <div class="card-top">
+          <div class="card-icon">🏛️</div>
+          <div class="card-titles">
+            <div class="card-title">大类信息</div>
+            <div class="card-en">ADMISSION DATA</div>
+          </div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="metrics" style="grid-template-columns:1fr">
+          <div class="metric"><div class="metric-k">说明</div><div class="metric-v">河北省高职单招 2024-2026 三年数据查询</div></div>
+        </div>
+        <span class="badge badge-admission">分数线 · 计划 · 一分一档</span>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ===== 功能介绍（仅大屏幕显示） ===== -->
+  <section class="section features-section">
+    <div class="features-grid">
+      <div class="feature-item">
+        <div class="feature-icon">📊</div>
+        <div class="feature-text">
+          <div class="feature-title">多维度分析</div>
+          <div class="feature-desc">达标率 · 分数段 · 全班成绩 · 个人趋势</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-text">
+          <div class="feature-title">智能分值对齐</div>
+          <div class="feature-desc">不同考试满分不同时自动换算对齐</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">📄</div>
+        <div class="feature-text">
+          <div class="feature-title">一键导出 PDF</div>
+          <div class="feature-desc">A4 横向 · 按学科/班级批量导出</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">📱</div>
+        <div class="feature-text">
+          <div class="feature-title">全设备适配</div>
+          <div class="feature-desc">电脑 · 平板 · 手机响应式布局</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🔄</div>
+        <div class="feature-text">
+          <div class="feature-title">自动同步部署</div>
+          <div class="feature-desc">GitHub Pages 一键更新，无需服务器</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-text">
+          <div class="feature-title">数据本地解析</div>
+          <div class="feature-desc">成绩仅在浏览器本地处理，不上传服务器</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div id="currentTime"></div>
+    <div class="footer-author">制作者：<b>ZhangD!n@mnmnmnmnm</b> · 成绩仅在浏览器本地解析，不上传服务器</div>
+  </footer>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+/* =====================================================================
+ *  首页 v4.0.0：与校区页同一套视觉语言（简约 + 毛玻璃 + 突出数据）
+ *  卡片数据由浏览器直接读取成绩 Excel 实时汇总，无任何后端。
+ * ===================================================================== */
+
+/* 校区配置：新增校区只需在这里加一项 */
+const CAMPUSES = [
+  {
+    key: 'lq', name: '龙泉校区', page: 'pages/龙泉校区.html',
+    candidates: ['data/27届龙泉周测成绩.xlsx','data/27届龙泉周测成绩.xls']
+  },
+  {
+    key: 'xy', name: '星耀校区', page: 'pages/星耀校区.html',
+    candidates: ['data/27届星耀周测成绩.xlsx','data/27届星耀周测成绩.xls']
+  },
+  {
+    key: 'rz', name: '睿智校区', page: 'pages/睿智校区.html',
+    candidates: ['data/27届睿智周测成绩.xlsx','data/27届睿智周测成绩.xls']
+  }
+];
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+/* 表头里的满分标注，如「语文（100）」→ 100 */
+const FM_RE = /[（(][^)）]*?(\d+(?:\.\d+)?)[^)）]*[)）]\s*$/;
+const extractFM = s => { const m = String(s || '').match(FM_RE); if (!m) return null; const n = parseFloat(m[1]); return (Number.isNaN(n) || n <= 0) ? null : n; };
+const baseSubject = s => { const t = String(s || '').trim(); return t.replace(FM_RE, '').trim() || t; };
+
+/* 某些表存在上万个空列（星耀即是），先收缩范围，否则读取会很慢 */
+function shrink(ws) {
+  if (!ws || !ws['!ref'] || typeof XLSX === 'undefined') return;
+  try {
+    const r = XLSX.utils.decode_range(ws['!ref']);
+    let lastC = r.s.c;
+    const headEnd = Math.min(r.s.r + 1, r.e.r);
+    for (let R = r.s.r; R <= headEnd; R++) {
+      for (let C = r.e.c; C >= r.s.c; C--) {
+        const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+        if (cell && cell.v !== null && cell.v !== undefined && String(cell.v).trim() !== '') {
+          if (C > lastC) lastC = C;
+          break;
+        }
+      }
+    }
+    if (lastC < r.e.c) { r.e.c = lastC; ws['!ref'] = XLSX.utils.encode_range(r); }
+  } catch (e) { /* 收缩失败不影响统计 */ }
+}
+
+/* 判断是纵向表（首列「学生/考试」）还是横向表（首行合并的考试名） */
+function isVertical(rows) {
+  const r0 = rows[0] || [], r1 = rows[1] || [];
+  return String(r0[0] ?? '').trim() === '学生' && String(r1[0] ?? '').trim() === '考试';
+}
+
+const isTotalSubject = s => { const b = baseSubject(s); return b === '总分' || b === '总 分' || b === '总成绩'; };
+
+/* ===== 更新判定：上一周的周六 =====
+   规则：每周六出新成绩。以「今天所在周的周一」为本周起点，
+   上一个周六 = 本周一 - 2 天。考试名（如 9.19周测、10.17周测）里
+   的日期等于这个周六，视为本周已更新；否则视为未更新。 */
+function expectedSaturday(d) {
+  const t = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dow = (t.getDay() + 6) % 7;                 // 周一=0 … 周日=6
+  t.setDate(t.getDate() - dow - 2);                // 退到本周一，再退 2 天 = 上周六
+  return t;
+}
+function parseExamDate(name) {
+  const m = String(name || '').match(/(\d{1,2})[.\-/月](\d{1,2})/);
+  if (!m) return null;
+  return { month: parseInt(m[1], 10), day: parseInt(m[2], 10) };
+}
+function latestSaturdayExam(exams, sat) {
+  /* 精确匹配：考试名里的日期正好等于目标周六才算「有」 */
+  const key = (sat.getMonth() + 1) * 100 + sat.getDate();
+  for (const ex of exams) {
+    const d = parseExamDate(ex);
+    if (d && d.month * 100 + d.day === key) return ex;
+  }
+  return null;
+}
+
+/* 轻量统计：只取班级数、考试名、学生数、满分变动情况 */
+function analyzeWorkbook(wb) {
+  const res = { classes: [], exams: [], students: 0, subjects: new Set(), markChanges: 0 };
+  const examSet = new Set();
+  /* 班级 → 考试 → 科目 → 标注满分，与校区页保持同一套判定口径 */
+  const perClass = new Map();
+
+  wb.SheetNames.forEach(sn => {
+    const cls = String(sn).trim();
+    if (!cls) return;
+    const ws = wb.Sheets[sn];
+    shrink(ws);
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    if (!rows || rows.length < 2) return;
+    res.classes.push(cls);
+    if (!perClass.has(cls)) perClass.set(cls, new Map());
+    const examMarks = perClass.get(cls);
+    const note = (exam, sub, fm) => {
+      if (!examMarks.has(exam)) examMarks.set(exam, new Map());
+      const sm = examMarks.get(exam);
+      /* 同一考试内同名科目取最大标注值，与校区页 recordClassSubjectMark 一致 */
+      if (fm != null && !(sm.get(sub) > fm)) sm.set(sub, fm);
+      else if (!sm.has(sub)) sm.set(sub, fm);
+    };
+
+    if (isVertical(rows)) {
+      /* 纵向：第 1 列是考试名，表头从第 3 列起是科目 */
+      const headers = (rows[0] || []).map(h => String(h ?? '').trim());
+      const subs = headers.slice(2).filter(Boolean);
+      subs.forEach(h => res.subjects.add(baseSubject(h)));
+      let n = 0;
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i] || [];
+        const name = String(row[0] ?? '').trim();
+        const exam = String(row[1] ?? '').trim();
+        if (!name || !exam) continue;
+        examSet.add(exam); n++;
+        subs.forEach(h => note(exam, baseSubject(h), extractFM(h)));
+      }
+      res.students += n;
+    } else {
+      /* 横向：第 1 行是考试名（合并单元格只在首列有值），第 2 行是科目 */
+      const row0 = rows[0] || [], row1 = rows[1] || [];
+      let curExam = null;
+      for (let c = 1; c < row1.length; c++) {
+        const e = String(row0[c] ?? '').trim();
+        const s = String(row1[c] ?? '').trim();
+        if (e) { curExam = e; examSet.add(e); }
+        if (s && curExam) { res.subjects.add(baseSubject(s)); note(curExam, baseSubject(s), extractFM(s)); }
+      }
+      let n = 0;
+      for (let r = 2; r < rows.length; r++) {
+        const name = String((rows[r] || [])[0] ?? '').trim();
+        if (!name) continue;
+        n++;
+      }
+      /* 横向表每个学生对应多次考试 */
+      res.students += n * Math.max(examSet.size, 1);
+    }
+  });
+
+  /* 满分变动计数：与校区页 collectAlignDiff 同口径
+     · 单科：直接用表头标注的满分
+     · 总分：优先用标注值，缺失时用该次考试各科标注满分之和推导
+       （龙泉的「总分」不标满分，且各科组合在不同考试间会变，必须推导） */
+  perClass.forEach(examMarks => {
+    const exams = [...examMarks.keys()];
+    if (exams.length < 2) return;
+
+    const subSet = new Map();   // 科目 → 各次考试满分集合
+    exams.forEach(ex => {
+      examMarks.get(ex).forEach((fm, sub) => {
+        if (isTotalSubject(sub) || fm == null) return;
+        if (!subSet.has(sub)) subSet.set(sub, new Set());
+        subSet.get(sub).add(fm);
+      });
+    });
+    subSet.forEach(set => { if (set.size > 1) res.markChanges++; });
+
+    /* 总分 */
+    const totalVals = new Set();
+    exams.forEach(ex => {
+      const sm = examMarks.get(ex);
+      let marked = null;
+      sm.forEach((fm, sub) => { if (isTotalSubject(sub) && fm != null) marked = fm; });
+      if (marked != null) { totalVals.add(marked); return; }
+      let sum = 0, n = 0;
+      sm.forEach((fm, sub) => { if (!isTotalSubject(sub) && fm != null && fm > 0) { sum += fm; n++; } });
+      if (n) totalVals.add(sum);
+    });
+    if (totalVals.size > 1) res.markChanges++;
+  });
+
+  res.exams = [...examSet];
+  return res;
+}
+
+function setMetric(rootKey, k, text, extraCls) {
+  const wrap = $('m-' + rootKey);
+  if (!wrap) return;
+  const el = wrap.querySelector('[data-k="' + k + '"]');
+  if (!el) return;
+  el.textContent = text;
+  if (extraCls) el.className = 'metric-v ' + extraCls;
+}
+function setBadge(rootKey, text, cls) {
+  const card = $('card-' + rootKey);
+  if (!card) return;
+  const b = card.querySelector('[data-k="badge"]');
+  if (!b) return;
+  b.textContent = text;
+  b.className = 'badge ' + cls;
+}
+
+async function fetchFirst(candidates) {
+  const MAX_RETRY = 2;        /* 每个 URL 最多重试 2 次（共 3 次尝试） */
+  const TIMEOUT_MS = 15000;   /* 单次请求 15 秒超时 */
+  const RETRY_DELAY = 800;    /* 重试间隔 800ms */
+
+  for (const url of candidates) {
+    /* 加时间戳绕过 GitHub Pages CDN 缓存 */
+    const urlWithTs = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+    for (let attempt = 0; attempt <= MAX_RETRY; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+        const res = await fetch(urlWithTs, { cache: 'no-store', signal: controller.signal });
+        clearTimeout(timer);
+        if (!res.ok) break;  /* HTTP 404 等错误不重试，直接换下一个候选 */
+        const buf = await res.arrayBuffer();
+        return { buf, url };
+      } catch (e) {
+        clearTimeout(timer);
+        if (attempt < MAX_RETRY) {
+          await new Promise(r => setTimeout(r, RETRY_DELAY));
+          continue;  /* 网络错误/超时才重试 */
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/* 把「上一周周六周测是否已更新」写进卡片第 4 项指标 */
+const satLabel = sat => (sat.getMonth() + 1) + '.' + sat.getDate();
+function renderUpdateMetric(key, exams) {
+  const sat = expectedSaturday(new Date());
+  const wrap = $('m-' + key);
+  const kl = wrap ? wrap.querySelector('[data-kl="updateLabel"]') : null;
+  if (kl) kl.textContent = satLabel(sat) + '周测';
+  if (!exams || !exams.length) { setMetric(key, 'update', '—', 'muted'); return null; }
+  const found = latestSaturdayExam(exams, sat);
+  if (found) {
+    setMetric(key, 'update', '已更新', '');
+    const el = wrap.querySelector('[data-k="update"]');
+    if (el) el.style.color = '#15803d';
+    return true;
+  }
+  setMetric(key, 'update', '未更新', '');
+  const el = wrap.querySelector('[data-k="update"]');
+  if (el) el.style.color = '#b45309';
+  return false;
+}
+
+async function loadCampus(c) {
+  const hit = await fetchFirst(c.candidates);
+  if (!hit) {
+    setBadge(c.key, '未找到成绩文件', 'badge-warn');
+    setMetric(c.key, 'classes', '—', 'muted');
+    setMetric(c.key, 'exams', '—', 'muted');
+    setMetric(c.key, 'latest', '—', 'muted');
+    renderUpdateMetric(c.key, null);
+    return null;
+  }
+  let info;
+  try {
+    const wb = XLSX.read(new Uint8Array(hit.buf), { type: 'array' });
+    info = analyzeWorkbook(wb);
+  } catch (e) {
+    setBadge(c.key, '成绩文件解析失败', 'badge-warn');
+    renderUpdateMetric(c.key, null);
+    return null;
+  }
+  info.file = hit.url.split('/').pop();
+
+  const latest = info.exams.length ? info.exams[info.exams.length - 1] : '—';
+  setMetric(c.key, 'classes', info.classes.length + ' 个');
+  setMetric(c.key, 'exams', info.exams.length + ' 次');
+  setMetric(c.key, 'latest', latest, 'cyan');
+  const upd = renderUpdateMetric(c.key, info.exams);
+  if (info.markChanges > 0) {
+    setBadge(c.key, info.markChanges + ' 项满分变动 · 进入页面自动对齐最高满分', 'badge-ok');
+  } else if (upd === false) {
+    setBadge(c.key, satLabel(expectedSaturday(new Date())) + '周测未更新 · 点击进入', 'badge-warn');
+  } else {
+    setBadge(c.key, '数据已就绪 · 点击进入', 'badge-ok');
+  }
+  return info;
+}
+
+/* ===== 汇总到顶部总览条 ===== */
+function renderOverview(list) {
+  const ok = list.filter(Boolean);
+  const classes = ok.reduce((n, i) => n + i.classes.length, 0);
+  const students = ok.reduce((n, i) => n + i.students, 0);
+  const allExams = [...new Set(ok.flatMap(i => i.exams))];
+  const latest = allExams.length ? allExams[allExams.length - 1] : '—';
+
+  $('ovClasses').innerHTML = classes + '<span class="unit">个</span>';
+  $('ovClassesSub').textContent = ok.map(i => i.file.replace(/\.xlsx?$/i, '')).join(' · ') || '未读取到数据';
+  $('ovStudents').innerHTML = students >= 10000
+    ? (Math.round(students / 1000) / 10) + '<span class="unit">万条</span>'
+    : students + '<span class="unit">条</span>';
+
+  $('ovExam').textContent = latest;
+  $('ovExam').style.fontSize = latest.length > 8 ? 'clamp(1.05rem,2.4vw,1.4rem)' : '';
+  const changed = ok.reduce((n, i) => n + i.markChanges, 0);
+  $('ovExamSub').textContent = changed > 0
+    ? '共 ' + allExams.length + ' 次考试 · ' + changed + ' 项已对齐最高满分'
+    : '共 ' + allExams.length + ' 次考试';
+}
+
+/* ===== 实时时间 ===== */
+(function () {
+  const el = $('currentTime');
+  const p = n => String(n).padStart(2, '0');
+  function tick() {
+    const d = new Date();
+    el.textContent = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+      ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+
+/* ===== 轻量粒子背景 ===== */
+(function () {
+  const canvas = $('particles');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  let w = 0, h = 0, dpr = Math.min(window.devicePixelRatio || 1, 2), ps = [], raf = null;
+
+  function build() {
+    w = canvas.width = window.innerWidth * dpr;
+    h = canvas.height = window.innerHeight * dpr;
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    const count = Math.min(Math.floor(window.innerWidth * window.innerHeight / 22000), 55);
+    ps = [];
+    for (let i = 0; i < count; i++) {
+      ps.push({
+        x: Math.random() * w, y: Math.random() * h,
+        r: (Math.random() * 1.7 + 0.5) * dpr,
+        vx: (Math.random() - 0.5) * 0.28 * dpr,
+        vy: (Math.random() - 0.5) * 0.28 * dpr,
+        a: Math.random() * 0.3 + 0.1,
+        hue: Math.random() < 0.6 ? 230 : 190,
+        ph: Math.random() * Math.PI * 2
+      });
+    }
+  }
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    for (const p of ps) {
+      p.ph += 0.012;
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > w) p.vx *= -1;
+      if (p.y < 0 || p.y > h) p.vy *= -1;
+      const a = p.a * (0.65 + Math.sin(p.ph) * 0.35);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'hsla(' + p.hue + ',80%,60%,' + a + ')';
+      ctx.fill();
+    }
+    raf = requestAnimationFrame(draw);
+  }
+  let t = null;
+  window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(build, 180); });
+  /* 页面不可见时暂停绘制，省电 */
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { if (raf) cancelAnimationFrame(raf); raf = null; }
+    else if (!raf) draw();
+  });
+  build();
+  draw();
+})();
+
+/* ===== 启动：并行读取各校区成绩 ===== */
+(function () {
+  if (typeof XLSX === 'undefined') {
+    CAMPUSES.forEach(c => {
+      setBadge(c.key, '解析库加载失败，请刷新', 'badge-warn');
+      setMetric(c.key, 'align', '无法读取本地成绩文件', 'muted');
+    });
+    $('ovClassesSub').textContent = '解析库未加载，可刷新重试';
+    return;
+  }
+  Promise.all(CAMPUSES.map(loadCampus))
+    .then(renderOverview)
+    .catch(() => {
+      $('ovClassesSub').textContent = '读取失败，可进入校区页手动上传';
+    });
+})();
+</script>
+</body>
+</html>

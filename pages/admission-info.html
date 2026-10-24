@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>河北省高职单招数据查询系统 | 2024-2026</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<script>if(!window.echarts){document.write('<script src="https://fastly.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"><\/script>');}</script>
+<script src="../assets/data/data_2024.js"></script>
+<script src="../assets/data/data_2025.js"></script>
+<script src="../assets/data/data_2026.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --primary:#4f46e5;--primary-light:#6366f1;
+  --accent:#06b6d4;--accent-light:#22d3ee;
+  --purple:#8b5cf6;--green:#10b981;--orange:#f59e0b;--red:#ef4444;
+  --bg-gradient:linear-gradient(135deg,#ede9fe 0%,#e0e7ff 30%,#dbeafe 55%,#cffafe 100%);
+  --card:rgba(255,255,255,.72);
+  --card-solid:#ffffff;
+  --glass-blur:saturate(180%) blur(20px);
+  --text:#1e293b;--text2:#64748b;--text3:#94a3b8;
+  --border:#e2e8f0;--border-light:#f1f5f9;
+  --success:#059669;--warning:#d97706;--danger:#dc2626;
+  --shadow:0 4px 16px rgba(79,70,229,0.08);
+  --shadow-lg:0 8px 30px rgba(79,70,229,0.12);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#eef2f9;color:var(--text);line-height:1.6;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:-2;pointer-events:none;background:radial-gradient(900px 620px at 12% 8%,rgba(99,102,241,.20),transparent 62%),radial-gradient(820px 560px at 88% 12%,rgba(6,182,212,.18),transparent 60%),radial-gradient(760px 700px at 70% 92%,rgba(168,85,247,.14),transparent 62%),radial-gradient(700px 520px at 20% 88%,rgba(59,130,246,.14),transparent 60%),linear-gradient(160deg,#f4f7fd 0%,#eaeff8 45%,#f2f5fb 100%);background-attachment:fixed}
+#particleCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.34}
+/* ===== 玻璃卡片：统一半透明 + 模糊 ===== */
+.stat-card,.chart-card,.controls,.table-panel,.compare-header{-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);border:1px solid rgba(255,255,255,.72)}
+.table-panel{background:var(--card-solid)}
+.topbar{background:rgba(255,255,255,0.9);backdrop-filter:blur(12px);padding:12px 24px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(79,70,229,0.08);border-bottom:1px solid rgba(255,255,255,0.6)}
+.topbar-row1{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.topbar h1{font-size:19px;font-weight:800;letter-spacing:0.5px;white-space:nowrap;background:linear-gradient(135deg,var(--primary) 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.topbar h1 span{opacity:0.6;font-size:12px;font-weight:400;margin-left:8px;-webkit-text-fill-color:var(--text2)}
+.topbar-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.year-tabs{display:flex;gap:4px;background:rgba(79,70,229,0.08);padding:3px;border-radius:10px}
+.year-tab{padding:6px 16px;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:600;transition:all .25s;color:var(--text2)}
+.year-tab:hover{color:var(--primary)}
+.year-tab.active{background:#fff;color:var(--primary);box-shadow:0 2px 8px rgba(79,70,229,0.15)}
+.compare-tab-btn{padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:600;transition:all .25s;color:var(--purple);background:rgba(139,92,246,0.1);border:1.5px solid rgba(139,92,246,0.2)}
+.compare-tab-btn:hover{background:rgba(139,92,246,0.18)}
+.compare-tab-btn.active{background:linear-gradient(135deg,var(--purple),var(--primary));color:#fff;border-color:transparent;box-shadow:0 2px 10px rgba(139,92,246,0.3)}
+.topbar-row2{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cat-buttons{display:flex;flex-wrap:wrap;gap:5px}
+.cat-btn{padding:5px 12px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:#fff;transition:all .2s;color:var(--text2)}
+.cat-btn:hover{border-color:var(--primary-light);color:var(--primary);background:rgba(99,102,241,0.04)}
+.cat-btn.active{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;border-color:transparent;box-shadow:0 2px 6px rgba(79,70,229,0.25)}
+.cat-btn.all-cat{border-color:var(--purple);color:var(--purple)}
+.cat-btn.all-cat.active{background:linear-gradient(135deg,var(--purple),var(--primary));box-shadow:0 2px 6px rgba(139,92,246,0.25)}
+.container{max-width:1600px;margin:0 auto;padding:16px 20px 50px}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
+.stat-card{background:var(--card);border-radius:12px;padding:14px 10px;text-align:center;box-shadow:var(--shadow);border-top:3px solid var(--accent);transition:transform .2s,box-shadow .2s}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.stat-card:nth-child(2){border-top-color:var(--success)}
+.stat-card:nth-child(3){border-top-color:var(--warning)}
+.stat-card:nth-child(4){border-top-color:var(--purple)}
+.stat-card:nth-child(5){border-top-color:var(--danger)}
+.stat-card:nth-child(6){border-top-color:var(--primary)}
+.stat-card .num{font-size:22px;font-weight:800;color:var(--primary)}
+.stat-card:nth-child(2) .num{color:var(--success)}
+.stat-card:nth-child(3) .num{color:var(--warning)}
+.stat-card:nth-child(4) .num{color:var(--purple)}
+.stat-card:nth-child(5) .num{color:var(--danger)}
+.stat-card:nth-child(6) .num{color:var(--primary)}
+.stat-card .label{font-size:11px;color:var(--text2);margin-top:3px;font-weight:500}
+
+.charts-section{margin-bottom:14px}
+.charts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.chart-card{background:var(--card);border-radius:14px;padding:12px 10px 8px;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s}
+.chart-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.chart-card-title{font-size:13px;font-weight:700;color:var(--primary);margin-bottom:4px;text-align:center;letter-spacing:0.5px}
+.chart-card-body{width:100%;height:220px}
+
+.controls{background:var(--card);border-radius:16px;padding:14px;margin-bottom:14px;box-shadow:var(--shadow)}
+.type-tabs{display:flex;flex-wrap:wrap;gap:4px;background:#f1f5f9;padding:4px;border-radius:10px;margin-bottom:12px}
+.type-tab{flex:1;min-width:80px;padding:8px 6px;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:600;text-align:center;transition:all .2s;color:var(--text2)}
+.type-tab.active{background:#fff;color:var(--primary);box-shadow:0 2px 6px rgba(0,0,0,0.06)}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.search-box{flex:1;min-width:200px;position:relative}
+.search-box input{width:100%;padding:8px 14px 8px 34px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;transition:all .2s;background:#fafbfc}
+.search-box input:focus{outline:none;border-color:var(--primary-light);box-shadow:0 0 0 3px rgba(99,102,241,0.1);background:#fff}
+.search-box::before{content:'';position:absolute;left:11px;top:50%;transform:translateY(-50%);width:13px;height:13px;border:2px solid #94a3b8;border-radius:50%;opacity:0.5}
+.search-box::after{content:'';position:absolute;left:21px;top:calc(50% + 5px);width:5px;height:2px;background:#94a3b8;transform:rotate(45deg);opacity:0.5}
+.tool-btn{padding:8px 14px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;font-size:12.5px;font-weight:600;background:#fff;transition:all .2s;color:var(--text2);white-space:nowrap}
+.tool-btn:hover{border-color:var(--primary-light);color:var(--primary)}
+.tool-btn.primary{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(79,70,229,0.2)}
+.tool-btn.primary:hover{box-shadow:0 4px 14px rgba(79,70,229,0.3)}
+.result-count{font-size:12.5px;color:var(--text2);white-space:nowrap;font-weight:500}
+.filter-panel{background:#f8fafc;border-radius:10px;padding:12px;margin-top:10px;display:none;border:1px solid var(--border)}
+.filter-panel.show{display:block}
+.filter-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.filter-group{display:flex;align-items:center;gap:6px}
+.filter-group label{font-size:12px;color:var(--text2);font-weight:500;white-space:nowrap}
+.filter-group input,.filter-group select{padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;width:100px;background:#fff}
+.filter-group input:focus,.filter-group select:focus{outline:none;border-color:var(--primary-light)}
+.table-panel{background:var(--card);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+.table-wrapper{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{padding:11px 10px;text-align:left;font-weight:700;color:var(--primary);border-bottom:2px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;font-size:12px;background:linear-gradient(180deg,#f8faff,#f1f5ff)}
+thead th:hover{background:linear-gradient(180deg,#eef2ff,#e0e7ff)}
+th .sort-icon{font-size:9px;margin-left:4px;opacity:0.35}
+th.sorted .sort-icon{opacity:1;color:var(--accent)}
+td{padding:8px 10px;border-bottom:1px solid var(--border-light)}
+tr{transition:background .15s}
+tr.clickable{cursor:pointer}
+tr:hover{background:#f0f4ff}
+tr:nth-child(even){background:#fafbff}
+tr:nth-child(even):hover{background:#f0f4ff}
+.badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10.5px;font-weight:600}
+.badge-public{background:#dcfce7;color:#15803d}
+.badge-private{background:#fef3c7;color:#b45309}
+.score-high{color:var(--danger);font-weight:700}
+.score-mid{color:var(--warning);font-weight:700}
+.score-low{color:var(--success);font-weight:700}
+.school-link{color:var(--primary);font-weight:600;text-decoration:underline;cursor:pointer;text-underline-offset:2px}
+.school-link:hover{color:var(--primary-light)}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(30,27,75,0.5);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;max-width:820px;width:100%;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(79,70,229,0.25)}
+.modal-header{padding:16px 20px;background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;display:flex;justify-content:space-between;align-items:center}
+.modal-header h3{font-size:16px;font-weight:700}
+.modal-close{background:rgba(255,255,255,0.2);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.modal-close:hover{background:rgba(255,255,255,0.35)}
+.modal-body{padding:16px 20px;overflow-y:auto;flex:1}
+.modal-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.modal-stat{background:#f8fafc;border-radius:10px;padding:10px;text-align:center}
+.modal-stat .num{font-size:18px;font-weight:800;color:var(--primary)}
+.modal-stat .label{font-size:11px;color:var(--text2);margin-top:2px}
+.modal-table{width:100%;border-collapse:collapse;font-size:12px}
+.modal-table th{background:#f1f5f9;padding:8px;text-align:left;font-weight:600;color:var(--primary);font-size:11.5px}
+.modal-table td{padding:7px;border-bottom:1px solid #f1f5f9}
+.empty-state{text-align:center;padding:50px 20px;color:var(--text2)}
+.empty-state .icon{font-size:40px;margin-bottom:12px;opacity:0.4}
+.compare-header{background:var(--card);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.compare-header h2{font-size:17px;font-weight:800;color:var(--primary);margin-bottom:6px}
+.compare-header p{font-size:13px;color:var(--text2)}
+.compare-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}
+.compare-stat{background:linear-gradient(135deg,#f8faff,#f0f4ff);border-radius:10px;padding:11px;text-align:center;border:1px solid rgba(99,102,241,0.1)}
+.compare-stat .num{font-size:19px;font-weight:800;color:var(--purple)}
+.compare-stat .label{font-size:11px;color:var(--text2);margin-top:2px}
+.trend-up{color:var(--danger);font-weight:600}
+.trend-down{color:var(--success);font-weight:600}
+.trend-flat{color:var(--text2);font-weight:600}
+.footer{text-align:center;padding:18px;color:var(--text2);font-size:11.5px}
+/* ===== 响应式：平板横屏/小桌面 900-1200px ===== */
+@media(max-width:1200px){
+  .stats{grid-template-columns:repeat(4,1fr)}
+  .charts-grid{grid-template-columns:repeat(2,1fr)}
+  .compare-stats{grid-template-columns:repeat(3,1fr)}
+}
+/* ===== 响应式：平板竖屏/大屏手机 600-900px ===== */
+@media(max-width:900px){
+  .container{padding:12px 14px 40px}
+  .topbar{padding:10px 16px}
+  .topbar h1{font-size:17px}
+  .topbar h1 span{font-size:11px}
+  .stats{grid-template-columns:repeat(3,1fr);gap:8px}
+  .stat-card{padding:12px 8px}
+  .stat-card .num{font-size:20px}
+  .charts-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .chart-card-body{height:200px}
+  .cat-buttons{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .cat-btn{flex-shrink:0;padding:5px 11px;font-size:11.5px}
+  .type-tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .type-tab{flex-shrink:0;min-width:75px;padding:8px 10px;font-size:12px}
+  .compare-stats{grid-template-columns:repeat(3,1fr)}
+  .modal-stats{grid-template-columns:repeat(2,1fr)}
+}
+/* ===== 响应式：手机 <600px ===== */
+@media(max-width:600px){
+  .container{padding:10px 10px 30px}
+  .topbar{padding:8px 12px}
+  .topbar-row1{gap:6px;margin-bottom:8px}
+  .topbar h1{font-size:15px}
+  .topbar h1 span{display:none}
+  .year-tab{padding:5px 12px;font-size:12px}
+  .compare-tab-btn{padding:5px 10px;font-size:12px}
+  .stats{grid-template-columns:repeat(2,1fr);gap:8px}
+  .stat-card{padding:10px 6px;border-radius:10px}
+  .stat-card .num{font-size:18px}
+  .stat-card .label{font-size:10.5px}
+  .charts-grid{grid-template-columns:1fr;gap:10px}
+  .chart-card{padding:10px 8px 6px;border-radius:12px}
+  .chart-card-body{height:220px}
+  .chart-card-title{font-size:12px}
+  .controls{padding:12px;border-radius:12px}
+  .type-tab{min-width:70px;padding:7px 8px;font-size:11.5px}
+  .toolbar{gap:8px}
+  .search-box{min-width:100%}
+  .tool-btn{padding:7px 12px;font-size:12px}
+  .filter-row{gap:10px}
+  .filter-group{flex:1;min-width:45%}
+  .filter-group input,.filter-group select{width:100%}
+  th,td{padding:6px 5px;font-size:11px}
+  thead th{font-size:11px;padding:9px 6px}
+  .compare-header{padding:14px}
+  .compare-header h2{font-size:15px}
+  .compare-header p{font-size:12px}
+  .compare-stats{grid-template-columns:repeat(2,1fr);gap:8px}
+  .compare-stat{padding:10px 6px}
+  .compare-stat .num{font-size:17px}
+  .modal{max-height:90vh;margin:10px}
+  .modal-header{padding:14px 16px}
+  .modal-body{padding:12px 14px}
+  .modal-stats{grid-template-columns:repeat(2,1fr);gap:8px}
+  .modal-stat{padding:8px}
+  .modal-stat .num{font-size:16px}
+  .modal-table{font-size:11px}
+  .modal-table th,.modal-table td{padding:6px 5px}
+}
+/* ===== 超小屏 <380px ===== */
+@media(max-width:380px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .stat-card .num{font-size:16px}
+  .chart-card-body{height:200px}
+  .year-tab{padding:5px 10px;font-size:11px}
+}
+</style>
+</head>
+<body>
+
+<canvas id="particleCanvas"></canvas>
+
+<div class="topbar">
+  <div class="topbar-row1">
+    <h1>河北省高职单招数据查询系统 <span>2024-2026 三年数据</span></h1>
+    <div class="topbar-right">
+      <a class="tool-btn" href="../index.html" style="display:inline-flex;align-items:center;gap:5px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5m6 7l-7-7 7-7"/></svg>
+        首页
+      </a>
+      <div class="year-tabs" id="yearTabs">
+        <div class="year-tab" data-year="2024">2024</div>
+        <div class="year-tab" data-year="2025">2025</div>
+        <div class="year-tab active" data-year="2026">2026</div>
+      </div>
+      <div class="compare-tab-btn" id="compareViewBtn" onclick="toggleCompareView()">三年对比</div>
+    </div>
+  </div>
+  <div class="topbar-row2">
+    <div class="cat-buttons" id="catButtons"></div>
+  </div>
+</div>
+
+<div class="container">
+  <div id="singleView">
+    <div class="stats" id="statsBar"></div>
+
+    <!-- 图表区：大类对比图 + 原有5图，统一3列网格 -->
+    <div class="charts-section">
+      <div class="charts-grid" id="chartsGrid">
+        <div class="chart-card"><div class="chart-card-title">学费区间分布</div><div class="chart-card-body" id="ch_tuition"></div></div>
+        <div class="chart-card"><div class="chart-card-title">院校地区分布</div><div class="chart-card-body" id="ch_region"></div></div>
+        <div class="chart-card"><div class="chart-card-title">公民办占比</div><div class="chart-card-body" id="ch_nature"></div></div>
+        <div class="chart-card"><div class="chart-card-title">各分数段人数</div><div class="chart-card-body" id="ch_score"></div></div>
+        <div class="chart-card"><div class="chart-card-title">专业招生计划 TOP20</div><div class="chart-card-body" id="ch_major"></div></div>
+      </div>
+    </div>
+
+    <!-- 控制面板+数据表：仅具体类别显示 -->
+    <div id="detailSection">
+      <div class="controls">
+        <div class="type-tabs" id="typeTabs">
+          <div class="type-tab active" data-type="comprehensive">综合信息</div>
+          <div class="type-tab" data-type="scoreLines">录取分数线</div>
+          <div class="type-tab" data-type="plans">招生计划</div>
+          <div class="type-tab" data-type="schools">院校详情</div>
+          <div class="type-tab" data-type="yifenyidang">一分一档</div>
+          <div class="type-tab" data-type="majors">专业计划及学费</div>
+        </div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" id="searchInput" placeholder="搜索院校、专业、地区..."></div>
+          <button class="tool-btn" id="filterToggle">筛选</button>
+          <button class="tool-btn primary" id="exportBtn">导出CSV</button>
+          <span class="result-count" id="resultCount"></span>
+        </div>
+        <div class="filter-panel" id="filterPanel">
+          <div class="filter-row" id="filterRow"></div>
+        </div>
+      </div>
+      <div class="table-panel">
+        <div class="table-wrapper">
+          <table id="dataTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 三年对比视图 -->
+  <div id="compareView" style="display:none">
+    <div class="compare-header">
+      <h2>三年投档分与位次对比 <span style="font-size:13px;color:var(--text2);font-weight:400">（院校 + 专业维度）</span></h2>
+      <p>合并 2024 / 2025 / 2026 三年录取分数线数据，以院校名称+专业名称匹配，展示投档分及对应位次的逐年变化。位次由当年一分一档表推算。</p>
+      <div class="compare-stats" id="compareStats"></div>
+    </div>
+    <div class="controls">
+      <div class="toolbar">
+        <div class="search-box"><input type="text" id="compareSearchInput" placeholder="搜索院校、专业..."></div>
+        <button class="tool-btn" id="compareFilterBtn">筛选</button>
+        <button class="tool-btn primary" id="compareExportBtn">导出CSV</button>
+        <span class="result-count" id="compareResultCount"></span>
+      </div>
+      <div class="filter-panel" id="compareFilterPanel">
+        <div class="filter-row">
+          <div class="filter-group"><label>考试类</label><select id="cf_cat"><option value="">全部</option></select></div>
+          <div class="filter-group"><label>办学性质</label><select id="cf_nature"><option value="">全部</option><option>公办</option><option>民办</option></select></div>
+          <div class="filter-group"><label>所在地区</label><select id="cf_region"><option value="">全部</option></select></div>
+          <div class="filter-group"><label>2026投档分≥</label><input type="number" id="cf_min26" style="width:80px"></div>
+          <div class="filter-group"><label>2026投档分≤</label><input type="number" id="cf_max26" style="width:80px"></div>
+          <div class="filter-group"><label>仅显示三年均有</label><select id="cf_allThree"><option value="0">否</option><option value="1">是</option></select></div>
+          <button class="tool-btn primary" onclick="applyCompareFilters()">应用</button>
+          <button class="tool-btn" onclick="clearCompareFilters()">重置</button>
+        </div>
+      </div>
+    </div>
+    <div class="table-panel">
+      <div class="table-wrapper">
+        <table id="compareTable">
+          <thead id="compareTableHead"></thead>
+          <tbody id="compareTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="schoolModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">院校详情</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="footer">数据来源：河北省教育考试院 | 提取自河北单招网(hbdzxx.com) | 仅供参考，以官方公布为准</div>
+
+<script>
+const DATA_MAP = {'2024': DANZHAO_DATA_2024, '2025': DANZHAO_DATA_2025, '2026': DANZHAO_DATA_2026};
+const YEARS = ['2024','2025','2026'];
+let currentYear = '2026', currentCat = 'all', currentType = 'comprehensive';
+let sortKey = null, sortAsc = true;
+let searchText = '', filters = {};
+let compareView = false;
+let compareSortKey = null, compareSortAsc = true;
+let compareSearchText = '', compareFilters = {};
+let compareDataCache = null;
+const charts = {};
+
+const COLUMNS = {
+  comprehensive: [
+    {key:'院校名称',label:'院校名称',link:true},
+    {key:'专业名称',label:'专业名称'},
+    {key:'考试类',label:'考试类'},
+    {key:'办学性质',label:'办学性质',badge:true},
+    {key:'所在地区',label:'所在地区'},
+    {key:'院校地址',label:'院校地址'},
+    {key:'招生计划',label:'招生计划'},
+    {key:'学制',label:'学制'},
+    {key:'学费',label:'学费'},
+    {key:'投档分',label:'投档分',score:true},
+    {key:'省内位次',label:'省内位次'},
+  ],
+  scoreLines: [
+    {key:'院校名称',label:'院校名称',link:true},
+    {key:'专业名称',label:'专业名称'},
+    {key:'考试类',label:'考试类'},
+    {key:'录取投档分',label:'投档分',score:true},
+  ],
+  plans: [
+    {key:'院校名称',label:'院校名称',link:true},
+    {key:'专业名称',label:'专业名称'},
+    {key:'考试类',label:'考试类'},
+    {key:'计划数',label:'计划数'},
+    {key:'学制',label:'学制'},
+    {key:'学费(元/年)',label:'学费'},
+  ],
+  schools: [
+    {key:'序号',label:'序号'},
+    {key:'院校名称',label:'院校名称',link:true},
+    {key:'所在地区',label:'所在地区'},
+    {key:'办学性质',label:'办学性质',badge:true},
+  ],
+  yifenyidang: [
+    {key:'分数',label:'分数'},
+    {key:'本段人数',label:'本段人数'},
+    {key:'累计人数',label:'累计人数'},
+    {key:'累计占比',label:'累计占比'},
+  ],
+  majors: [
+    {key:'序号',label:'序号'},
+    {key:'院校名称',label:'院校名称',link:true},
+    {key:'院校地址',label:'院校地址'},
+    {key:'专业名称',label:'专业名称'},
+    {key:'计划数',label:'计划数'},
+    {key:'学制',label:'学制'},
+    {key:'学费(元/年)',label:'学费'},
+    {key:'2026投档最低分',label:'投档分',score:true},
+  ],
+};
+
+const COMPARE_COLUMNS = [
+  {key:'院校名称',label:'院校名称'},
+  {key:'专业名称',label:'专业名称'},
+  {key:'考试类',label:'考试类'},
+  {key:'办学性质',label:'办学性质'},
+  {key:'所在地区',label:'所在地区'},
+  {key:'score2024',label:'2024投档分'},
+  {key:'score2025',label:'2025投档分'},
+  {key:'score2026',label:'2026投档分'},
+  {key:'rank2024',label:'2024位次'},
+  {key:'rank2025',label:'2025位次'},
+  {key:'rank2026',label:'2026位次'},
+  {key:'scoreDiff',label:'分数变化(26-24)'},
+  {key:'rankDiff',label:'位次变化(26-24)'},
+];
+
+function getData(y,c){ return DATA_MAP[y][c]; }
+
+function init(){
+  renderCatButtons();
+  bindEvents();
+  updateAll();
+}
+
+function renderCatButtons(){
+  const c = document.getElementById('catButtons');
+  c.innerHTML = '';
+  const allBtn = document.createElement('div');
+  allBtn.className = 'cat-btn all-cat' + (currentCat === 'all' ? ' active' : '');
+  allBtn.textContent = '综合';
+  allBtn.dataset.id = 'all';
+  allBtn.onclick = () => { currentCat = 'all'; currentType = 'comprehensive'; updateAll(); };
+  c.appendChild(allBtn);
+  Object.values(DATA_MAP['2026']).forEach(cat => {
+    const btn = document.createElement('div');
+    btn.className = 'cat-btn' + (cat.id === currentCat ? ' active' : '');
+    btn.textContent = cat.name;
+    btn.dataset.id = cat.id;
+    btn.onclick = () => { currentCat = cat.id; currentType = 'comprehensive'; updateTypeTabs(); updateAll(); };
+    c.appendChild(btn);
+  });
+}
+
+function updateTypeTabs(){
+  document.querySelectorAll('#typeTabs .type-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.type === currentType);
+  });
+}
+
+function switchType(type){
+  document.querySelectorAll('#typeTabs .type-tab').forEach(x => x.classList.remove('active'));
+  document.querySelector(`#typeTabs .type-tab[data-type="${type}"]`).classList.add('active');
+  currentType = type; sortKey = null; filters = {};
+  document.getElementById('filterPanel').classList.remove('show');
+  updateAll();
+}
+
+function buildComprehensiveData(year, catId){
+  const map = {};
+  const cats = catId === 'all' ? Object.values(DATA_MAP[year]) : [DATA_MAP[year][catId]];
+  // 构建院校地址映射（仅2026年有majors表含地址）
+  const addrMap = {};
+  cats.forEach(cat => {
+    if(cat.majors){
+      cat.majors.forEach(m => {
+        if(m['院校名称'] && m['院校地址'] && !addrMap[m['院校名称']]){
+          addrMap[m['院校名称']] = m['院校地址'];
+        }
+      });
+    }
+  });
+  cats.forEach(cat => {
+    const schoolMap = {};
+    cat.schools.forEach(s => { schoolMap[s['院校名称']] = s; });
+    const scoreMap = {};
+    cat.scoreLines.forEach(s => {
+      const key = s['院校名称'] + '||' + s['专业名称'];
+      scoreMap[key] = s['录取投档分'];
+    });
+    cat.plans.forEach(plan => {
+      const school = plan['院校名称'];
+      const major = plan['专业名称'];
+      const key = school + '||' + major + '||' + cat.id;
+      if(map[key]) return;
+      const schoolInfo = schoolMap[school] || {};
+      const rawScore = scoreMap[school + '||' + major];
+      const scoreNum = parseFloat(rawScore);
+      const hasNumScore = !isNaN(scoreNum);
+      map[key] = {
+        '院校名称': school,
+        '专业名称': major,
+        '考试类': cat.name,
+        '办学性质': schoolInfo['办学性质'] || '—',
+        '所在地区': schoolInfo['所在地区'] || '—',
+        '院校地址': addrMap[school] || '—',
+        '招生计划': plan['计划数'],
+        '学制': plan['学制'],
+        '学费': plan['学费(元/年)'],
+        '投档分': hasNumScore ? scoreNum : (rawScore || '—'),
+        '省内位次': hasNumScore ? (getRankFromYifenyidang(year, cat.id, scoreNum) || '—') : '—',
+      };
+    });
+  });
+  return Object.values(map);
+}
+
+function getMergedData(year, type){
+  if(type === 'comprehensive') return buildComprehensiveData(year, currentCat);
+  if(currentCat !== 'all') return getData(year, currentCat)[type];
+  let merged = [];
+  Object.values(DATA_MAP[year]).forEach(cat => {
+    const arr = cat[type] || [];
+    if(type === 'schools'){
+      arr.forEach(s => {
+        const existing = merged.find(m => m['院校名称'] === s['院校名称']);
+        if(!existing) merged.push({...s, '招生类别': cat.name});
+        else existing['招生类别'] = (existing['招生类别'] || '') + '、' + cat.name;
+      });
+    } else if(type === 'yifenyidang'){
+      if(merged.length === 0) merged = arr.map(item => ({...item, '考试类': cat.name}));
+    } else {
+      arr.forEach(item => merged.push({...item}));
+    }
+  });
+  return merged;
+}
+
+function bindEvents(){
+  document.querySelectorAll('.year-tab').forEach(t => t.onclick = () => {
+    if(compareView) return;
+    document.querySelectorAll('.year-tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    currentYear = t.dataset.year; updateAll();
+  });
+  document.querySelectorAll('#typeTabs .type-tab').forEach(t => t.onclick = () => switchType(t.dataset.type));
+  document.getElementById('searchInput').addEventListener('input', e => {
+    searchText = e.target.value.trim(); renderTable();
+  });
+  document.getElementById('filterToggle').onclick = () => {
+    const p = document.getElementById('filterPanel');
+    p.classList.toggle('show');
+    if(p.classList.contains('show')) renderFilterPanel();
+  };
+  document.getElementById('exportBtn').onclick = exportCSV;
+  document.getElementById('compareSearchInput').addEventListener('input', e => {
+    compareSearchText = e.target.value.trim(); renderCompareTable();
+  });
+  document.getElementById('compareFilterBtn').onclick = () => {
+    document.getElementById('compareFilterPanel').classList.toggle('show');
+  };
+  document.getElementById('compareExportBtn').onclick = exportCompareCSV;
+}
+
+function toggleCompareView(){
+  compareView = !compareView;
+  const btn = document.getElementById('compareViewBtn');
+  btn.classList.toggle('active', compareView);
+  document.getElementById('singleView').style.display = compareView ? 'none' : '';
+  document.getElementById('compareView').style.display = compareView ? '' : 'none';
+  document.querySelectorAll('.year-tab').forEach(t => { t.style.pointerEvents = compareView ? 'none' : ''; t.style.opacity = compareView ? '0.5' : ''; });
+  if(compareView){
+    if(!compareDataCache) buildCompareData();
+    renderCompareStats();
+    renderCompareFilters();
+    renderCompareTable();
+  }
+}
+
+function renderStats(){
+  let totalSchools, totalMajors, totalPlan = 0, scores = [], avgScore, maxScore, totalStudents;
+  if(currentCat === 'all'){
+    totalSchools = new Set(Object.values(DATA_MAP[currentYear]).flatMap(c => c.schools.map(s=>s['院校名称']))).size;
+    totalMajors = Object.values(DATA_MAP[currentYear]).reduce((sum,c) => sum + c.plans.length, 0);
+    Object.values(DATA_MAP[currentYear]).forEach(c => c.plans.forEach(p => { const n=parseInt(p['计划数']); if(!isNaN(n)) totalPlan+=n; }));
+    scores = Object.values(DATA_MAP[currentYear]).flatMap(c => c.scoreLines.map(s=>parseInt(s['录取投档分']))).filter(n=>!isNaN(n));
+    const yfyd = DATA_MAP[currentYear]['1'].yifenyidang;
+    totalStudents = yfyd.length ? yfyd[yfyd.length-1]['累计人数'] : '—';
+  } else {
+    const cat = getData(currentYear, currentCat);
+    totalSchools = cat.schools.length;
+    totalMajors = cat.plans.length;
+    cat.plans.forEach(p => { const n = parseInt(p['计划数']); if(!isNaN(n)) totalPlan += n; });
+    scores = cat.scoreLines.map(s => parseInt(s['录取投档分'])).filter(n => !isNaN(n));
+    totalStudents = cat.yifenyidang.length ? cat.yifenyidang[cat.yifenyidang.length-1]['累计人数'] : '—';
+  }
+  avgScore = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : '—';
+  maxScore = scores.length ? Math.max(...scores) : '—';
+  const stats = [
+    {num: totalSchools, label:'招生院校'},
+    {num: totalMajors, label:'招生专业'},
+    {num: totalPlan.toLocaleString(), label:'计划总数'},
+    {num: avgScore, label:'平均投档分'},
+    {num: maxScore, label:'最高投档分'},
+    {num: totalStudents, label:'参考人数'},
+  ];
+  document.getElementById('statsBar').innerHTML = stats.map(s =>
+    `<div class="stat-card"><div class="num">${s.num}</div><div class="label">${s.label}</div></div>`).join('');
+}
+
+function renderFilterPanel(){
+  const row = document.getElementById('filterRow');
+  let html = '';
+  if(currentType === 'scoreLines' || currentType === 'majors' || currentType === 'comprehensive'){
+    html += `<div class="filter-group"><label>分数范围</label>
+      <input type="number" placeholder="最低" id="f_minScore" value="${filters.minScore||''}" style="width:70px">
+      <span>-</span>
+      <input type="number" placeholder="最高" id="f_maxScore" value="${filters.maxScore||''}" style="width:70px"></div>`;
+  }
+  if(currentType === 'plans' || currentType === 'majors' || currentType === 'comprehensive'){
+    html += `<div class="filter-group"><label>学费范围</label>
+      <input type="number" placeholder="最低" id="f_minFee" value="${filters.minFee||''}" style="width:70px">
+      <span>-</span>
+      <input type="number" placeholder="最高" id="f_maxFee" value="${filters.maxFee||''}" style="width:70px"></div>`;
+    html += `<div class="filter-group"><label>计划数≥</label>
+      <input type="number" id="f_minPlan" value="${filters.minPlan||''}" style="width:70px"></div>`;
+  }
+  if(currentType === 'schools' || currentType === 'comprehensive'){
+    const data = getMergedData(currentYear, currentType);
+    const regions = [...new Set(data.map(s => s['所在地区']).filter(r=>r&&r!=='—'))].sort();
+    html += `<div class="filter-group"><label>地区</label>
+      <select id="f_region"><option value="">全部</option>${regions.map(r => `<option ${filters.region===r?'selected':''}>${r}</option>`).join('')}</select></div>`;
+    html += `<div class="filter-group"><label>性质</label>
+      <select id="f_nature"><option value="">全部</option><option ${filters.nature==='公办'?'selected':''}>公办</option><option ${filters.nature==='民办'?'selected':''}>民办</option></select></div>`;
+  }
+  if(currentType === 'yifenyidang'){
+    html += `<div class="filter-group"><label>分数范围</label>
+      <input type="number" placeholder="最低分" id="f_minScoreY" value="${filters.minScore||''}" style="width:70px">
+      <span>-</span>
+      <input type="number" placeholder="最高分" id="f_maxScoreY" value="${filters.maxScore||''}" style="width:70px"></div>`;
+  }
+  html += `<button class="tool-btn primary" onclick="applyFilters()" style="padding:7px 14px">应用筛选</button>
+    <button class="tool-btn" onclick="clearFilters()" style="padding:7px 14px">重置</button>`;
+  row.innerHTML = html;
+}
+
+function applyFilters(){
+  filters = {};
+  const get = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  if(currentType === 'scoreLines' || currentType === 'majors' || currentType === 'comprehensive'){
+    filters.minScore = get('f_minScore'); filters.maxScore = get('f_maxScore');
+  }
+  if(currentType === 'plans' || currentType === 'majors' || currentType === 'comprehensive'){
+    filters.minFee = get('f_minFee'); filters.maxFee = get('f_maxFee'); filters.minPlan = get('f_minPlan');
+  }
+  if(currentType === 'schools' || currentType === 'comprehensive'){
+    filters.region = get('f_region'); filters.nature = get('f_nature');
+  }
+  if(currentType === 'yifenyidang'){
+    filters.minScore = get('f_minScoreY'); filters.maxScore = get('f_maxScoreY');
+  }
+  renderTable();
+}
+
+function clearFilters(){ filters = {}; renderFilterPanel(); renderTable(); }
+
+function getFilteredData(data){
+  let result = [...data];
+  const keys = COLUMNS[currentType].map(c => c.key);
+  if(currentCat === 'all' && currentType === 'schools') keys.push('招生类别');
+  if(searchText){
+    result = result.filter(row => keys.some(k => String(row[k]||'').toLowerCase().includes(searchText.toLowerCase())));
+  }
+  if(filters.minScore || filters.maxScore){
+    const sk = currentType === 'yifenyidang' ? '分数' : (currentType === 'majors' ? '2026投档最低分' : (currentType === 'comprehensive' ? '投档分' : '录取投档分'));
+    result = result.filter(row => {
+      const v = parseFloat(row[sk]);
+      if(isNaN(v)) return false;
+      if(filters.minScore && v < parseFloat(filters.minScore)) return false;
+      if(filters.maxScore && v > parseFloat(filters.maxScore)) return false;
+      return true;
+    });
+  }
+  if(filters.minFee || filters.maxFee){
+    const fk = currentType === 'comprehensive' ? '学费' : '学费(元/年)';
+    result = result.filter(row => {
+      const v = parseFloat(row[fk]);
+      if(isNaN(v)) return false;
+      if(filters.minFee && v < parseFloat(filters.minFee)) return false;
+      if(filters.maxFee && v > parseFloat(filters.maxFee)) return false;
+      return true;
+    });
+  }
+  if(filters.minPlan){
+    const pk = currentType === 'comprehensive' ? '招生计划' : '计划数';
+    result = result.filter(row => { const v = parseInt(row[pk]); return !isNaN(v) && v >= parseInt(filters.minPlan); });
+  }
+  if(filters.region) result = result.filter(row => row['所在地区'] === filters.region);
+  if(filters.nature) result = result.filter(row => String(row['办学性质']).includes(filters.nature));
+  if(sortKey){
+    result.sort((a,b) => {
+      let va = a[sortKey], vb = b[sortKey];
+      const na = parseFloat(va), nb = parseFloat(vb);
+      if(!isNaN(na) && !isNaN(nb)) return sortAsc ? na - nb : nb - na;
+      return sortAsc ? String(va).localeCompare(String(vb),'zh') : String(vb).localeCompare(String(va),'zh');
+    });
+  }
+  return result;
+}
+
+function renderTable(){
+  const cols = COLUMNS[currentType];
+  const rawData = getMergedData(currentYear, currentType);
+  const data = getFilteredData(rawData);
+
+  const thead = document.getElementById('tableHead');
+  thead.innerHTML = '<tr>' + cols.map(c => {
+    const sorted = sortKey === c.key ? ' sorted' : '';
+    const icon = sortKey === c.key ? (sortAsc ? '▲' : '▼') : '⇅';
+    return `<th data-key="${c.key}">${c.label}<span class="sort-icon">${icon}</span></th>`;
+  }).join('') + '</tr>';
+  thead.querySelectorAll('th').forEach(th => th.onclick = () => {
+    const key = th.dataset.key;
+    if(sortKey === key) sortAsc = !sortAsc; else { sortKey = key; sortAsc = true; }
+    renderTable();
+  });
+
+  const tbody = document.getElementById('tableBody');
+  if(data.length === 0){
+    tbody.innerHTML = `<tr><td colspan="${cols.length}" class="empty-state"><div class="icon">📋</div>暂无匹配数据</td></tr>`;
+  } else {
+    let allScores = [];
+    if(currentCat === 'all'){
+      allScores = Object.values(DATA_MAP[currentYear]).flatMap(c => c.scoreLines.map(s=>parseFloat(s['录取投档分']))).filter(n=>!isNaN(n));
+    } else {
+      allScores = getData(currentYear, currentCat).scoreLines.map(s => parseFloat(s['录取投档分'])).filter(n=>!isNaN(n));
+    }
+    const avg = allScores.length ? allScores.reduce((a,b)=>a+b,0)/allScores.length : 400;
+    const hasSchool = cols.some(c => c.link);
+    tbody.innerHTML = data.map(row => {
+      const schoolName = hasSchool ? (row['院校名称'] || '') : '';
+      const clickAttr = hasSchool && schoolName ? ` class="clickable" onclick="showSchoolDetail('${String(schoolName).replace(/'/g,"\\'")}')"` : '';
+      let html = `<tr${clickAttr}>`;
+      cols.forEach(c => {
+        let val = row[c.key];
+        if(val === undefined || val === null || val === '') val = '—';
+        if(c.badge && val !== '—'){
+          const cls = String(val).includes('公办') ? 'badge-public' : 'badge-private';
+          val = `<span class="badge ${cls}">${val}</span>`;
+        }
+        if(c.score){
+          const n = parseFloat(val);
+          if(!isNaN(n)){
+            const cls = n > avg * 1.15 ? 'score-high' : n > avg * 0.9 ? 'score-mid' : 'score-low';
+            val = `<span class="${cls}">${val}</span>`;
+          }
+        }
+        if(c.link && val !== '—'){
+          val = `<span class="school-link" onclick="event.stopPropagation();showSchoolDetail('${String(row[c.key]).replace(/'/g,"\\'")}')">${val}</span>`;
+        }
+        html += `<td>${val}</td>`;
+      });
+      html += '</tr>';
+      return html;
+    }).join('');
+  }
+  document.getElementById('resultCount').textContent = `共 ${data.length} 条`;
+}
+
+function showSchoolDetail(schoolName){
+  let plans = [], scores = [], schoolInfo = null, schoolAddr = '—';
+  if(currentCat === 'all'){
+    Object.values(DATA_MAP[currentYear]).forEach(cat => {
+      plans = plans.concat(cat.plans.filter(p => p['院校名称'] === schoolName));
+      scores = scores.concat(cat.scoreLines.filter(s => s['院校名称'] === schoolName));
+      if(!schoolInfo) schoolInfo = cat.schools.find(s => s['院校名称'] === schoolName);
+      if(schoolAddr === '—' && cat.majors){
+        const m = cat.majors.find(x => x['院校名称'] === schoolName && x['院校地址']);
+        if(m) schoolAddr = m['院校地址'];
+      }
+    });
+  } else {
+    const cat = getData(currentYear, currentCat);
+    plans = cat.plans.filter(p => p['院校名称'] === schoolName);
+    scores = cat.scoreLines.filter(s => s['院校名称'] === schoolName);
+    schoolInfo = cat.schools.find(s => s['院校名称'] === schoolName);
+    if(cat.majors){
+      const m = cat.majors.find(x => x['院校名称'] === schoolName && x['院校地址']);
+      if(m) schoolAddr = m['院校地址'];
+    }
+  }
+  let totalPlan = 0;
+  plans.forEach(p => { const n = parseInt(p['计划数']); if(!isNaN(n)) totalPlan += n; });
+  const scoreVals = scores.map(s => parseInt(s['录取投档分'])).filter(n=>!isNaN(n));
+  const minScore = scoreVals.length ? Math.min(...scoreVals) : '—';
+  const maxScore = scoreVals.length ? Math.max(...scoreVals) : '—';
+  document.getElementById('modalTitle').textContent = `${schoolName} · ${currentYear}年`;
+  let html = `<div class="modal-stats">
+    <div class="modal-stat"><div class="num">${plans.length}</div><div class="label">招生专业</div></div>
+    <div class="modal-stat"><div class="num">${totalPlan}</div><div class="label">计划总数</div></div>
+    <div class="modal-stat"><div class="num">${minScore}</div><div class="label">最低投档分</div></div>
+    <div class="modal-stat"><div class="num">${maxScore}</div><div class="label">最高投档分</div></div>
+  </div>`;
+  html += `<p style="margin-bottom:12px;font-size:13px;color:var(--text2);line-height:1.8">
+    地区：${schoolInfo ? (schoolInfo['所在地区']||'—') : '—'} | 办学性质：${schoolInfo ? (schoolInfo['办学性质']||'—') : '—'}<br>
+    地址：${schoolAddr}</p>`;
+  html += `<table class="modal-table"><thead><tr><th>专业名称</th><th>考试类</th><th>计划数</th><th>学制</th><th>学费</th><th>投档分</th></tr></thead><tbody>`;
+  plans.forEach(p => {
+    const score = scores.find(s => s['专业名称'] === p['专业名称']);
+    html += `<tr><td>${p['专业名称']}</td><td>${p['考试类']||'—'}</td><td>${p['计划数']}</td><td>${p['学制']}</td><td>${p['学费(元/年)']}</td><td>${score ? score['录取投档分'] : '—'}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('schoolModal').classList.add('show');
+}
+
+function closeModal(){ document.getElementById('schoolModal').classList.remove('show'); }
+document.getElementById('schoolModal').addEventListener('click', e => { if(e.target.id === 'schoolModal') closeModal(); });
+
+function exportCSV(){
+  const cols = COLUMNS[currentType];
+  const rawData = getMergedData(currentYear, currentType);
+  const data = getFilteredData(rawData);
+  if(data.length === 0){ alert('没有可导出的数据'); return; }
+  let csv = '\uFEFF' + cols.map(c => c.label).join(',') + '\n';
+  data.forEach(row => {
+    csv += cols.map(c => {
+      let v = String(row[c.key] !== undefined ? row[c.key] : '');
+      if(v.includes(',') || v.includes('"') || v.includes('\n')) v = '"' + v.replace(/"/g,'""') + '"';
+      return v;
+    }).join(',') + '\n';
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const catName = currentCat === 'all' ? '综合' : (DATA_MAP[currentYear][currentCat]?.name || currentCat);
+  a.download = `${currentYear}河北单招_${catName}_${currentType}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function getRankFromYifenyidang(year, catId, score){
+  if(!score || isNaN(parseFloat(score))) return null;
+  const s = parseFloat(score);
+  const cat = DATA_MAP[year][catId];
+  if(!cat || !cat.yifenyidang || cat.yifenyidang.length === 0) return null;
+  // 一分一档表按分数从高到低排列，二分查找第一个分数 <= 目标分数的项
+  // 其累计人数即为 >= 目标分数的总人数（位次）
+  const arr = cat.yifenyidang;
+  let lo = 0, hi = arr.length - 1, ans = 0;
+  while(lo <= hi){
+    const mid = (lo + hi) >> 1;
+    const itemScore = parseFloat(arr[mid]['分数']);
+    if(!isNaN(itemScore) && itemScore <= s){ ans = mid; hi = mid - 1; }
+    else lo = mid + 1;
+  }
+  return parseInt(arr[ans]['累计人数']);
+}
+
+function normalizeMajorName(name){
+  if(!name) return '';
+  return String(name).replace(/\s*\[.*?\]\s*/g,'').replace(/\s*（.*?）\s*/g,'').replace(/\s*\(.*?\)\s*/g,'').trim();
+}
+
+// 院校信息索引：按 2026 → 2025 → 2024 优先级，首个命中即缓存，O(1) 查找
+const SCHOOL_INFO_INDEX = (() => {
+  const m = new Map();
+  for(const year of ['2026','2025','2024']){
+    for(const cat of Object.values(DATA_MAP[year])){
+      for(const s of cat.schools){
+        const name = s['院校名称'];
+        if(name && !m.has(name)) m.set(name, s);
+      }
+    }
+  }
+  return m;
+})();
+function findSchoolInfo(schoolName){
+  return SCHOOL_INFO_INDEX.has(schoolName) ? SCHOOL_INFO_INDEX.get(schoolName) : null;
+}
+
+/* ============ 三年对比 ============ */
+function buildCompareData(){
+  const map = {};
+  YEARS.forEach(year => {
+    Object.values(DATA_MAP[year]).forEach(cat => {
+      cat.scoreLines.forEach(item => {
+        const school = item['院校名称'] || '';
+        const majorRaw = item['专业名称'] || '';
+        const majorNorm = normalizeMajorName(majorRaw);
+        const examCat = item['考试类'] || cat.name;
+        const score = item['录取投档分'] || '';
+        if(!school || !majorNorm || school === '—' || majorNorm === '—') return;
+        const key = school + '||' + majorNorm + '||' + examCat;
+        if(!map[key]){
+          const si = findSchoolInfo(school);
+          map[key] = {
+            '院校名称': school, '专业名称': majorRaw, '专业名称_标准': majorNorm,
+            '考试类': examCat,
+            '办学性质': si ? (si['办学性质'] || '—') : '—',
+            '所在地区': si ? (si['所在地区'] || '—') : '—',
+            score2024: null, score2025: null, score2026: null,
+            rank2024: null, rank2025: null, rank2026: null,
+          };
+        }
+        const scoreNum = parseFloat(score);
+        if(!isNaN(scoreNum)){
+          map[key]['score'+year] = scoreNum;
+          map[key]['rank'+year] = getRankFromYifenyidang(year, cat.id, scoreNum);
+        } else {
+          map[key]['score'+year] = score;
+        }
+      });
+    });
+  });
+  compareDataCache = Object.values(map).map(item => {
+    const s24 = parseFloat(item.score2024), s26 = parseFloat(item.score2026);
+    const r24 = parseInt(item.rank2024), r26 = parseInt(item.rank2026);
+    item.scoreDiff = (!isNaN(s24) && !isNaN(s26)) ? (s26 - s24) : null;
+    item.rankDiff = (!isNaN(r24) && !isNaN(r26)) ? (r26 - r24) : null;
+    return item;
+  });
+}
+
+function renderCompareStats(){
+  if(!compareDataCache) return;
+  const total = compareDataCache.length;
+  const hasAllThree = compareDataCache.filter(d => d.score2024 !== null && d.score2025 !== null && d.score2026 !== null).length;
+  const scoreUp = compareDataCache.filter(d => d.scoreDiff !== null && d.scoreDiff > 0).length;
+  const scoreDown = compareDataCache.filter(d => d.scoreDiff !== null && d.scoreDiff < 0).length;
+  const schools = new Set(compareDataCache.map(d => d['院校名称'])).size;
+  const stats = [
+    {num: total, label:'对比条目总数'},
+    {num: schools, label:'覆盖院校数'},
+    {num: hasAllThree, label:'三年均有数据'},
+    {num: scoreUp, label:'投档分上涨(26vs24)'},
+    {num: scoreDown, label:'投档分下降(26vs24)'},
+  ];
+  document.getElementById('compareStats').innerHTML = stats.map(s =>
+    `<div class="compare-stat"><div class="num">${s.num}</div><div class="label">${s.label}</div></div>`).join('');
+}
+
+function renderCompareFilters(){
+  const cats = [...new Set(compareDataCache.map(d => d['考试类']).filter(c=>c))].sort();
+  document.getElementById('cf_cat').innerHTML = '<option value="">全部</option>' + cats.map(c => `<option>${c}</option>`).join('');
+  const regions = [...new Set(compareDataCache.map(d => d['所在地区']).filter(r=>r&&r!=='—'))].sort();
+  document.getElementById('cf_region').innerHTML = '<option value="">全部</option>' + regions.map(r => `<option>${r}</option>`).join('');
+}
+
+function applyCompareFilters(){
+  compareFilters = {
+    cat: document.getElementById('cf_cat').value,
+    nature: document.getElementById('cf_nature').value,
+    region: document.getElementById('cf_region').value,
+    min26: document.getElementById('cf_min26').value,
+    max26: document.getElementById('cf_max26').value,
+    allThree: document.getElementById('cf_allThree').value,
+  };
+  renderCompareTable();
+}
+
+function clearCompareFilters(){
+  ['cf_cat','cf_nature','cf_region','cf_min26','cf_max26'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('cf_allThree').value = '0';
+  compareFilters = {};
+  renderCompareTable();
+}
+
+function getFilteredCompareData(){
+  let result = [...compareDataCache];
+  if(compareSearchText){
+    const q = compareSearchText.toLowerCase();
+    result = result.filter(d =>
+      String(d['院校名称']).toLowerCase().includes(q) ||
+      String(d['专业名称']).toLowerCase().includes(q) ||
+      String(d['专业名称_标准']).toLowerCase().includes(q)
+    );
+  }
+  if(compareFilters.cat) result = result.filter(d => d['考试类'] === compareFilters.cat);
+  if(compareFilters.nature) result = result.filter(d => String(d['办学性质']).includes(compareFilters.nature));
+  if(compareFilters.region) result = result.filter(d => d['所在地区'] === compareFilters.region);
+  if(compareFilters.min26) result = result.filter(d => { const v=parseFloat(d.score2026); return !isNaN(v) && v >= parseFloat(compareFilters.min26); });
+  if(compareFilters.max26) result = result.filter(d => { const v=parseFloat(d.score2026); return !isNaN(v) && v <= parseFloat(compareFilters.max26); });
+  if(compareFilters.allThree === '1') result = result.filter(d => d.score2024 !== null && d.score2025 !== null && d.score2026 !== null);
+  if(compareSortKey){
+    result.sort((a,b) => {
+      let va = a[compareSortKey], vb = b[compareSortKey];
+      const na = parseFloat(va), nb = parseFloat(vb);
+      if(!isNaN(na) && !isNaN(nb)) return compareSortAsc ? na - nb : nb - na;
+      return compareSortAsc ? String(va).localeCompare(String(vb),'zh') : String(vb).localeCompare(String(va),'zh');
+    });
+  }
+  return result;
+}
+
+function renderCompareTable(){
+  if(!compareDataCache) buildCompareData();
+  const data = getFilteredCompareData();
+  const thead = document.getElementById('compareTableHead');
+  thead.innerHTML = '<tr>' + COMPARE_COLUMNS.map(c => {
+    const sorted = compareSortKey === c.key ? ' sorted' : '';
+    const icon = compareSortKey === c.key ? (compareSortAsc ? '▲' : '▼') : '⇅';
+    return `<th data-key="${c.key}">${c.label}<span class="sort-icon">${icon}</span></th>`;
+  }).join('') + '</tr>';
+  thead.querySelectorAll('th').forEach(th => th.onclick = () => {
+    const key = th.dataset.key;
+    if(compareSortKey === key) compareSortAsc = !compareSortAsc;
+    else { compareSortKey = key; compareSortAsc = true; }
+    renderCompareTable();
+  });
+
+  const tbody = document.getElementById('compareTableBody');
+  if(data.length === 0){
+    tbody.innerHTML = `<tr><td colspan="${COMPARE_COLUMNS.length}" class="empty-state"><div class="icon">📊</div>暂无匹配数据</td></tr>`;
+  } else {
+    tbody.innerHTML = data.map(row => {
+      let html = '<tr>';
+      COMPARE_COLUMNS.forEach(c => {
+        let val = row[c.key];
+        if(c.key === '办学性质' && val && val !== '—'){
+          const cls = String(val).includes('公办') ? 'badge-public' : 'badge-private';
+          val = `<span class="badge ${cls}">${val}</span>`;
+        } else if(c.key === 'scoreDiff' || c.key === 'rankDiff'){
+          if(val === null) val = '<span style="color:var(--text3)">—</span>';
+          else if(val > 0) val = `<span class="trend-up">+${val}</span>`;
+          else if(val < 0) val = `<span class="trend-down">${val}</span>`;
+          else val = `<span class="trend-flat">0</span>`;
+        } else if(c.key.startsWith('score') || c.key.startsWith('rank')){
+          val = (val === null || val === undefined) ? '<span style="color:var(--text3)">—</span>' : val;
+        } else if(!val || val === '—'){
+          val = '<span style="color:var(--text3)">—</span>';
+        }
+        html += `<td>${val}</td>`;
+      });
+      html += '</tr>';
+      return html;
+    }).join('');
+  }
+  document.getElementById('compareResultCount').textContent = `共 ${data.length} 条`;
+}
+
+function exportCompareCSV(){
+  const data = getFilteredCompareData();
+  if(data.length === 0){ alert('没有可导出的数据'); return; }
+  let csv = '\uFEFF' + COMPARE_COLUMNS.map(c => c.label).join(',') + '\n';
+  data.forEach(row => {
+    csv += COMPARE_COLUMNS.map(c => {
+      let v = row[c.key];
+      if(v === null || v === undefined) v = '';
+      v = String(v);
+      if(v.includes(',') || v.includes('"') || v.includes('\n')) v = '"' + v.replace(/"/g,'""') + '"';
+      return v;
+    }).join(',') + '\n';
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '河北单招_三年投档分位次对比.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ============ 图表 ============ */
+function getChartData(){
+  if(currentCat === 'all'){
+    return {
+      plans: Object.values(DATA_MAP[currentYear]).flatMap(c => c.plans),
+      schools: (() => { const m={}; Object.values(DATA_MAP[currentYear]).forEach(c => c.schools.forEach(s => { if(!m[s['院校名称']]) m[s['院校名称']]=s; })); return Object.values(m); })(),
+      scoreLines: Object.values(DATA_MAP[currentYear]).flatMap(c => c.scoreLines),
+    };
+  }
+  return getData(currentYear, currentCat);
+}
+
+/* 大类对比图表：插入到chartsGrid开头，与5个固定图统一3列网格 */
+function renderCatCompareChart(){
+  const grid = document.getElementById('chartsGrid');
+  // 移除旧的大类对比卡片
+  grid.querySelectorAll('.cat-compare-card').forEach(el => el.remove());
+  // 销毁旧实例
+  ['catCompare','catSchools','catPlans','catScores'].forEach(k => { if(charts[k]){ charts[k].dispose(); delete charts[k]; } });
+
+  let html = '';
+  if(currentCat === 'all'){
+    html = `
+      <div class="chart-card cat-compare-card"><div class="chart-card-title">各大类招生院校数</div><div class="chart-card-body" id="ch_catSchools"></div></div>
+      <div class="chart-card cat-compare-card"><div class="chart-card-title">各大类公民办招生计划</div><div class="chart-card-body" id="ch_catPlans"></div></div>
+      <div class="chart-card cat-compare-card"><div class="chart-card-title">各大类公民办最低投档分</div><div class="chart-card-body" id="ch_catScores"></div></div>
+    `;
+  } else {
+    html = `<div class="chart-card cat-compare-card"><div class="chart-card-title">各大类最低/最高投档分</div><div class="chart-card-body" id="ch_catCompare"></div></div>`;
+  }
+  // 插入到第一个固定图表之前
+  grid.insertAdjacentHTML('afterbegin', html);
+  // 延迟渲染，确保DOM布局完成
+  setTimeout(() => {
+    if(currentCat === 'all'){
+      renderCatSchoolsChart(); renderCatPlansChart(); renderCatScoresChart();
+    } else {
+      renderCatScoreRangeChart();
+    }
+  }, 20);
+}
+
+function renderCatScoreRangeChart(){
+  if(!charts.catCompare) charts.catCompare = echarts.init(document.getElementById('ch_catCompare'));
+  const cats = Object.values(DATA_MAP[currentYear]);
+  const labels = cats.map(c => c.name);
+  const mins = [], maxs = [];
+  const colors = cats.map(c => c.id === currentCat ? '#4f46e5' : '#cbd5e1');
+  cats.forEach(cat => {
+    const scores = cat.scoreLines.map(s => parseFloat(s['录取投档分'])).filter(n=>!isNaN(n));
+    mins.push(scores.length ? Math.min(...scores) : 0);
+    maxs.push(scores.length ? Math.max(...scores) : 0);
+  });
+  charts.catCompare.setOption({
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+    legend:{data:['最低投档分','最高投档分'],bottom:0,textStyle:{fontSize:11}},
+    grid:{left:50,right:25,top:20,bottom:40},
+    xAxis:{type:'category',data:labels,axisLabel:{fontSize:10,interval:0,rotate:0}},
+    yAxis:{type:'value',name:'分数',nameTextStyle:{fontSize:10}},
+    series:[
+      {name:'最低投档分',type:'bar',data:mins.map((v,i)=>({value:v,itemStyle:{color:cats[i].id===currentCat?'#06b6d4':'#a5f3fc',borderRadius:[4,4,0,0]}})),label:{show:true,position:'top',fontSize:9}},
+      {name:'最高投档分',type:'bar',data:maxs.map((v,i)=>({value:v,itemStyle:{color:cats[i].id===currentCat?'#4f46e5':'#c7d2fe',borderRadius:[4,4,0,0]}})),label:{show:true,position:'top',fontSize:9}},
+    ]
+  },true);
+}
+
+function renderCatSchoolsChart(){
+  if(!charts.catSchools) charts.catSchools = echarts.init(document.getElementById('ch_catSchools'));
+  const cats = Object.values(DATA_MAP[currentYear]);
+  const labels = cats.map(c => c.name);
+  const counts = cats.map(c => c.schools.length);
+  charts.catSchools.setOption({
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+    grid:{left:45,right:15,top:15,bottom:35},
+    xAxis:{type:'category',data:labels,axisLabel:{fontSize:9,interval:0,rotate:30}},
+    yAxis:{type:'value',name:'院校数',nameTextStyle:{fontSize:9}},
+    series:[{type:'bar',data:counts,
+      itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#06b6d4'},{offset:1,color:'#22d3ee'}]),borderRadius:[4,4,0,0]},
+      label:{show:true,position:'top',fontSize:9}
+    }]
+  },true);
+}
+
+function renderCatPlansChart(){
+  if(!charts.catPlans) charts.catPlans = echarts.init(document.getElementById('ch_catPlans'));
+  const cats = Object.values(DATA_MAP[currentYear]);
+  const labels = cats.map(c => c.name);
+  const publicPlans = [], privatePlans = [];
+  cats.forEach(cat => {
+    const schoolMap = {};
+    cat.schools.forEach(s => { schoolMap[s['院校名称']] = s['办学性质'] || ''; });
+    let pub = 0, pri = 0;
+    cat.plans.forEach(p => {
+      const n = parseInt(p['计划数']);
+      if(isNaN(n)) return;
+      const nature = schoolMap[p['院校名称']] || '';
+      if(nature.includes('公办')) pub += n; else pri += n;
+    });
+    publicPlans.push(pub);
+    privatePlans.push(pri);
+  });
+  charts.catPlans.setOption({
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+    legend:{data:['公办计划','民办计划'],bottom:0,textStyle:{fontSize:10}},
+    grid:{left:50,right:15,top:15,bottom:40},
+    xAxis:{type:'category',data:labels,axisLabel:{fontSize:9,interval:0,rotate:30}},
+    yAxis:{type:'value',name:'计划数',nameTextStyle:{fontSize:9}},
+    series:[
+      {name:'公办计划',type:'bar',stack:'total',data:publicPlans,itemStyle:{color:'#10b981',borderRadius:[0,0,0,0]}},
+      {name:'民办计划',type:'bar',stack:'total',data:privatePlans,itemStyle:{color:'#f59e0b',borderRadius:[4,4,0,0]}},
+    ]
+  },true);
+}
+
+function renderCatScoresChart(){
+  if(!charts.catScores) charts.catScores = echarts.init(document.getElementById('ch_catScores'));
+  const cats = Object.values(DATA_MAP[currentYear]);
+  const labels = cats.map(c => c.name);
+  const pubMin = [], priMin = [];
+  cats.forEach(cat => {
+    const schoolMap = {};
+    cat.schools.forEach(s => { schoolMap[s['院校名称']] = s['办学性质'] || ''; });
+    let pubScores = [], priScores = [];
+    cat.scoreLines.forEach(s => {
+      const n = parseFloat(s['录取投档分']);
+      if(isNaN(n)) return;
+      const nature = schoolMap[s['院校名称']] || '';
+      if(nature.includes('公办')) pubScores.push(n); else priScores.push(n);
+    });
+    pubMin.push(pubScores.length ? Math.min(...pubScores) : 0);
+    priMin.push(priScores.length ? Math.min(...priScores) : 0);
+  });
+  charts.catScores.setOption({
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+    legend:{data:['公办最低分','民办最低分'],bottom:0,textStyle:{fontSize:10}},
+    grid:{left:50,right:15,top:15,bottom:40},
+    xAxis:{type:'category',data:labels,axisLabel:{fontSize:9,interval:0,rotate:30}},
+    yAxis:{type:'value',name:'分数',nameTextStyle:{fontSize:9}},
+    series:[
+      {name:'公办最低分',type:'bar',data:pubMin,itemStyle:{color:'#10b981',borderRadius:[4,4,0,0]},label:{show:true,position:'top',fontSize:8}},
+      {name:'民办最低分',type:'bar',data:priMin,itemStyle:{color:'#f59e0b',borderRadius:[4,4,0,0]},label:{show:true,position:'top',fontSize:8}},
+    ]
+  },true);
+}
+
+/* 原有5图表 */
+function renderCharts(){
+  const cd = getChartData();
+
+  if(!charts.tuition) charts.tuition = echarts.init(document.getElementById('ch_tuition'));
+  const fees = cd.plans.map(p => parseInt(p['学费(元/年)'])).filter(n=>!isNaN(n)&&n>0);
+  const fr = {'<5000':0,'5000-8000':0,'8000-12000':0,'12000-18000':0,'>18000':0};
+  fees.forEach(f => { if(f<5000)fr['<5000']++; else if(f<8000)fr['5000-8000']++; else if(f<12000)fr['8000-12000']++; else if(f<18000)fr['12000-18000']++; else fr['>18000']++; });
+  charts.tuition.setOption({
+    tooltip:{trigger:'item',formatter:'{b}: {c}个 ({d}%)'},
+    legend:{bottom:0,textStyle:{fontSize:10},type:'scroll'},
+    series:[{type:'pie',radius:['40%','68%'],center:['50%','45%'],
+      data:Object.entries(fr).map(([n,v])=>({name:n,value:v})),
+      itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:2},
+      label:{fontSize:10,formatter:'{b}\n{d}%'},
+      color:['#06b6d4','#10b981','#f59e0b','#8b5cf6','#ef4444']
+    }]
+  },true);
+
+  if(!charts.region) charts.region = echarts.init(document.getElementById('ch_region'));
+  const rc = {};
+  cd.schools.forEach(s => { const r = s['所在地区']||'未知'; rc[r]=(rc[r]||0)+1; });
+  let regions = Object.entries(rc).sort((a,b)=>b[1]-a[1]);
+  // 合并小项避免标签重叠：保留前10，其余合并为"其他"
+  let displayRegions = regions.slice(0, 10);
+  const otherCount = regions.slice(10).reduce((sum, [,v]) => sum + v, 0);
+  if(otherCount > 0) displayRegions.push(['其他', otherCount]);
+  charts.region.setOption({
+    tooltip:{trigger:'item',formatter:'{b}: {c}所 ({d}%)'},
+    legend:{bottom:0,textStyle:{fontSize:9},type:'scroll'},
+    series:[{type:'pie',radius:['38%','65%'],center:['50%','42%'],
+      data:displayRegions.map(([n,v])=>({name:n,value:v})),
+      itemStyle:{borderRadius:5,borderColor:'#fff',borderWidth:2},
+      label:{fontSize:9,formatter:'{b}\n{c}所',minMargin:5},
+      labelLine:{length:8,length2:6}
+    }]
+  },true);
+
+  if(!charts.nature) charts.nature = echarts.init(document.getElementById('ch_nature'));
+  const nc = {};
+  cd.schools.forEach(s => { const n = s['办学性质']||'未知'; nc[n]=(nc[n]||0)+1; });
+  charts.nature.setOption({
+    tooltip:{trigger:'item',formatter:'{b}: {c}所 ({d}%)'},
+    legend:{bottom:0,textStyle:{fontSize:11}},
+    series:[{type:'pie',radius:['45%','70%'],center:['50%','45%'],
+      data:Object.entries(nc).map(([n,v])=>({name:n,value:v,itemStyle:{color:n.includes('公办')?'#10b981':(n.includes('民办')?'#f59e0b':'#94a3b8')}})),
+      itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:2},
+      label:{fontSize:11,formatter:'{b}\n{c}所 ({d}%)'}
+    }]
+  },true);
+
+  if(!charts.score) charts.score = echarts.init(document.getElementById('ch_score'));
+  const scores = cd.scoreLines.map(s => parseInt(s['录取投档分'])).filter(n=>!isNaN(n));
+  if(scores.length > 0){
+    const min = Math.min(...scores), max = Math.max(...scores);
+    const binSize = Math.max(10, Math.ceil((max - min) / 10));
+    const bins = {}, labels = [];
+    for(let i = min; i <= max; i += binSize){ const l = `${i}-${Math.min(i+binSize-1,max)}`; labels.push(l); bins[l]=0; }
+    scores.forEach(s => { const idx = Math.min(Math.floor((s-min)/binSize), labels.length-1); bins[labels[idx]]++; });
+    charts.score.setOption({
+      tooltip:{trigger:'axis'},
+      grid:{left:40,right:15,top:15,bottom:40},
+      xAxis:{type:'category',data:labels,axisLabel:{fontSize:9,rotate:35}},
+      yAxis:{type:'value'},
+      series:[{type:'bar',data:labels.map(l=>bins[l]),
+        itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#06b6d4'},{offset:1,color:'#22d3ee'}]),borderRadius:[4,4,0,0]},
+        label:{show:true,position:'top',fontSize:9}
+      }]
+    },true);
+  } else { charts.score.clear(); }
+
+  if(!charts.major) charts.major = echarts.init(document.getElementById('ch_major'));
+  const mp = {};
+  cd.plans.forEach(p => {
+    const n = parseInt(p['计划数']);
+    if(!isNaN(n)){
+      const key = p['院校名称'] + '·' + p['专业名称'];
+      mp[key] = (mp[key]||0) + n;
+    }
+  });
+  const top20 = Object.entries(mp).sort((a,b)=>b[1]-a[1]).slice(0,20);
+  charts.major.setOption({
+    tooltip:{trigger:'axis',formatter:p=>`${p[0].name}<br/>计划数: ${p[0].value}`},
+    grid:{left:130,right:25,top:10,bottom:20},
+    xAxis:{type:'value'},
+    yAxis:{type:'category',data:top20.map(s=>s[0].length>14?s[0].slice(0,14)+'…':s[0]).reverse(),axisLabel:{fontSize:9}},
+    series:[{type:'bar',data:top20.map(s=>s[1]).reverse(),
+      itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#8b5cf6'},{offset:1,color:'#a78bfa'}]),borderRadius:[0,4,4,0]},
+      label:{show:true,position:'right',fontSize:9}
+    }]
+  },true);
+}
+
+function updateAll(){
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.id === currentCat));
+  // 综合模式隐藏数据表区域
+  document.getElementById('detailSection').style.display = currentCat === 'all' ? 'none' : '';
+  renderStats();
+  renderCatCompareChart();
+  renderCharts();
+  if(currentCat !== 'all') renderTable();
+}
+
+window.addEventListener('resize', () => { Object.values(charts).forEach(c => c && c.resize()); });
+init();
+</script>
+<script src="../assets/js/particles.js"></script>
+</body>
+</html>

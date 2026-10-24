@@ -1,0 +1,13 @@
+{
+  "name": "campus-performance-analysis",
+  "version": "1.0.0",
+  "description": "河北尚学单招成绩分析系统：校区成绩分析、学习目标对照、高职单招大类信息查询",
+  "private": true,
+  "scripts": {
+    "count": "node tools/count-data.js",
+    "test-compare": "node tools/test-compare.js"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
+}
