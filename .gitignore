@@ -10,6 +10,8 @@ _shots/
 **/_shots/
 _verify/
 **/_verify/
+_live/
+**/_live/
 *.local
 
 # ===== 临时与备份文件 =====
