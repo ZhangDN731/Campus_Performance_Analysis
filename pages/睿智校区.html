@@ -592,6 +592,8 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
   .topbar-actions{width:100%;justify-content:center}
   .topbar-main h1{width:100%;justify-content:center}
   .hover-tip{max-width:280px;font-size:.75rem}
+  .line-setting input{font-size:16px}
+  .filter-group input{font-size:16px}
 }
 @media (max-width:420px){
   .setting-group-title{display:none}
@@ -661,6 +663,7 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
 }
 
 </style>
+<link rel="stylesheet" href="../assets/css/learning-module.css">
 </head>
 <body>
 <canvas id="particleCanvas"></canvas>
@@ -766,6 +769,7 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
     <div class="main-tabs" id="mainTabs">
       <button class="main-tab active" data-top="core">核心分析</button>
       <button class="main-tab" data-top="extra">拓展分析</button>
+      <button class="main-tab" data-top="goals">学习目标</button>
     </div>
     <div class="sub-tabs" id="subTabs"></div>
   </div>
@@ -773,6 +777,11 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
   <div id="contentArea"></div>
 </div>
 
+<!-- 学习目标模块依赖：院校库 + 解析核心 + GitHub 托管 + 可挂载模块 -->
+<script src="../assets/data/data_2026.js"></script>
+<script src="../assets/js/common.js"></script>
+<script src="../assets/js/github-upload.js"></script>
+<script src="../assets/js/learning-module.js"></script>
 <script>
 /* =====================================================================
  *  成绩分析系统 v4.0.0（统一视觉 + 功能重组 + 分值对齐）
@@ -787,7 +796,9 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
 const CAMPUS_CONFIG = {
   name: '睿智校区',
   dataFile: '../data/27届睿智周测成绩.xlsx',
-  dataCandidates: ['../data/27届睿智周测成绩.xlsx','../data/27届睿智周测成绩.xls']
+  dataCandidates: ['../data/27届睿智周测成绩.xlsx','../data/27届睿智周测成绩.xls'],
+  /* 学习目标：目标院校表由 GitHub 托管，仅 admin 可上传到该路径 */
+  targetPath: 'data/targets/睿智校区目标.xlsx'
 };
 
 /* 核心分析：保留的 5 个高频功能 */
@@ -851,6 +862,9 @@ const state = {
 };
 /* 原始成绩快照：分值对齐基于它重算，关掉开关即可无损还原 */
 const RAW_CLASSES = { data: null };
+/* 最近一次解析得到的 Excel 工作簿：学习目标模块复用它，避免重复上传成绩 */
+let LAST_WORKBOOK = null;
+let goalsInstance = null;
 let chartInstances = [];
 const statCache = new Map();
 let p4Observer = null;
@@ -2934,8 +2948,10 @@ function renderTabs() {
   document.querySelectorAll('.main-tab').forEach(b => {
     b.classList.toggle('active', b.dataset.top === state.topTab);
   });
-  const group = TOP_TABS.find(g => g.id === state.topTab);
   const subTabsEl = $('subTabs');
+  /* 学习目标为独立整页，无子标签 */
+  if (state.topTab === 'goals') { subTabsEl.innerHTML = ''; return; }
+  const group = TOP_TABS.find(g => g.id === state.topTab);
   if (!group) { subTabsEl.innerHTML = ''; return; }
   subTabsEl.innerHTML = group.pages.map(p =>
     '<button class="sub-tab' + (state.currentPage === p.id ? ' active' : '') + '" data-page="' + p.id + '">' + esc(p.label) + '</button>'
@@ -3000,6 +3016,27 @@ function renderCurrentPage() {
   setTimeout(bindHoverTips, 30);
 }
 
+/* ============ 学习目标：复用校区成绩，目标表走 GitHub（仅 admin 可上传） ============ */
+function renderGoals() {
+  const area = $('contentArea');
+  if (!LAST_WORKBOOK) {
+    area.innerHTML = emptyTip('请先上传成绩文件，再查看学习目标');
+    return;
+  }
+  area.innerHTML = '<div id="goalsRoot"></div>';
+  let gradeData;
+  try {
+    gradeData = AppCore.parseGradeWorkbook(LAST_WORKBOOK);
+  } catch (err) {
+    area.innerHTML = emptyTip('成绩解析失败：' + err.message);
+    return;
+  }
+  goalsInstance = LearningModule.mount($('goalsRoot'), {
+    gradeData: gradeData,
+    targetPath: CAMPUS_CONFIG.targetPath
+  });
+}
+
 /* ============ 文件上传 ============ */
 function readOneFile(file) {
   return new Promise((resolve, reject) => {
@@ -3009,6 +3046,7 @@ function readOneFile(file) {
         const data = new Uint8Array(e.target.result);
         const wb = XLSX.read(data, {type:'array'});
         ingestPart(wb);
+        LAST_WORKBOOK = wb;
         resolve();
       } catch (err) { reject(new Error('【' + file.name + '】解析失败：' + err.message)); }
     };
@@ -3057,6 +3095,8 @@ function resetAll() {
   RAW_CLASSES.data = null;
   state.topTab = 'core'; state.currentPage = 'f6'; _uid = 0;
   state.mergedSeg = {};
+  goalsInstance = null;
+  document.body.style.overflow = '';
   $('contentArea').innerHTML = '';
   $('subTabs').innerHTML = '';
   $('globalClassWrap').innerHTML = '';
@@ -3503,7 +3543,14 @@ function classLabel(cls) {
 function bindEvents() {
   document.querySelectorAll('.main-tab').forEach(btn => {
     btn.addEventListener('click', () => {
+      /* 切换标签前关闭可能打开的学习目标弹窗并恢复滚动 */
+      document.body.style.overflow = '';
       state.topTab = btn.dataset.top;
+      if (state.topTab === 'goals') {
+        renderTabs();
+        renderGoals();
+        return;
+      }
       const group = TOP_TABS.find(g => g.id === state.topTab);
       if (group && group.pages.length) {
         if (!group.pages.some(p => p.id === state.currentPage)) {
@@ -3802,6 +3849,7 @@ function autoLoadData() {
         const wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
         resetAll();
         ingestWorkbook(wb);
+        LAST_WORKBOOK = wb;
         hideLoading();
         finishLoad(url.split('/').pop());
       })

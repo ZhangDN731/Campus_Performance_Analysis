@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>河北省高职单招数据查询系统 | 2024-2026</title>
+<title>河北省高职单招数据查询系统</title>
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
 <script>if(!window.echarts){document.write('<script src="https://fastly.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"><\/script>');}</script>
-<script src="../assets/data/data_2024.js"></script>
-<script src="../assets/data/data_2025.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="../assets/js/github-upload.js"></script>
+<!-- 兜底：Excel 加载失败时使用内嵌数据 -->
 <script src="../assets/data/data_2026.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -30,20 +31,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 body::before{content:'';position:fixed;inset:0;z-index:-2;pointer-events:none;background:radial-gradient(900px 620px at 12% 8%,rgba(99,102,241,.20),transparent 62%),radial-gradient(820px 560px at 88% 12%,rgba(6,182,212,.18),transparent 60%),radial-gradient(760px 700px at 70% 92%,rgba(168,85,247,.14),transparent 62%),radial-gradient(700px 520px at 20% 88%,rgba(59,130,246,.14),transparent 60%),linear-gradient(160deg,#f4f7fd 0%,#eaeff8 45%,#f2f5fb 100%);background-attachment:fixed}
 #particleCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.34}
 /* ===== 玻璃卡片：统一半透明 + 模糊 ===== */
-.stat-card,.chart-card,.controls,.table-panel,.compare-header{-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);border:1px solid rgba(255,255,255,.72)}
+.stat-card,.chart-card,.controls,.table-panel{-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);border:1px solid rgba(255,255,255,.72)}
 .table-panel{background:var(--card-solid)}
 .topbar{background:rgba(255,255,255,0.9);backdrop-filter:blur(12px);padding:12px 24px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(79,70,229,0.08);border-bottom:1px solid rgba(255,255,255,0.6)}
 .topbar-row1{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px}
 .topbar h1{font-size:19px;font-weight:800;letter-spacing:0.5px;white-space:nowrap;background:linear-gradient(135deg,var(--primary) 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .topbar h1 span{opacity:0.6;font-size:12px;font-weight:400;margin-left:8px;-webkit-text-fill-color:var(--text2)}
 .topbar-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.year-tabs{display:flex;gap:4px;background:rgba(79,70,229,0.08);padding:3px;border-radius:10px}
-.year-tab{padding:6px 16px;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:600;transition:all .25s;color:var(--text2)}
-.year-tab:hover{color:var(--primary)}
-.year-tab.active{background:#fff;color:var(--primary);box-shadow:0 2px 8px rgba(79,70,229,0.15)}
-.compare-tab-btn{padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:600;transition:all .25s;color:var(--purple);background:rgba(139,92,246,0.1);border:1.5px solid rgba(139,92,246,0.2)}
-.compare-tab-btn:hover{background:rgba(139,92,246,0.18)}
-.compare-tab-btn.active{background:linear-gradient(135deg,var(--purple),var(--primary));color:#fff;border-color:transparent;box-shadow:0 2px 10px rgba(139,92,246,0.3)}
+.year-badge{padding:6px 16px;border-radius:9px;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--primary),var(--primary-light));box-shadow:0 2px 8px rgba(79,70,229,0.2)}
 .topbar-row2{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .cat-buttons{display:flex;flex-wrap:wrap;gap:5px}
 .cat-btn{padding:5px 12px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:#fff;transition:all .2s;color:var(--text2)}
@@ -52,6 +47,9 @@ body::before{content:'';position:fixed;inset:0;z-index:-2;pointer-events:none;ba
 .cat-btn.all-cat{border-color:var(--purple);color:var(--purple)}
 .cat-btn.all-cat.active{background:linear-gradient(135deg,var(--purple),var(--primary));box-shadow:0 2px 6px rgba(139,92,246,0.25)}
 .container{max-width:1600px;margin:0 auto;padding:16px 20px 50px}
+.data-loading{padding:60px 20px;text-align:center;color:var(--text2);font-size:15px}
+.data-loading .spinner{width:38px;height:38px;border:3px solid #dfe3f5;border-top-color:var(--primary);border-radius:50%;margin:0 auto 14px;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 .stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
 .stat-card{background:var(--card);border-radius:12px;padding:14px 10px;text-align:center;box-shadow:var(--shadow);border-top:3px solid var(--accent);transition:transform .2s,box-shadow .2s}
 .stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
@@ -89,6 +87,8 @@ body::before{content:'';position:fixed;inset:0;z-index:-2;pointer-events:none;ba
 .tool-btn:hover{border-color:var(--primary-light);color:var(--primary)}
 .tool-btn.primary{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(79,70,229,0.2)}
 .tool-btn.primary:hover{box-shadow:0 4px 14px rgba(79,70,229,0.3)}
+.tool-btn.admin{background:linear-gradient(135deg,var(--purple),var(--primary));color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(139,92,246,0.22)}
+.tool-btn.admin:hover{box-shadow:0 4px 14px rgba(139,92,246,0.32)}
 .result-count{font-size:12.5px;color:var(--text2);white-space:nowrap;font-weight:500}
 .filter-panel{background:#f8fafc;border-radius:10px;padding:12px;margin-top:10px;display:none;border:1px solid var(--border)}
 .filter-panel.show{display:block}
@@ -135,22 +135,19 @@ tr:nth-child(even):hover{background:#f0f4ff}
 .modal-table td{padding:7px;border-bottom:1px solid #f1f5f9}
 .empty-state{text-align:center;padding:50px 20px;color:var(--text2)}
 .empty-state .icon{font-size:40px;margin-bottom:12px;opacity:0.4}
-.compare-header{background:var(--card);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
-.compare-header h2{font-size:17px;font-weight:800;color:var(--primary);margin-bottom:6px}
-.compare-header p{font-size:13px;color:var(--text2)}
-.compare-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}
-.compare-stat{background:linear-gradient(135deg,#f8faff,#f0f4ff);border-radius:10px;padding:11px;text-align:center;border:1px solid rgba(99,102,241,0.1)}
-.compare-stat .num{font-size:19px;font-weight:800;color:var(--purple)}
-.compare-stat .label{font-size:11px;color:var(--text2);margin-top:2px}
-.trend-up{color:var(--danger);font-weight:600}
-.trend-down{color:var(--success);font-weight:600}
-.trend-flat{color:var(--text2);font-weight:600}
+/* 管理员登录弹窗 */
+#adminModal .modal{max-width:420px}
+.admin-field{margin-bottom:12px}
+.admin-field label{display:block;font-size:12.5px;font-weight:700;color:var(--text2);margin-bottom:6px}
+.admin-field input{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;background:#fafbfc}
+.admin-field input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.12);background:#fff}
+.admin-err{color:var(--danger);font-size:12.5px;min-height:16px;margin-bottom:10px}
+.admin-note{font-size:11.5px;color:var(--text3);margin-top:12px;line-height:1.7}
 .footer{text-align:center;padding:18px;color:var(--text2);font-size:11.5px}
 /* ===== 响应式：平板横屏/小桌面 900-1200px ===== */
 @media(max-width:1200px){
   .stats{grid-template-columns:repeat(4,1fr)}
   .charts-grid{grid-template-columns:repeat(2,1fr)}
-  .compare-stats{grid-template-columns:repeat(3,1fr)}
 }
 /* ===== 响应式：平板竖屏/大屏手机 600-900px ===== */
 @media(max-width:900px){
@@ -167,7 +164,6 @@ tr:nth-child(even):hover{background:#f0f4ff}
   .cat-btn{flex-shrink:0;padding:5px 11px;font-size:11.5px}
   .type-tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
   .type-tab{flex-shrink:0;min-width:75px;padding:8px 10px;font-size:12px}
-  .compare-stats{grid-template-columns:repeat(3,1fr)}
   .modal-stats{grid-template-columns:repeat(2,1fr)}
 }
 /* ===== 响应式：手机 <600px ===== */
@@ -177,8 +173,6 @@ tr:nth-child(even):hover{background:#f0f4ff}
   .topbar-row1{gap:6px;margin-bottom:8px}
   .topbar h1{font-size:15px}
   .topbar h1 span{display:none}
-  .year-tab{padding:5px 12px;font-size:12px}
-  .compare-tab-btn{padding:5px 10px;font-size:12px}
   .stats{grid-template-columns:repeat(2,1fr);gap:8px}
   .stat-card{padding:10px 6px;border-radius:10px}
   .stat-card .num{font-size:18px}
@@ -197,12 +191,6 @@ tr:nth-child(even):hover{background:#f0f4ff}
   .filter-group input,.filter-group select{width:100%}
   th,td{padding:6px 5px;font-size:11px}
   thead th{font-size:11px;padding:9px 6px}
-  .compare-header{padding:14px}
-  .compare-header h2{font-size:15px}
-  .compare-header p{font-size:12px}
-  .compare-stats{grid-template-columns:repeat(2,1fr);gap:8px}
-  .compare-stat{padding:10px 6px}
-  .compare-stat .num{font-size:17px}
   .modal{max-height:90vh;margin:10px}
   .modal-header{padding:14px 16px}
   .modal-body{padding:12px 14px}
@@ -217,7 +205,6 @@ tr:nth-child(even):hover{background:#f0f4ff}
   .stats{grid-template-columns:repeat(2,1fr)}
   .stat-card .num{font-size:16px}
   .chart-card-body{height:200px}
-  .year-tab{padding:5px 10px;font-size:11px}
 }
 </style>
 </head>
@@ -227,18 +214,13 @@ tr:nth-child(even):hover{background:#f0f4ff}
 
 <div class="topbar">
   <div class="topbar-row1">
-    <h1>河北省高职单招数据查询系统 <span>2024-2026 三年数据</span></h1>
+    <h1>河北省高职单招数据查询系统 <span id="topSub">数据加载中…</span></h1>
     <div class="topbar-right">
       <a class="tool-btn" href="../index.html" style="display:inline-flex;align-items:center;gap:5px">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5m6 7l-7-7 7-7"/></svg>
         首页
       </a>
-      <div class="year-tabs" id="yearTabs">
-        <div class="year-tab" data-year="2024">2024</div>
-        <div class="year-tab" data-year="2025">2025</div>
-        <div class="year-tab active" data-year="2026">2026</div>
-      </div>
-      <div class="compare-tab-btn" id="compareViewBtn" onclick="toggleCompareView()">三年对比</div>
+      <div class="year-badge" id="yearBadge">—</div>
     </div>
   </div>
   <div class="topbar-row2">
@@ -247,7 +229,12 @@ tr:nth-child(even):hover{background:#f0f4ff}
 </div>
 
 <div class="container">
-  <div id="singleView">
+  <div class="data-loading" id="dataLoading">
+    <div class="spinner"></div>
+    <div>正在读取录取数据…</div>
+  </div>
+
+  <div id="singleView" style="display:none">
     <div class="stats" id="statsBar"></div>
 
     <!-- 图表区：大类对比图 + 原有5图，统一3列网格 -->
@@ -276,6 +263,7 @@ tr:nth-child(even):hover{background:#f0f4ff}
           <div class="search-box"><input type="text" id="searchInput" placeholder="搜索院校、专业、地区..."></div>
           <button class="tool-btn" id="filterToggle">筛选</button>
           <button class="tool-btn primary" id="exportBtn">导出CSV</button>
+          <button class="tool-btn admin" id="uploadBtn">上传数据(管理员)</button>
           <span class="result-count" id="resultCount"></span>
         </div>
         <div class="filter-panel" id="filterPanel">
@@ -292,45 +280,9 @@ tr:nth-child(even):hover{background:#f0f4ff}
       </div>
     </div>
   </div>
-
-  <!-- 三年对比视图 -->
-  <div id="compareView" style="display:none">
-    <div class="compare-header">
-      <h2>三年投档分与位次对比 <span style="font-size:13px;color:var(--text2);font-weight:400">（院校 + 专业维度）</span></h2>
-      <p>合并 2024 / 2025 / 2026 三年录取分数线数据，以院校名称+专业名称匹配，展示投档分及对应位次的逐年变化。位次由当年一分一档表推算。</p>
-      <div class="compare-stats" id="compareStats"></div>
-    </div>
-    <div class="controls">
-      <div class="toolbar">
-        <div class="search-box"><input type="text" id="compareSearchInput" placeholder="搜索院校、专业..."></div>
-        <button class="tool-btn" id="compareFilterBtn">筛选</button>
-        <button class="tool-btn primary" id="compareExportBtn">导出CSV</button>
-        <span class="result-count" id="compareResultCount"></span>
-      </div>
-      <div class="filter-panel" id="compareFilterPanel">
-        <div class="filter-row">
-          <div class="filter-group"><label>考试类</label><select id="cf_cat"><option value="">全部</option></select></div>
-          <div class="filter-group"><label>办学性质</label><select id="cf_nature"><option value="">全部</option><option>公办</option><option>民办</option></select></div>
-          <div class="filter-group"><label>所在地区</label><select id="cf_region"><option value="">全部</option></select></div>
-          <div class="filter-group"><label>2026投档分≥</label><input type="number" id="cf_min26" style="width:80px"></div>
-          <div class="filter-group"><label>2026投档分≤</label><input type="number" id="cf_max26" style="width:80px"></div>
-          <div class="filter-group"><label>仅显示三年均有</label><select id="cf_allThree"><option value="0">否</option><option value="1">是</option></select></div>
-          <button class="tool-btn primary" onclick="applyCompareFilters()">应用</button>
-          <button class="tool-btn" onclick="clearCompareFilters()">重置</button>
-        </div>
-      </div>
-    </div>
-    <div class="table-panel">
-      <div class="table-wrapper">
-        <table id="compareTable">
-          <thead id="compareTableHead"></thead>
-          <tbody id="compareTableBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
 </div>
 
+<!-- 院校详情弹窗 -->
 <div class="modal-overlay" id="schoolModal">
   <div class="modal">
     <div class="modal-header">
@@ -341,19 +293,42 @@ tr:nth-child(even):hover{background:#f0f4ff}
   </div>
 </div>
 
+<!-- 管理员登录弹窗 -->
+<div class="modal-overlay" id="adminModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>管理员验证</h3>
+      <button class="modal-close" onclick="closeAdminModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="admin-field">
+        <label>GitHub Personal Access Token</label>
+        <input type="password" id="adminToken" placeholder="请输入管理员令牌（ghp_ 开头）" autocomplete="off">
+      </div>
+      <div class="admin-err" id="adminErr"></div>
+      <button class="tool-btn primary" id="adminSubmit" style="width:100%;padding:11px">验证并登录</button>
+      <div class="admin-note">仅管理员持有可写入的令牌；登录状态仅保存在当前标签页，关闭后自动失效。上传的年度数据将替换对应年份的 Excel。</div>
+    </div>
+  </div>
+</div>
+
 <div class="footer">数据来源：河北省教育考试院 | 提取自河北单招网(hbdzxx.com) | 仅供参考，以官方公布为准</div>
 
 <script>
-const DATA_MAP = {'2024': DANZHAO_DATA_2024, '2025': DANZHAO_DATA_2025, '2026': DANZHAO_DATA_2026};
-const YEARS = ['2024','2025','2026'];
-let currentYear = '2026', currentCat = 'all', currentType = 'comprehensive';
+/* ============================================================
+ *  大类信息（单一当前年度，Excel 驱动）
+ *  · 数据来自 data/admission/ 下的年度 Excel（manifest 指定）
+ *  · 加载失败时兜底内嵌 data_2026.js
+ *  · 管理员可上传任意年度 Excel（如 2027），系统自动切换
+ * ============================================================ */
+
+let DATA = null;
+let DATA_YEAR = null;
+let currentCat = 'all', currentType = 'comprehensive';
 let sortKey = null, sortAsc = true;
 let searchText = '', filters = {};
-let compareView = false;
-let compareSortKey = null, compareSortAsc = true;
-let compareSearchText = '', compareFilters = {};
-let compareDataCache = null;
 const charts = {};
+const ADMISSION_DIR = '../data/admission/';
 
 const COLUMNS = {
   comprehensive: [
@@ -407,30 +382,94 @@ const COLUMNS = {
   ],
 };
 
-const COMPARE_COLUMNS = [
-  {key:'院校名称',label:'院校名称'},
-  {key:'专业名称',label:'专业名称'},
-  {key:'考试类',label:'考试类'},
-  {key:'办学性质',label:'办学性质'},
-  {key:'所在地区',label:'所在地区'},
-  {key:'score2024',label:'2024投档分'},
-  {key:'score2025',label:'2025投档分'},
-  {key:'score2026',label:'2026投档分'},
-  {key:'rank2024',label:'2024位次'},
-  {key:'rank2025',label:'2025位次'},
-  {key:'rank2026',label:'2026位次'},
-  {key:'scoreDiff',label:'分数变化(26-24)'},
-  {key:'rankDiff',label:'位次变化(26-24)'},
-];
+/* ============ Excel 解析 ============ */
+function sheetToObjects(wb, name){
+  const ws = wb.Sheets[name];
+  if(!ws) return [];
+  return XLSX.utils.sheet_to_json(ws, {defval:''});
+}
 
-function getData(y,c){ return DATA_MAP[y][c]; }
+function parseAdmissionWorkbook(wb){
+  const result = {};
+  const infoRows = sheetToObjects(wb, '00-类别说明');
+  const infoMap = {};
+  let year = null;
+  infoRows.forEach(r => {
+    const cid = String(r['类别ID']);
+    if(year == null && r['年度']) year = r['年度'];
+    infoMap[cid] = { name:r['类别名称'], fullName:r['类别全称'], desc:r['类别说明'] };
+  });
+  for(let i=1;i<=10;i++){
+    const cid = String(i);
+    const pad = (i<10?'0':'')+i;
+    const schools = sheetToObjects(wb, pad+'-院校');
+    const scoreLines = sheetToObjects(wb, pad+'-分数线');
+    const plans = sheetToObjects(wb, pad+'-招生计划');
+    const yifenyidang = sheetToObjects(wb, pad+'-一分一档');
+    const majorsRaw = sheetToObjects(wb, pad+'-专业学费');
+    const majors = majorsRaw.map(m => {
+      const copy = Object.assign({}, m);
+      if(copy['投档最低分'] !== undefined){
+        copy['2026投档最低分'] = copy['投档最低分'];
+        delete copy['投档最低分'];
+      }
+      return copy;
+    });
+    const info = infoMap[cid] || {};
+    result[cid] = {
+      id:cid, name:info.name||'', fullName:info.fullName||'', desc:info.desc||'',
+      scoreLines:scoreLines, plans:plans, schools:schools,
+      yifenyidang:yifenyidang, majors:majors
+    };
+  }
+  return {data:result, year:year};
+}
 
-function init(){
+function getData(c){ return DATA[c]; }
+
+/* ============ 数据加载：manifest → Excel → 兜底 ============ */
+function fetchText(url){
+  return fetch(url + (url.includes('?')?'&':'?') + 't=' + Date.now(), {cache:'no-store'})
+    .then(res => { if(!res.ok) throw new Error('HTTP '+res.status); return res.arrayBuffer(); });
+}
+
+function loadData(){
+  const manifestUrl = ADMISSION_DIR + 'manifest.json';
+  fetch(manifestUrl + '?t=' + Date.now(), {cache:'no-store'})
+    .then(res => { if(!res.ok) throw new Error('manifest HTTP '+res.status); return res.json(); })
+    .then(manifest => {
+      const file = manifest.file;
+      const year = manifest.year;
+      return fetchText(ADMISSION_DIR + file).then(buf => {
+        const wb = XLSX.read(new Uint8Array(buf), {type:'array'});
+        const parsed = parseAdmissionWorkbook(wb);
+        applyData(parsed.data, parsed.year || year);
+      });
+    })
+    .catch(() => {
+      /* 兜底：内嵌数据 */
+      if(typeof DANZHAO_DATA_2026 !== 'undefined'){
+        applyData(DANZHAO_DATA_2026, 2026);
+      } else {
+        document.getElementById('dataLoading').innerHTML = '数据加载失败，请检查网络后刷新。';
+      }
+    });
+}
+
+function applyData(data, year){
+  DATA = data;
+  DATA_YEAR = year;
+  document.getElementById('dataLoading').style.display = 'none';
+  document.getElementById('singleView').style.display = '';
+  document.getElementById('yearBadge').textContent = year + ' 年';
+  document.getElementById('topSub').textContent = year + ' 年录取数据';
+  document.title = '河北省高职单招数据查询系统 | ' + year;
   renderCatButtons();
   bindEvents();
   updateAll();
 }
 
+/* ============ 类别按钮 ============ */
 function renderCatButtons(){
   const c = document.getElementById('catButtons');
   c.innerHTML = '';
@@ -440,7 +479,7 @@ function renderCatButtons(){
   allBtn.dataset.id = 'all';
   allBtn.onclick = () => { currentCat = 'all'; currentType = 'comprehensive'; updateAll(); };
   c.appendChild(allBtn);
-  Object.values(DATA_MAP['2026']).forEach(cat => {
+  Object.values(DATA).forEach(cat => {
     const btn = document.createElement('div');
     btn.className = 'cat-btn' + (cat.id === currentCat ? ' active' : '');
     btn.textContent = cat.name;
@@ -458,16 +497,16 @@ function updateTypeTabs(){
 
 function switchType(type){
   document.querySelectorAll('#typeTabs .type-tab').forEach(x => x.classList.remove('active'));
-  document.querySelector(`#typeTabs .type-tab[data-type="${type}"]`).classList.add('active');
+  document.querySelector('#typeTabs .type-tab[data-type="'+type+'"]').classList.add('active');
   currentType = type; sortKey = null; filters = {};
   document.getElementById('filterPanel').classList.remove('show');
   updateAll();
 }
 
-function buildComprehensiveData(year, catId){
+/* ============ 综合数据 ============ */
+function buildComprehensiveData(catId){
   const map = {};
-  const cats = catId === 'all' ? Object.values(DATA_MAP[year]) : [DATA_MAP[year][catId]];
-  // 构建院校地址映射（仅2026年有majors表含地址）
+  const cats = catId === 'all' ? Object.values(DATA) : [DATA[catId]];
   const addrMap = {};
   cats.forEach(cat => {
     if(cat.majors){
@@ -506,41 +545,36 @@ function buildComprehensiveData(year, catId){
         '学制': plan['学制'],
         '学费': plan['学费(元/年)'],
         '投档分': hasNumScore ? scoreNum : (rawScore || '—'),
-        '省内位次': hasNumScore ? (getRankFromYifenyidang(year, cat.id, scoreNum) || '—') : '—',
+        '省内位次': hasNumScore ? (getRankFromYifenyidang(cat.id, scoreNum) || '—') : '—',
       };
     });
   });
   return Object.values(map);
 }
 
-function getMergedData(year, type){
-  if(type === 'comprehensive') return buildComprehensiveData(year, currentCat);
-  if(currentCat !== 'all') return getData(year, currentCat)[type];
+function getMergedData(type){
+  if(type === 'comprehensive') return buildComprehensiveData(currentCat);
+  if(currentCat !== 'all') return getData(currentCat)[type];
   let merged = [];
-  Object.values(DATA_MAP[year]).forEach(cat => {
+  Object.values(DATA).forEach(cat => {
     const arr = cat[type] || [];
     if(type === 'schools'){
       arr.forEach(s => {
         const existing = merged.find(m => m['院校名称'] === s['院校名称']);
-        if(!existing) merged.push({...s, '招生类别': cat.name});
-        else existing['招生类别'] = (existing['招生类别'] || '') + '、' + cat.name;
+        if(!existing) merged.push(Object.assign({}, s, {'招生类别':cat.name}));
+        else existing['招生类别'] = (existing['招生类别']||'') + '、' + cat.name;
       });
     } else if(type === 'yifenyidang'){
-      if(merged.length === 0) merged = arr.map(item => ({...item, '考试类': cat.name}));
+      if(merged.length === 0) merged = arr.map(item => Object.assign({}, item, {'考试类':cat.name}));
     } else {
-      arr.forEach(item => merged.push({...item}));
+      arr.forEach(item => merged.push(Object.assign({}, item)));
     }
   });
   return merged;
 }
 
+/* ============ 事件 ============ */
 function bindEvents(){
-  document.querySelectorAll('.year-tab').forEach(t => t.onclick = () => {
-    if(compareView) return;
-    document.querySelectorAll('.year-tab').forEach(x => x.classList.remove('active'));
-    t.classList.add('active');
-    currentYear = t.dataset.year; updateAll();
-  });
   document.querySelectorAll('#typeTabs .type-tab').forEach(t => t.onclick = () => switchType(t.dataset.type));
   document.getElementById('searchInput').addEventListener('input', e => {
     searchText = e.target.value.trim(); renderTable();
@@ -551,41 +585,21 @@ function bindEvents(){
     if(p.classList.contains('show')) renderFilterPanel();
   };
   document.getElementById('exportBtn').onclick = exportCSV;
-  document.getElementById('compareSearchInput').addEventListener('input', e => {
-    compareSearchText = e.target.value.trim(); renderCompareTable();
-  });
-  document.getElementById('compareFilterBtn').onclick = () => {
-    document.getElementById('compareFilterPanel').classList.toggle('show');
-  };
-  document.getElementById('compareExportBtn').onclick = exportCompareCSV;
+  document.getElementById('uploadBtn').onclick = startUpload;
 }
 
-function toggleCompareView(){
-  compareView = !compareView;
-  const btn = document.getElementById('compareViewBtn');
-  btn.classList.toggle('active', compareView);
-  document.getElementById('singleView').style.display = compareView ? 'none' : '';
-  document.getElementById('compareView').style.display = compareView ? '' : 'none';
-  document.querySelectorAll('.year-tab').forEach(t => { t.style.pointerEvents = compareView ? 'none' : ''; t.style.opacity = compareView ? '0.5' : ''; });
-  if(compareView){
-    if(!compareDataCache) buildCompareData();
-    renderCompareStats();
-    renderCompareFilters();
-    renderCompareTable();
-  }
-}
-
+/* ============ 统计 ============ */
 function renderStats(){
   let totalSchools, totalMajors, totalPlan = 0, scores = [], avgScore, maxScore, totalStudents;
   if(currentCat === 'all'){
-    totalSchools = new Set(Object.values(DATA_MAP[currentYear]).flatMap(c => c.schools.map(s=>s['院校名称']))).size;
-    totalMajors = Object.values(DATA_MAP[currentYear]).reduce((sum,c) => sum + c.plans.length, 0);
-    Object.values(DATA_MAP[currentYear]).forEach(c => c.plans.forEach(p => { const n=parseInt(p['计划数']); if(!isNaN(n)) totalPlan+=n; }));
-    scores = Object.values(DATA_MAP[currentYear]).flatMap(c => c.scoreLines.map(s=>parseInt(s['录取投档分']))).filter(n=>!isNaN(n));
-    const yfyd = DATA_MAP[currentYear]['1'].yifenyidang;
+    totalSchools = new Set(Object.values(DATA).flatMap(c => c.schools.map(s=>s['院校名称']))).size;
+    totalMajors = Object.values(DATA).reduce((sum,c) => sum + c.plans.length, 0);
+    Object.values(DATA).forEach(c => c.plans.forEach(p => { const n=parseInt(p['计划数']); if(!isNaN(n)) totalPlan+=n; }));
+    scores = Object.values(DATA).flatMap(c => c.scoreLines.map(s=>parseInt(s['录取投档分']))).filter(n=>!isNaN(n));
+    const yfyd = DATA['1'].yifenyidang;
     totalStudents = yfyd.length ? yfyd[yfyd.length-1]['累计人数'] : '—';
   } else {
-    const cat = getData(currentYear, currentCat);
+    const cat = getData(currentCat);
     totalSchools = cat.schools.length;
     totalMajors = cat.plans.length;
     cat.plans.forEach(p => { const n = parseInt(p['计划数']); if(!isNaN(n)) totalPlan += n; });
@@ -603,42 +617,43 @@ function renderStats(){
     {num: totalStudents, label:'参考人数'},
   ];
   document.getElementById('statsBar').innerHTML = stats.map(s =>
-    `<div class="stat-card"><div class="num">${s.num}</div><div class="label">${s.label}</div></div>`).join('');
+    '<div class="stat-card"><div class="num">'+s.num+'</div><div class="label">'+s.label+'</div></div>').join('');
 }
 
+/* ============ 筛选面板 ============ */
 function renderFilterPanel(){
   const row = document.getElementById('filterRow');
   let html = '';
   if(currentType === 'scoreLines' || currentType === 'majors' || currentType === 'comprehensive'){
-    html += `<div class="filter-group"><label>分数范围</label>
-      <input type="number" placeholder="最低" id="f_minScore" value="${filters.minScore||''}" style="width:70px">
-      <span>-</span>
-      <input type="number" placeholder="最高" id="f_maxScore" value="${filters.maxScore||''}" style="width:70px"></div>`;
+    html += '<div class="filter-group"><label>分数范围</label>' +
+      '<input type="number" placeholder="最低" id="f_minScore" value="'+(filters.minScore||'')+'" style="width:70px">' +
+      '<span>-</span>' +
+      '<input type="number" placeholder="最高" id="f_maxScore" value="'+(filters.maxScore||'')+'" style="width:70px"></div>';
   }
   if(currentType === 'plans' || currentType === 'majors' || currentType === 'comprehensive'){
-    html += `<div class="filter-group"><label>学费范围</label>
-      <input type="number" placeholder="最低" id="f_minFee" value="${filters.minFee||''}" style="width:70px">
-      <span>-</span>
-      <input type="number" placeholder="最高" id="f_maxFee" value="${filters.maxFee||''}" style="width:70px"></div>`;
-    html += `<div class="filter-group"><label>计划数≥</label>
-      <input type="number" id="f_minPlan" value="${filters.minPlan||''}" style="width:70px"></div>`;
+    html += '<div class="filter-group"><label>学费范围</label>' +
+      '<input type="number" placeholder="最低" id="f_minFee" value="'+(filters.minFee||'')+'" style="width:70px">' +
+      '<span>-</span>' +
+      '<input type="number" placeholder="最高" id="f_maxFee" value="'+(filters.maxFee||'')+'" style="width:70px"></div>';
+    html += '<div class="filter-group"><label>计划数≥</label>' +
+      '<input type="number" id="f_minPlan" value="'+(filters.minPlan||'')+'" style="width:70px"></div>';
   }
   if(currentType === 'schools' || currentType === 'comprehensive'){
-    const data = getMergedData(currentYear, currentType);
+    const data = getMergedData(currentType);
     const regions = [...new Set(data.map(s => s['所在地区']).filter(r=>r&&r!=='—'))].sort();
-    html += `<div class="filter-group"><label>地区</label>
-      <select id="f_region"><option value="">全部</option>${regions.map(r => `<option ${filters.region===r?'selected':''}>${r}</option>`).join('')}</select></div>`;
-    html += `<div class="filter-group"><label>性质</label>
-      <select id="f_nature"><option value="">全部</option><option ${filters.nature==='公办'?'selected':''}>公办</option><option ${filters.nature==='民办'?'selected':''}>民办</option></select></div>`;
+    html += '<div class="filter-group"><label>地区</label>' +
+      '<select id="f_region"><option value="">全部</option>'+regions.map(r => '<option '+(filters.region===r?'selected':'')+'>'+r+'</option>').join('')+'</select></div>';
+    html += '<div class="filter-group"><label>性质</label>' +
+      '<select id="f_nature"><option value="">全部</option><option '+(filters.nature==='公办'?'selected':'')+'>公办</option><option '+(filters.nature==='民办'?'selected':'')+'>民办</option></select></div>';
   }
   if(currentType === 'yifenyidang'){
-    html += `<div class="filter-group"><label>分数范围</label>
-      <input type="number" placeholder="最低分" id="f_minScoreY" value="${filters.minScore||''}" style="width:70px">
-      <span>-</span>
-      <input type="number" placeholder="最高分" id="f_maxScoreY" value="${filters.maxScore||''}" style="width:70px"></div>`;
+    html += '<div class="filter-group"><label>分数范围</label>' +
+      '<input type="number" placeholder="最低分" id="f_minScoreY" value="'+(filters.minScore||'')+'" style="width:70px">' +
+      '<span>-</span>' +
+      '<input type="number" placeholder="最高分" id="f_maxScoreY" value="'+(filters.maxScore||'')+'" style="width:70px"></div>';
   }
-  html += `<button class="tool-btn primary" onclick="applyFilters()" style="padding:7px 14px">应用筛选</button>
-    <button class="tool-btn" onclick="clearFilters()" style="padding:7px 14px">重置</button>`;
+  html += '<button class="tool-btn primary" onclick="applyFilters()" style="padding:7px 14px">应用筛选</button>' +
+    '<button class="tool-btn" onclick="clearFilters()" style="padding:7px 14px">重置</button>';
   row.innerHTML = html;
 }
 
@@ -663,7 +678,7 @@ function applyFilters(){
 function clearFilters(){ filters = {}; renderFilterPanel(); renderTable(); }
 
 function getFilteredData(data){
-  let result = [...data];
+  let result = data.slice();
   const keys = COLUMNS[currentType].map(c => c.key);
   if(currentCat === 'all' && currentType === 'schools') keys.push('招生类别');
   if(searchText){
@@ -706,16 +721,17 @@ function getFilteredData(data){
   return result;
 }
 
+/* ============ 表格 ============ */
 function renderTable(){
   const cols = COLUMNS[currentType];
-  const rawData = getMergedData(currentYear, currentType);
+  const rawData = getMergedData(currentType);
   const data = getFilteredData(rawData);
 
   const thead = document.getElementById('tableHead');
   thead.innerHTML = '<tr>' + cols.map(c => {
     const sorted = sortKey === c.key ? ' sorted' : '';
     const icon = sortKey === c.key ? (sortAsc ? '▲' : '▼') : '⇅';
-    return `<th data-key="${c.key}">${c.label}<span class="sort-icon">${icon}</span></th>`;
+    return '<th data-key="'+c.key+'">'+c.label+'<span class="sort-icon">'+icon+'</span></th>';
   }).join('') + '</tr>';
   thead.querySelectorAll('th').forEach(th => th.onclick = () => {
     const key = th.dataset.key;
@@ -725,50 +741,51 @@ function renderTable(){
 
   const tbody = document.getElementById('tableBody');
   if(data.length === 0){
-    tbody.innerHTML = `<tr><td colspan="${cols.length}" class="empty-state"><div class="icon">📋</div>暂无匹配数据</td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="'+cols.length+'" class="empty-state"><div class="icon">📋</div>暂无匹配数据</td></tr>';
   } else {
     let allScores = [];
     if(currentCat === 'all'){
-      allScores = Object.values(DATA_MAP[currentYear]).flatMap(c => c.scoreLines.map(s=>parseFloat(s['录取投档分']))).filter(n=>!isNaN(n));
+      allScores = Object.values(DATA).flatMap(c => c.scoreLines.map(s=>parseFloat(s['录取投档分']))).filter(n=>!isNaN(n));
     } else {
-      allScores = getData(currentYear, currentCat).scoreLines.map(s => parseFloat(s['录取投档分'])).filter(n=>!isNaN(n));
+      allScores = getData(currentCat).scoreLines.map(s => parseFloat(s['录取投档分'])).filter(n=>!isNaN(n));
     }
     const avg = allScores.length ? allScores.reduce((a,b)=>a+b,0)/allScores.length : 400;
     const hasSchool = cols.some(c => c.link);
     tbody.innerHTML = data.map(row => {
       const schoolName = hasSchool ? (row['院校名称'] || '') : '';
-      const clickAttr = hasSchool && schoolName ? ` class="clickable" onclick="showSchoolDetail('${String(schoolName).replace(/'/g,"\\'")}')"` : '';
-      let html = `<tr${clickAttr}>`;
+      const clickAttr = hasSchool && schoolName ? ' class="clickable" onclick="showSchoolDetail(\''+String(schoolName).replace(/'/g,"\\'")+'\')"' : '';
+      let html = '<tr'+clickAttr+'>';
       cols.forEach(c => {
         let val = row[c.key];
         if(val === undefined || val === null || val === '') val = '—';
         if(c.badge && val !== '—'){
           const cls = String(val).includes('公办') ? 'badge-public' : 'badge-private';
-          val = `<span class="badge ${cls}">${val}</span>`;
+          val = '<span class="badge '+cls+'">'+val+'</span>';
         }
         if(c.score){
           const n = parseFloat(val);
           if(!isNaN(n)){
             const cls = n > avg * 1.15 ? 'score-high' : n > avg * 0.9 ? 'score-mid' : 'score-low';
-            val = `<span class="${cls}">${val}</span>`;
+            val = '<span class="'+cls+'">'+val+'</span>';
           }
         }
         if(c.link && val !== '—'){
-          val = `<span class="school-link" onclick="event.stopPropagation();showSchoolDetail('${String(row[c.key]).replace(/'/g,"\\'")}')">${val}</span>`;
+          val = '<span class="school-link" onclick="event.stopPropagation();showSchoolDetail(\''+String(row[c.key]).replace(/'/g,"\\'")+'\')">'+val+'</span>';
         }
-        html += `<td>${val}</td>`;
+        html += '<td>'+val+'</td>';
       });
       html += '</tr>';
       return html;
     }).join('');
   }
-  document.getElementById('resultCount').textContent = `共 ${data.length} 条`;
+  document.getElementById('resultCount').textContent = '共 ' + data.length + ' 条';
 }
 
+/* ============ 院校详情 ============ */
 function showSchoolDetail(schoolName){
   let plans = [], scores = [], schoolInfo = null, schoolAddr = '—';
   if(currentCat === 'all'){
-    Object.values(DATA_MAP[currentYear]).forEach(cat => {
+    Object.values(DATA).forEach(cat => {
       plans = plans.concat(cat.plans.filter(p => p['院校名称'] === schoolName));
       scores = scores.concat(cat.scoreLines.filter(s => s['院校名称'] === schoolName));
       if(!schoolInfo) schoolInfo = cat.schools.find(s => s['院校名称'] === schoolName);
@@ -778,7 +795,7 @@ function showSchoolDetail(schoolName){
       }
     });
   } else {
-    const cat = getData(currentYear, currentCat);
+    const cat = getData(currentCat);
     plans = cat.plans.filter(p => p['院校名称'] === schoolName);
     scores = cat.scoreLines.filter(s => s['院校名称'] === schoolName);
     schoolInfo = cat.schools.find(s => s['院校名称'] === schoolName);
@@ -792,20 +809,20 @@ function showSchoolDetail(schoolName){
   const scoreVals = scores.map(s => parseInt(s['录取投档分'])).filter(n=>!isNaN(n));
   const minScore = scoreVals.length ? Math.min(...scoreVals) : '—';
   const maxScore = scoreVals.length ? Math.max(...scoreVals) : '—';
-  document.getElementById('modalTitle').textContent = `${schoolName} · ${currentYear}年`;
-  let html = `<div class="modal-stats">
-    <div class="modal-stat"><div class="num">${plans.length}</div><div class="label">招生专业</div></div>
-    <div class="modal-stat"><div class="num">${totalPlan}</div><div class="label">计划总数</div></div>
-    <div class="modal-stat"><div class="num">${minScore}</div><div class="label">最低投档分</div></div>
-    <div class="modal-stat"><div class="num">${maxScore}</div><div class="label">最高投档分</div></div>
-  </div>`;
-  html += `<p style="margin-bottom:12px;font-size:13px;color:var(--text2);line-height:1.8">
-    地区：${schoolInfo ? (schoolInfo['所在地区']||'—') : '—'} | 办学性质：${schoolInfo ? (schoolInfo['办学性质']||'—') : '—'}<br>
-    地址：${schoolAddr}</p>`;
-  html += `<table class="modal-table"><thead><tr><th>专业名称</th><th>考试类</th><th>计划数</th><th>学制</th><th>学费</th><th>投档分</th></tr></thead><tbody>`;
+  document.getElementById('modalTitle').textContent = schoolName + ' · ' + DATA_YEAR + '年';
+  let html = '<div class="modal-stats">' +
+    '<div class="modal-stat"><div class="num">'+plans.length+'</div><div class="label">招生专业</div></div>' +
+    '<div class="modal-stat"><div class="num">'+totalPlan+'</div><div class="label">计划总数</div></div>' +
+    '<div class="modal-stat"><div class="num">'+minScore+'</div><div class="label">最低投档分</div></div>' +
+    '<div class="modal-stat"><div class="num">'+maxScore+'</div><div class="label">最高投档分</div></div>' +
+  '</div>';
+  html += '<p style="margin-bottom:12px;font-size:13px;color:var(--text2);line-height:1.8">' +
+    '地区：'+(schoolInfo ? (schoolInfo['所在地区']||'—') : '—')+' | 办学性质：'+(schoolInfo ? (schoolInfo['办学性质']||'—') : '—')+'<br>' +
+    '地址：'+schoolAddr+'</p>';
+  html += '<table class="modal-table"><thead><tr><th>专业名称</th><th>考试类</th><th>计划数</th><th>学制</th><th>学费</th><th>投档分</th></tr></thead><tbody>';
   plans.forEach(p => {
     const score = scores.find(s => s['专业名称'] === p['专业名称']);
-    html += `<tr><td>${p['专业名称']}</td><td>${p['考试类']||'—'}</td><td>${p['计划数']}</td><td>${p['学制']}</td><td>${p['学费(元/年)']}</td><td>${score ? score['录取投档分'] : '—'}</td></tr>`;
+    html += '<tr><td>'+p['专业名称']+'</td><td>'+(p['考试类']||'—')+'</td><td>'+p['计划数']+'</td><td>'+p['学制']+'</td><td>'+p['学费(元/年)']+'</td><td>'+(score ? score['录取投档分'] : '—')+'</td></tr>';
   });
   html += '</tbody></table>';
   document.getElementById('modalBody').innerHTML = html;
@@ -815,12 +832,13 @@ function showSchoolDetail(schoolName){
 function closeModal(){ document.getElementById('schoolModal').classList.remove('show'); }
 document.getElementById('schoolModal').addEventListener('click', e => { if(e.target.id === 'schoolModal') closeModal(); });
 
+/* ============ 导出 CSV ============ */
 function exportCSV(){
   const cols = COLUMNS[currentType];
-  const rawData = getMergedData(currentYear, currentType);
+  const rawData = getMergedData(currentType);
   const data = getFilteredData(rawData);
   if(data.length === 0){ alert('没有可导出的数据'); return; }
-  let csv = '\uFEFF' + cols.map(c => c.label).join(',') + '\n';
+  let csv = '﻿' + cols.map(c => c.label).join(',') + '\n';
   data.forEach(row => {
     csv += cols.map(c => {
       let v = String(row[c.key] !== undefined ? row[c.key] : '');
@@ -832,19 +850,18 @@ function exportCSV(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  const catName = currentCat === 'all' ? '综合' : (DATA_MAP[currentYear][currentCat]?.name || currentCat);
-  a.download = `${currentYear}河北单招_${catName}_${currentType}.csv`;
+  const catName = currentCat === 'all' ? '综合' : (DATA[currentCat]?.name || currentCat);
+  a.download = DATA_YEAR + '河北单招_'+catName+'_'+currentType+'.csv';
   a.click();
   URL.revokeObjectURL(url);
 }
 
-function getRankFromYifenyidang(year, catId, score){
+/* ============ 位次（一分一档二分查找） ============ */
+function getRankFromYifenyidang(catId, score){
   if(!score || isNaN(parseFloat(score))) return null;
   const s = parseFloat(score);
-  const cat = DATA_MAP[year][catId];
+  const cat = DATA[catId];
   if(!cat || !cat.yifenyidang || cat.yifenyidang.length === 0) return null;
-  // 一分一档表按分数从高到低排列，二分查找第一个分数 <= 目标分数的项
-  // 其累计人数即为 >= 目标分数的总人数（位次）
   const arr = cat.yifenyidang;
   let lo = 0, hi = arr.length - 1, ans = 0;
   while(lo <= hi){
@@ -856,243 +873,33 @@ function getRankFromYifenyidang(year, catId, score){
   return parseInt(arr[ans]['累计人数']);
 }
 
-function normalizeMajorName(name){
-  if(!name) return '';
-  return String(name).replace(/\s*\[.*?\]\s*/g,'').replace(/\s*（.*?）\s*/g,'').replace(/\s*\(.*?\)\s*/g,'').trim();
-}
-
-// 院校信息索引：按 2026 → 2025 → 2024 优先级，首个命中即缓存，O(1) 查找
-const SCHOOL_INFO_INDEX = (() => {
-  const m = new Map();
-  for(const year of ['2026','2025','2024']){
-    for(const cat of Object.values(DATA_MAP[year])){
-      for(const s of cat.schools){
-        const name = s['院校名称'];
-        if(name && !m.has(name)) m.set(name, s);
-      }
-    }
-  }
-  return m;
-})();
-function findSchoolInfo(schoolName){
-  return SCHOOL_INFO_INDEX.has(schoolName) ? SCHOOL_INFO_INDEX.get(schoolName) : null;
-}
-
-/* ============ 三年对比 ============ */
-function buildCompareData(){
-  const map = {};
-  YEARS.forEach(year => {
-    Object.values(DATA_MAP[year]).forEach(cat => {
-      cat.scoreLines.forEach(item => {
-        const school = item['院校名称'] || '';
-        const majorRaw = item['专业名称'] || '';
-        const majorNorm = normalizeMajorName(majorRaw);
-        const examCat = item['考试类'] || cat.name;
-        const score = item['录取投档分'] || '';
-        if(!school || !majorNorm || school === '—' || majorNorm === '—') return;
-        const key = school + '||' + majorNorm + '||' + examCat;
-        if(!map[key]){
-          const si = findSchoolInfo(school);
-          map[key] = {
-            '院校名称': school, '专业名称': majorRaw, '专业名称_标准': majorNorm,
-            '考试类': examCat,
-            '办学性质': si ? (si['办学性质'] || '—') : '—',
-            '所在地区': si ? (si['所在地区'] || '—') : '—',
-            score2024: null, score2025: null, score2026: null,
-            rank2024: null, rank2025: null, rank2026: null,
-          };
-        }
-        const scoreNum = parseFloat(score);
-        if(!isNaN(scoreNum)){
-          map[key]['score'+year] = scoreNum;
-          map[key]['rank'+year] = getRankFromYifenyidang(year, cat.id, scoreNum);
-        } else {
-          map[key]['score'+year] = score;
-        }
-      });
-    });
-  });
-  compareDataCache = Object.values(map).map(item => {
-    const s24 = parseFloat(item.score2024), s26 = parseFloat(item.score2026);
-    const r24 = parseInt(item.rank2024), r26 = parseInt(item.rank2026);
-    item.scoreDiff = (!isNaN(s24) && !isNaN(s26)) ? (s26 - s24) : null;
-    item.rankDiff = (!isNaN(r24) && !isNaN(r26)) ? (r26 - r24) : null;
-    return item;
-  });
-}
-
-function renderCompareStats(){
-  if(!compareDataCache) return;
-  const total = compareDataCache.length;
-  const hasAllThree = compareDataCache.filter(d => d.score2024 !== null && d.score2025 !== null && d.score2026 !== null).length;
-  const scoreUp = compareDataCache.filter(d => d.scoreDiff !== null && d.scoreDiff > 0).length;
-  const scoreDown = compareDataCache.filter(d => d.scoreDiff !== null && d.scoreDiff < 0).length;
-  const schools = new Set(compareDataCache.map(d => d['院校名称'])).size;
-  const stats = [
-    {num: total, label:'对比条目总数'},
-    {num: schools, label:'覆盖院校数'},
-    {num: hasAllThree, label:'三年均有数据'},
-    {num: scoreUp, label:'投档分上涨(26vs24)'},
-    {num: scoreDown, label:'投档分下降(26vs24)'},
-  ];
-  document.getElementById('compareStats').innerHTML = stats.map(s =>
-    `<div class="compare-stat"><div class="num">${s.num}</div><div class="label">${s.label}</div></div>`).join('');
-}
-
-function renderCompareFilters(){
-  const cats = [...new Set(compareDataCache.map(d => d['考试类']).filter(c=>c))].sort();
-  document.getElementById('cf_cat').innerHTML = '<option value="">全部</option>' + cats.map(c => `<option>${c}</option>`).join('');
-  const regions = [...new Set(compareDataCache.map(d => d['所在地区']).filter(r=>r&&r!=='—'))].sort();
-  document.getElementById('cf_region').innerHTML = '<option value="">全部</option>' + regions.map(r => `<option>${r}</option>`).join('');
-}
-
-function applyCompareFilters(){
-  compareFilters = {
-    cat: document.getElementById('cf_cat').value,
-    nature: document.getElementById('cf_nature').value,
-    region: document.getElementById('cf_region').value,
-    min26: document.getElementById('cf_min26').value,
-    max26: document.getElementById('cf_max26').value,
-    allThree: document.getElementById('cf_allThree').value,
-  };
-  renderCompareTable();
-}
-
-function clearCompareFilters(){
-  ['cf_cat','cf_nature','cf_region','cf_min26','cf_max26'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('cf_allThree').value = '0';
-  compareFilters = {};
-  renderCompareTable();
-}
-
-function getFilteredCompareData(){
-  let result = [...compareDataCache];
-  if(compareSearchText){
-    const q = compareSearchText.toLowerCase();
-    result = result.filter(d =>
-      String(d['院校名称']).toLowerCase().includes(q) ||
-      String(d['专业名称']).toLowerCase().includes(q) ||
-      String(d['专业名称_标准']).toLowerCase().includes(q)
-    );
-  }
-  if(compareFilters.cat) result = result.filter(d => d['考试类'] === compareFilters.cat);
-  if(compareFilters.nature) result = result.filter(d => String(d['办学性质']).includes(compareFilters.nature));
-  if(compareFilters.region) result = result.filter(d => d['所在地区'] === compareFilters.region);
-  if(compareFilters.min26) result = result.filter(d => { const v=parseFloat(d.score2026); return !isNaN(v) && v >= parseFloat(compareFilters.min26); });
-  if(compareFilters.max26) result = result.filter(d => { const v=parseFloat(d.score2026); return !isNaN(v) && v <= parseFloat(compareFilters.max26); });
-  if(compareFilters.allThree === '1') result = result.filter(d => d.score2024 !== null && d.score2025 !== null && d.score2026 !== null);
-  if(compareSortKey){
-    result.sort((a,b) => {
-      let va = a[compareSortKey], vb = b[compareSortKey];
-      const na = parseFloat(va), nb = parseFloat(vb);
-      if(!isNaN(na) && !isNaN(nb)) return compareSortAsc ? na - nb : nb - na;
-      return compareSortAsc ? String(va).localeCompare(String(vb),'zh') : String(vb).localeCompare(String(va),'zh');
-    });
-  }
-  return result;
-}
-
-function renderCompareTable(){
-  if(!compareDataCache) buildCompareData();
-  const data = getFilteredCompareData();
-  const thead = document.getElementById('compareTableHead');
-  thead.innerHTML = '<tr>' + COMPARE_COLUMNS.map(c => {
-    const sorted = compareSortKey === c.key ? ' sorted' : '';
-    const icon = compareSortKey === c.key ? (compareSortAsc ? '▲' : '▼') : '⇅';
-    return `<th data-key="${c.key}">${c.label}<span class="sort-icon">${icon}</span></th>`;
-  }).join('') + '</tr>';
-  thead.querySelectorAll('th').forEach(th => th.onclick = () => {
-    const key = th.dataset.key;
-    if(compareSortKey === key) compareSortAsc = !compareSortAsc;
-    else { compareSortKey = key; compareSortAsc = true; }
-    renderCompareTable();
-  });
-
-  const tbody = document.getElementById('compareTableBody');
-  if(data.length === 0){
-    tbody.innerHTML = `<tr><td colspan="${COMPARE_COLUMNS.length}" class="empty-state"><div class="icon">📊</div>暂无匹配数据</td></tr>`;
-  } else {
-    tbody.innerHTML = data.map(row => {
-      let html = '<tr>';
-      COMPARE_COLUMNS.forEach(c => {
-        let val = row[c.key];
-        if(c.key === '办学性质' && val && val !== '—'){
-          const cls = String(val).includes('公办') ? 'badge-public' : 'badge-private';
-          val = `<span class="badge ${cls}">${val}</span>`;
-        } else if(c.key === 'scoreDiff' || c.key === 'rankDiff'){
-          if(val === null) val = '<span style="color:var(--text3)">—</span>';
-          else if(val > 0) val = `<span class="trend-up">+${val}</span>`;
-          else if(val < 0) val = `<span class="trend-down">${val}</span>`;
-          else val = `<span class="trend-flat">0</span>`;
-        } else if(c.key.startsWith('score') || c.key.startsWith('rank')){
-          val = (val === null || val === undefined) ? '<span style="color:var(--text3)">—</span>' : val;
-        } else if(!val || val === '—'){
-          val = '<span style="color:var(--text3)">—</span>';
-        }
-        html += `<td>${val}</td>`;
-      });
-      html += '</tr>';
-      return html;
-    }).join('');
-  }
-  document.getElementById('compareResultCount').textContent = `共 ${data.length} 条`;
-}
-
-function exportCompareCSV(){
-  const data = getFilteredCompareData();
-  if(data.length === 0){ alert('没有可导出的数据'); return; }
-  let csv = '\uFEFF' + COMPARE_COLUMNS.map(c => c.label).join(',') + '\n';
-  data.forEach(row => {
-    csv += COMPARE_COLUMNS.map(c => {
-      let v = row[c.key];
-      if(v === null || v === undefined) v = '';
-      v = String(v);
-      if(v.includes(',') || v.includes('"') || v.includes('\n')) v = '"' + v.replace(/"/g,'""') + '"';
-      return v;
-    }).join(',') + '\n';
-  });
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = '河北单招_三年投档分位次对比.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 /* ============ 图表 ============ */
 function getChartData(){
   if(currentCat === 'all'){
     return {
-      plans: Object.values(DATA_MAP[currentYear]).flatMap(c => c.plans),
-      schools: (() => { const m={}; Object.values(DATA_MAP[currentYear]).forEach(c => c.schools.forEach(s => { if(!m[s['院校名称']]) m[s['院校名称']]=s; })); return Object.values(m); })(),
-      scoreLines: Object.values(DATA_MAP[currentYear]).flatMap(c => c.scoreLines),
+      plans: Object.values(DATA).flatMap(c => c.plans),
+      schools: (() => { const m={}; Object.values(DATA).forEach(c => c.schools.forEach(s => { if(!m[s['院校名称']]) m[s['院校名称']]=s; })); return Object.values(m); })(),
+      scoreLines: Object.values(DATA).flatMap(c => c.scoreLines),
     };
   }
-  return getData(currentYear, currentCat);
+  return getData(currentCat);
 }
 
-/* 大类对比图表：插入到chartsGrid开头，与5个固定图统一3列网格 */
 function renderCatCompareChart(){
   const grid = document.getElementById('chartsGrid');
-  // 移除旧的大类对比卡片
   grid.querySelectorAll('.cat-compare-card').forEach(el => el.remove());
-  // 销毁旧实例
   ['catCompare','catSchools','catPlans','catScores'].forEach(k => { if(charts[k]){ charts[k].dispose(); delete charts[k]; } });
 
   let html = '';
   if(currentCat === 'all'){
-    html = `
-      <div class="chart-card cat-compare-card"><div class="chart-card-title">各大类招生院校数</div><div class="chart-card-body" id="ch_catSchools"></div></div>
-      <div class="chart-card cat-compare-card"><div class="chart-card-title">各大类公民办招生计划</div><div class="chart-card-body" id="ch_catPlans"></div></div>
-      <div class="chart-card cat-compare-card"><div class="chart-card-title">各大类公民办最低投档分</div><div class="chart-card-body" id="ch_catScores"></div></div>
-    `;
+    html =
+      '<div class="chart-card cat-compare-card"><div class="chart-card-title">各大类招生院校数</div><div class="chart-card-body" id="ch_catSchools"></div></div>' +
+      '<div class="chart-card cat-compare-card"><div class="chart-card-title">各大类公民办招生计划</div><div class="chart-card-body" id="ch_catPlans"></div></div>' +
+      '<div class="chart-card cat-compare-card"><div class="chart-card-title">各大类公民办最低投档分</div><div class="chart-card-body" id="ch_catScores"></div></div>';
   } else {
-    html = `<div class="chart-card cat-compare-card"><div class="chart-card-title">各大类最低/最高投档分</div><div class="chart-card-body" id="ch_catCompare"></div></div>`;
+    html = '<div class="chart-card cat-compare-card"><div class="chart-card-title">各大类最低/最高投档分</div><div class="chart-card-body" id="ch_catCompare"></div></div>';
   }
-  // 插入到第一个固定图表之前
   grid.insertAdjacentHTML('afterbegin', html);
-  // 延迟渲染，确保DOM布局完成
   setTimeout(() => {
     if(currentCat === 'all'){
       renderCatSchoolsChart(); renderCatPlansChart(); renderCatScoresChart();
@@ -1104,10 +911,9 @@ function renderCatCompareChart(){
 
 function renderCatScoreRangeChart(){
   if(!charts.catCompare) charts.catCompare = echarts.init(document.getElementById('ch_catCompare'));
-  const cats = Object.values(DATA_MAP[currentYear]);
+  const cats = Object.values(DATA);
   const labels = cats.map(c => c.name);
   const mins = [], maxs = [];
-  const colors = cats.map(c => c.id === currentCat ? '#4f46e5' : '#cbd5e1');
   cats.forEach(cat => {
     const scores = cat.scoreLines.map(s => parseFloat(s['录取投档分'])).filter(n=>!isNaN(n));
     mins.push(scores.length ? Math.min(...scores) : 0);
@@ -1128,7 +934,7 @@ function renderCatScoreRangeChart(){
 
 function renderCatSchoolsChart(){
   if(!charts.catSchools) charts.catSchools = echarts.init(document.getElementById('ch_catSchools'));
-  const cats = Object.values(DATA_MAP[currentYear]);
+  const cats = Object.values(DATA);
   const labels = cats.map(c => c.name);
   const counts = cats.map(c => c.schools.length);
   charts.catSchools.setOption({
@@ -1145,7 +951,7 @@ function renderCatSchoolsChart(){
 
 function renderCatPlansChart(){
   if(!charts.catPlans) charts.catPlans = echarts.init(document.getElementById('ch_catPlans'));
-  const cats = Object.values(DATA_MAP[currentYear]);
+  const cats = Object.values(DATA);
   const labels = cats.map(c => c.name);
   const publicPlans = [], privatePlans = [];
   cats.forEach(cat => {
@@ -1168,7 +974,7 @@ function renderCatPlansChart(){
     xAxis:{type:'category',data:labels,axisLabel:{fontSize:9,interval:0,rotate:30}},
     yAxis:{type:'value',name:'计划数',nameTextStyle:{fontSize:9}},
     series:[
-      {name:'公办计划',type:'bar',stack:'total',data:publicPlans,itemStyle:{color:'#10b981',borderRadius:[0,0,0,0]}},
+      {name:'公办计划',type:'bar',stack:'total',data:publicPlans,itemStyle:{color:'#10b981'}},
       {name:'民办计划',type:'bar',stack:'total',data:privatePlans,itemStyle:{color:'#f59e0b',borderRadius:[4,4,0,0]}},
     ]
   },true);
@@ -1176,7 +982,7 @@ function renderCatPlansChart(){
 
 function renderCatScoresChart(){
   if(!charts.catScores) charts.catScores = echarts.init(document.getElementById('ch_catScores'));
-  const cats = Object.values(DATA_MAP[currentYear]);
+  const cats = Object.values(DATA);
   const labels = cats.map(c => c.name);
   const pubMin = [], priMin = [];
   cats.forEach(cat => {
@@ -1205,7 +1011,6 @@ function renderCatScoresChart(){
   },true);
 }
 
-/* 原有5图表 */
 function renderCharts(){
   const cd = getChartData();
 
@@ -1228,7 +1033,6 @@ function renderCharts(){
   const rc = {};
   cd.schools.forEach(s => { const r = s['所在地区']||'未知'; rc[r]=(rc[r]||0)+1; });
   let regions = Object.entries(rc).sort((a,b)=>b[1]-a[1]);
-  // 合并小项避免标签重叠：保留前10，其余合并为"其他"
   let displayRegions = regions.slice(0, 10);
   const otherCount = regions.slice(10).reduce((sum, [,v]) => sum + v, 0);
   if(otherCount > 0) displayRegions.push(['其他', otherCount]);
@@ -1262,7 +1066,7 @@ function renderCharts(){
     const min = Math.min(...scores), max = Math.max(...scores);
     const binSize = Math.max(10, Math.ceil((max - min) / 10));
     const bins = {}, labels = [];
-    for(let i = min; i <= max; i += binSize){ const l = `${i}-${Math.min(i+binSize-1,max)}`; labels.push(l); bins[l]=0; }
+    for(let i = min; i <= max; i += binSize){ const l = i+'-'+Math.min(i+binSize-1,max); labels.push(l); bins[l]=0; }
     scores.forEach(s => { const idx = Math.min(Math.floor((s-min)/binSize), labels.length-1); bins[labels[idx]]++; });
     charts.score.setOption({
       tooltip:{trigger:'axis'},
@@ -1287,7 +1091,7 @@ function renderCharts(){
   });
   const top20 = Object.entries(mp).sort((a,b)=>b[1]-a[1]).slice(0,20);
   charts.major.setOption({
-    tooltip:{trigger:'axis',formatter:p=>`${p[0].name}<br/>计划数: ${p[0].value}`},
+    tooltip:{trigger:'axis',formatter:p=>p[0].name+'<br/>计划数: '+p[0].value},
     grid:{left:130,right:25,top:10,bottom:20},
     xAxis:{type:'value'},
     yAxis:{type:'category',data:top20.map(s=>s[0].length>14?s[0].slice(0,14)+'…':s[0]).reverse(),axisLabel:{fontSize:9}},
@@ -1300,7 +1104,7 @@ function renderCharts(){
 
 function updateAll(){
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.id === currentCat));
-  // 综合模式隐藏数据表区域
+  updateTypeTabs();
   document.getElementById('detailSection').style.display = currentCat === 'all' ? 'none' : '';
   renderStats();
   renderCatCompareChart();
@@ -1309,7 +1113,77 @@ function updateAll(){
 }
 
 window.addEventListener('resize', () => { Object.values(charts).forEach(c => c && c.resize()); });
-init();
+
+/* ============ 管理员数据上传 ============ */
+function openAdminModal(){
+  document.getElementById('adminErr').textContent = '';
+  document.getElementById('adminToken').value = '';
+  document.getElementById('adminModal').classList.add('show');
+  setTimeout(() => document.getElementById('adminToken').focus(), 50);
+}
+function closeAdminModal(){ document.getElementById('adminModal').classList.remove('show'); }
+document.getElementById('adminModal').addEventListener('click', e => { if(e.target.id === 'adminModal') closeAdminModal(); });
+document.getElementById('adminSubmit').addEventListener('click', () => {
+  const token = document.getElementById('adminToken').value;
+  const errBox = document.getElementById('adminErr');
+  errBox.textContent = '';
+  GitHubUpload.login(token).then(() => {
+    closeAdminModal();
+    pickUploadFile();
+  }).catch(e => { errBox.textContent = e.message || '登录失败'; });
+});
+document.getElementById('adminToken').addEventListener('keydown', e => {
+  if(e.key === 'Enter') document.getElementById('adminSubmit').click();
+});
+
+function startUpload(){
+  if(!GitHubUpload.isLoggedIn()){ openAdminModal(); return; }
+  pickUploadFile();
+}
+
+function pickUploadFile(){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.xlsx,.xls';
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    if(!file) return;
+    if(!/\.(xlsx|xls)$/i.test(file.name)){ alert('请选择 .xlsx 格式文件'); return; }
+    /* 先本地解析，确认年度 */
+    const reader = new FileReader();
+    reader.onload = e => {
+      let wb, parsed;
+      try {
+        wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+        parsed = parseAdmissionWorkbook(wb);
+      } catch(err){ alert('文件解析失败：'+err.message); return; }
+      const year = parsed.year;
+      if(!year){ alert('未能从“00-类别说明”表识别年度，请检查文件'); return; }
+      const fileName = '河北单招数据_'+year+'.xlsx';
+      if(!confirm('即将上传 '+year+' 年度数据：'+fileName+'，并切换为当前年度。是否继续？')) return;
+      doUpload(file, fileName, year);
+    };
+    reader.readAsArrayBuffer(file);
+  });
+  input.click();
+}
+
+function doUpload(file, fileName, year){
+  const excelPath = 'data/admission/'+fileName;
+  const manifest = JSON.stringify({year:year, file:fileName}, null, 2);
+  const manifestBlob = new Blob([manifest], {type:'application/json'});
+  const manifestFile = new File([manifestBlob], 'manifest.json', {type:'application/json'});
+  GitHubUpload.uploadFile(excelPath, file, 'upload: 单招数据 '+fileName)
+    .then(() => GitHubUpload.uploadFile('data/admission/manifest.json', manifestFile, 'update: manifest -> '+year))
+    .then(() => {
+      alert('上传成功，页面将刷新为 '+year+' 年度数据。');
+      location.reload();
+    })
+    .catch(e => alert('上传失败：'+(e.message||e)));
+}
+
+/* ============ 启动 ============ */
+loadData();
 </script>
 <script src="../assets/js/particles.js"></script>
 </body>
