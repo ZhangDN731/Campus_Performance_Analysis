@@ -25,6 +25,21 @@
     });
   }
 
+  /* ==================== 导出辅助 ==================== */
+  function p2(n) { return String(n).padStart(2, '0'); }
+  function fmtTime(d) {
+    return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) +
+      ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+  }
+  function sanitizeFileName(s) {
+    return String(s == null ? '' : s).replace(/[\\/:*?"<>|]+/g, '').trim();
+  }
+  var PURE_NUM_RE = /^-?\d+(\.\d+)?$/;
+  function cellToValue(text) {
+    var t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+    return PURE_NUM_RE.test(t) ? parseFloat(t) : t;
+  }
+
   /* ==================== 实例状态 ==================== */
   function createInstance(container, opts) {
     var inst = {
@@ -32,8 +47,11 @@
       gradeData: opts.gradeData || null,
       targetData: null,
       targetPath: opts.targetPath || '',
+      campusName: opts.campusName || '',
       getSelectedClasses: typeof opts.getSelectedClasses === 'function' ? opts.getSelectedClasses : null,
-      activeExamIdx: 0
+      activeExamIdx: 0,
+      activeExamLabel: '',
+      hasRows: false
     };
 
     /* DOM 句柄在构建后填充 */
@@ -198,6 +216,12 @@
     }
 
     /* ==================== 总览表（跨已选班级合并展示） ==================== */
+    function setExportState(on) {
+      inst.hasRows = !!on;
+      if (el.exportExcel) el.exportExcel.disabled = !on;
+      if (el.exportPdf) el.exportPdf.disabled = !on;
+    }
+
     function renderOverview() {
       var pairs = selectedPairs();
       if (!pairs.length) {
@@ -205,6 +229,8 @@
         el.statBar.innerHTML = '';
         el.examChips.innerHTML = '';
         el.emptyTip.style.display = '';
+        inst.activeExamLabel = '';
+        setExportState(false);
         return;
       }
       el.emptyTip.style.display = 'none';
@@ -214,6 +240,8 @@
         el.tableWrap.innerHTML = '';
         el.statBar.innerHTML = '';
         el.emptyTip.style.display = '';
+        inst.activeExamLabel = '';
+        setExportState(false);
         return;
       }
 
@@ -247,6 +275,10 @@
       });
 
       renderStats(pairs, rows);
+
+      var curExam = pairs[0] && pairs[0].exam;
+      inst.activeExamLabel = curExam ? curExam.label : '';
+      setExportState(true);
 
       var keys = allSubjectKeys(pairs);
       var thead = '<thead><tr>' +
@@ -299,6 +331,237 @@
         if (!kw) { tr.style.display = ''; return; }
         tr.style.display = tr.getAttribute('data-name').indexOf(kw) >= 0 ? '' : 'none';
       });
+    }
+
+    /* ==================== 导出：Excel / PDF ==================== */
+    function currentExamLabel() {
+      return inst.activeExamLabel ||
+        ((examList()[inst.activeExamIdx] || {}).label) || '成绩';
+    }
+    function exportBaseName(ext) {
+      var parts = [
+        inst.campusName ? sanitizeFileName(inst.campusName) : '',
+        '学习目标',
+        sanitizeFileName(currentExamLabel())
+      ].filter(Boolean);
+      return (parts.join('-') || '学习目标成绩') + '.' + ext;
+    }
+    function visibleBodyRows() {
+      return Array.prototype.filter.call(
+        el.tableWrap.querySelectorAll('tbody tr'),
+        function (tr) { return tr.style.display !== 'none'; }
+      );
+    }
+
+    /* Excel：导出当前考试、当前勾选班级与搜索结果对应的总览表 */
+    function exportExcel() {
+      if (!inst.hasRows) { toast('暂无成绩数据可导出', 'err'); return; }
+      if (typeof XLSX === 'undefined') { toast('表格组件未加载，请刷新页面重试', 'err'); return; }
+      var table = el.tableWrap.querySelector('table.lm-data');
+      if (!table) { toast('当前没有可导出的表格', 'err'); return; }
+      try {
+        var headers = Array.prototype.map.call(
+          table.querySelectorAll('thead th'), function (th) { return th.textContent.trim(); });
+        var aoa = [];
+        var title = (inst.campusName ? inst.campusName + ' · ' : '') + '学习目标成绩总览';
+        var meta = '考试：' + currentExamLabel() +
+          ' ｜ 导出时间 ' + fmtTime(new Date()) +
+          ' ｜ 已选 ' + selectedClassObjs().length + ' 个班级';
+        aoa.push([title]);
+        aoa.push([meta]);
+        aoa.push([]);
+        aoa.push(headers);
+        visibleBodyRows().forEach(function (tr) {
+          aoa.push(Array.prototype.map.call(
+            tr.querySelectorAll('td'), function (td) { return cellToValue(td.textContent); }));
+        });
+        var ws = XLSX.utils.aoa_to_sheet(aoa);
+        ws['!cols'] = headers.map(function (h) {
+          return { wch: Math.max(10, Math.min(24, String(h).length * 2 + 6)) };
+        });
+        var wb = XLSX.utils.book_new();
+        var sheetName = (sanitizeFileName(currentExamLabel()) || '成绩总览').slice(0, 28);
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        XLSX.writeFile(wb, exportBaseName('xlsx'));
+        toast('Excel 导出完成', 'ok');
+      } catch (e) {
+        console.error(e);
+        toast('Excel 导出失败：' + e.message, 'err');
+      }
+    }
+
+    function delay(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+    /* PDF：A4 横向，按内容块安全分页，长表按行边界切段，不跨页割裂 */
+    async function exportPdf() {
+      if (!inst.hasRows) { toast('暂无成绩数据可导出', 'err'); return; }
+      if (typeof html2canvas === 'undefined' || !window.jspdf ||
+        typeof window.jspdf.jsPDF !== 'function') {
+        toast('PDF 组件未加载，请刷新页面重试', 'err'); return;
+      }
+      var btn = el.exportPdf;
+      btn.disabled = true;
+      var oldText = btn.textContent;
+      btn.textContent = '导出中…';
+
+      var prevBodyOverflow = document.body.style.overflow;
+      var prevHtmlOverflow = document.documentElement.style.overflow;
+      var area = inst.root;
+      var prevAreaWidth = area.style.width;
+      var widened = [];
+      document.body.classList.add('lm-exporting');
+
+      try {
+        var needW = 0;
+        area.querySelectorAll('.lm-table-wrap').forEach(function (sc) {
+          if (sc.scrollWidth > needW) needW = sc.scrollWidth;
+        });
+        needW = needW ? needW + 40 : 0;
+
+        var rect = area.getBoundingClientRect();
+        if (needW > rect.width) {
+          document.body.style.overflow = 'visible';
+          document.documentElement.style.overflow = 'visible';
+          area.style.width = needW + 'px';
+          area.querySelectorAll('.lm-table-wrap').forEach(function (sc) {
+            widened.push([sc, sc.style.overflow]);
+            sc.style.overflow = 'visible';
+          });
+          await delay(380);
+        }
+        rect = area.getBoundingClientRect();
+
+        var blockSel = ['.lm-filter-card', '.lm-stat-bar', '.lm-table-card'];
+        var els = [];
+        blockSel.forEach(function (s) {
+          area.querySelectorAll(s).forEach(function (x) { els.push(x); });
+        });
+        els = Array.prototype.filter.call(els, function (x) {
+          return x.getBoundingClientRect().height > 0;
+        });
+
+        var imgW = 297 - 16;
+        var k0 = 2;
+        var bandMm = 9;
+        var mmPerPx = imgW / rect.width;
+        var usablePx = (210 - 8 - 8 - bandMm) / mmPerPx;
+
+        var blocks = els.map(function (x) {
+          var r = x.getBoundingClientRect();
+          return { el: x, top: r.top - rect.top, height: r.height };
+        }).sort(function (a, b) { return a.top - b.top; });
+
+        function flatten(rectItem) {
+          if (rectItem.height <= usablePx) return [rectItem];
+          var kids = Array.prototype.filter.call(rectItem.el.children, function (x) {
+            return x.tagName !== 'COLGROUP' && x.tagName !== 'COL';
+          }).map(function (x) {
+            var r = x.getBoundingClientRect();
+            var b = rectItem.el.getBoundingClientRect();
+            return { el: x, top: (r.top - b.top) + rectItem.top, height: r.height };
+          }).filter(function (x) { return x.height > 0; });
+          if (!kids.length) return [rectItem];
+          var out = [];
+          kids.forEach(function (k) { flatten(k).forEach(function (u) { out.push(u); }); });
+          return out;
+        }
+
+        var bins = [];
+        blocks.forEach(function (b) { flatten(b).forEach(function (u) { bins.push(u); }); });
+        bins.sort(function (a, b) { return a.top - b.top; });
+
+        var dedup = [];
+        bins.forEach(function (u) {
+          var uBot = u.top + u.height;
+          var contained = dedup.some(function (d) {
+            return d.top - 1 <= u.top && d.top + d.height + 1 >= uBot;
+          });
+          if (!contained) {
+            for (var i = dedup.length - 1; i >= 0; i--) {
+              var d = dedup[i];
+              if (u.top - 1 <= d.top && uBot >= d.top + d.height) dedup.splice(i, 1);
+            }
+            dedup.push(u);
+          }
+        });
+
+        var pages = [];
+        var cur = [];
+        dedup.forEach(function (u) {
+          if (cur.length) {
+            var firstTop = cur[0].top;
+            var newBottom = u.top + u.height;
+            if (newBottom - firstTop > usablePx) { pages.push(cur); cur = []; }
+          }
+          cur.push(u);
+        });
+        if (cur.length) pages.push(cur);
+        if (!pages.length) { toast('当前没有可导出的内容', 'err'); return; }
+
+        var title = (inst.campusName ? inst.campusName + ' · ' : '') +
+          '学习目标 · ' + currentExamLabel();
+        var jsPDF = window.jspdf.jsPDF;
+        var pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        var bandPx = Math.round(bandMm / mmPerPx * k0);
+        var titleFont = Math.round(11 * k0);
+        var prevBottom = 0;
+        var pagesCount = pages.length;
+
+        for (var i = 0; i < pagesCount; i++) {
+          var pg = pages[i];
+          var rawTop = Math.max(0, pg[0].top - 3);
+          var topCss = Math.max(rawTop, prevBottom);
+          var last = pg[pg.length - 1];
+          var bottomCss = Math.min(rect.height, Math.max(topCss + 1, last.top + last.height + 3));
+          prevBottom = bottomCss;
+          var hCss = Math.max(1, bottomCss - topCss);
+
+          var canvas = await html2canvas(area, {
+            scale: k0,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            windowWidth: Math.max(needW, rect.width),
+            x: 0, y: topCss, width: rect.width, height: hCss + bandPx / k0
+          });
+          var contentH = Math.max(1, Math.round(hCss * k0));
+
+          var tmp = document.createElement('canvas');
+          tmp.width = canvas.width;
+          tmp.height = Math.min(canvas.height, contentH + bandPx);
+          var tctx = tmp.getContext('2d');
+          tctx.fillStyle = '#ffffff';
+          tctx.fillRect(0, 0, tmp.width, tmp.height);
+          tctx.fillStyle = '#312e81';
+          tctx.font = '700 ' + titleFont + 'px "Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif';
+          tctx.textBaseline = 'middle';
+          tctx.fillText(title + (pagesCount > 1 ? '　(' + (i + 1) + '/' + pagesCount + ')' : ''),
+            Math.round(6 * k0), Math.round(bandPx * 0.52));
+          tctx.strokeStyle = 'rgba(79,70,229,.35)';
+          tctx.lineWidth = Math.max(1, k0);
+          tctx.beginPath();
+          tctx.moveTo(0, bandPx - Math.max(1, k0));
+          tctx.lineTo(tmp.width, bandPx - Math.max(1, k0));
+          tctx.stroke();
+          tctx.drawImage(canvas, 0, 0, canvas.width, contentH, 0, bandPx, canvas.width, contentH);
+
+          if (i > 0) pdf.addPage();
+          var hMm = (contentH + bandPx) / k0 * mmPerPx;
+          pdf.addImage(tmp.toDataURL('image/jpeg', 0.92), 'JPEG', 8, 8, imgW, hMm);
+        }
+        pdf.save(exportBaseName('pdf'));
+        toast('PDF 导出完成', 'ok');
+      } catch (e) {
+        console.error(e);
+        toast('PDF 导出失败，可使用浏览器打印另存为 PDF', 'err');
+      } finally {
+        widened.forEach(function (x) { x[0].style.overflow = x[1]; });
+        area.style.width = prevAreaWidth;
+        document.body.style.overflow = prevBodyOverflow;
+        document.documentElement.style.overflow = prevHtmlOverflow;
+        document.body.classList.remove('lm-exporting');
+        btn.disabled = false;
+        btn.textContent = oldText;
+      }
     }
 
     /* ==================== 学生弹窗 ==================== */
@@ -667,6 +930,10 @@
               '<div class="lm-search-box" style="flex:1;max-width:320px">' +
                 '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>' +
                 '<input type="search" id="lmSearch" placeholder="输入姓名快速定位…" style="width:100%">' +
+              '</div>' +
+              '<div class="lm-filter-actions">' +
+                '<button type="button" class="lm-btn sm light" id="lmExportExcel" disabled title="导出当前考试总览表（Excel）">📊 导出 Excel</button>' +
+                '<button type="button" class="lm-btn sm" id="lmExportPdf" disabled title="导出当前考试总览表（PDF）">📄 导出 PDF</button>' +
               '</div></div>' +
             '<div class="lm-chip-row">' +
               '<span class="lm-chip-label">考试</span>' +
@@ -693,19 +960,23 @@
         /* 院校弹窗 */
         '<div class="lm-mask" id="lmSchoolMask" style="z-index:210"><div class="lm-modal" id="lmSchoolModal"></div></div>';
 
-      el.dataStatus = document.getElementById('lmDataStatus');
-      el.examChips = document.getElementById('lmExamChips');
-      el.statBar = document.getElementById('lmStatBar');
-      el.tableWrap = document.getElementById('lmTableWrap');
-      el.emptyTip = document.getElementById('lmEmptyTip');
-      el.searchInput = document.getElementById('lmSearch');
-      el.studentMask = document.getElementById('lmStudentMask');
-      el.studentModal = document.getElementById('lmStudentModal');
-      el.schoolMask = document.getElementById('lmSchoolMask');
-      el.schoolModal = document.getElementById('lmSchoolModal');
+      el.dataStatus = inst.root.querySelector('#lmDataStatus');
+      el.examChips = inst.root.querySelector('#lmExamChips');
+      el.statBar = inst.root.querySelector('#lmStatBar');
+      el.tableWrap = inst.root.querySelector('#lmTableWrap');
+      el.emptyTip = inst.root.querySelector('#lmEmptyTip');
+      el.searchInput = inst.root.querySelector('#lmSearch');
+      el.exportExcel = inst.root.querySelector('#lmExportExcel');
+      el.exportPdf = inst.root.querySelector('#lmExportPdf');
+      el.studentMask = inst.root.querySelector('#lmStudentMask');
+      el.studentModal = inst.root.querySelector('#lmStudentModal');
+      el.schoolMask = inst.root.querySelector('#lmSchoolMask');
+      el.schoolModal = inst.root.querySelector('#lmSchoolModal');
 
       /* 事件绑定 */
       el.searchInput.addEventListener('input', applySearch);
+      el.exportExcel.addEventListener('click', exportExcel);
+      el.exportPdf.addEventListener('click', function () { exportPdf(); });
       el.tableWrap.addEventListener('click', function (e) {
         var nameCell = e.target.closest('.lm-name-cell');
         if (nameCell) { openStudent(nameCell.getAttribute('data-name')); return; }

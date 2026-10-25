@@ -3038,6 +3038,7 @@ function renderGoals() {
   goalsInstance = LearningModule.mount($('goalsRoot'), {
     gradeData: gradeData,
     targetPath: CAMPUS_CONFIG.targetPath,
+    campusName: CAMPUS_CONFIG.name,
     getSelectedClasses: getGlobalClasses
   });
 }
