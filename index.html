@@ -5,7 +5,7 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>河北尚学单招成绩分析系统</title>
-<meta name="description" content="河北尚学单招成绩分析系统：校区周测成绩分析、学习目标对照与达标分析、河北省高职单招2024-2026大类信息查询，毛玻璃响应式，数据本地解析。">
+<meta name="description" content="河北尚学单招成绩分析系统：校区周测成绩分析、学习目标对照与达标分析、河北省高职单招2026年大类信息查询，毛玻璃响应式，数据本地解析。">
 <style>
 :root{
   --primary:#4f46e5;--primary-dark:#4338ca;--primary-darker:#3730a3;
@@ -114,8 +114,8 @@ h1 .accent{
 }
 .section-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(15,23,42,.10),transparent)}
 
-/* ===== 校区卡片 ===== */
-.grid{display:grid;gap:clamp(12px,1.6vw,18px);grid-template-columns:repeat(4,minmax(0,1fr))}
+/* ===== 功能入口卡片 ===== */
+.grid{display:grid;gap:clamp(12px,1.6vw,18px);grid-template-columns:repeat(3,minmax(0,1fr))}
 .card{
   position:relative;display:flex;flex-direction:column;gap:12px;
   padding:clamp(18px,2.4vw,26px) clamp(17px,2.2vw,24px);
@@ -193,6 +193,8 @@ h1 .accent{
 .badge-admission{color:#4338ca;background:rgba(79,70,229,.11);border:1px solid rgba(79,70,229,.22)}
 .card-admission{border-color:rgba(79,70,229,.28);background:linear-gradient(135deg,rgba(238,242,255,.9),rgba(245,243,255,.9))}
 .card-admission:hover{border-color:rgba(79,70,229,.55);box-shadow:0 8px 30px rgba(79,70,229,.16)}
+/* 跨两列的宽卡（大类信息），保证网格不空行 */
+.card.wide{grid-column:span 2}
 /* 两列功能网格 */
 .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
 
@@ -252,11 +254,13 @@ h1 .accent{
 /* ===== 响应式 ===== */
 @media (max-width:900px){
   .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .card.wide{grid-column:span 2}
   .overview{max-width:none}
 }
 @media (max-width:620px){
   body{padding:16px 12px 26px}
   .grid,.grid-2{grid-template-columns:1fr}
+  .card.wide{grid-column:span 1}
   .overview{grid-template-columns:1fr}
   .ov-upload{display:none}
   .card:hover{transform:translateY(-3px)}
@@ -310,9 +314,9 @@ h1 .accent{
     </a>
   </div>
 
-  <!-- ===== 校区入口 ===== -->
+  <!-- ===== 功能入口：校区 + 通用分析 + 大类信息 统一响应式网格 ===== -->
   <section class="section">
-    <div class="section-label">校区入口</div>
+    <div class="section-label">功能入口</div>
     <div class="grid">
 
       <a href="pages/龙泉校区.html" class="card" id="card-lq">
@@ -369,13 +373,6 @@ h1 .accent{
         <span class="badge badge-load" data-k="badge">正在读取成绩…</span>
       </a>
 
-    </div>
-  </section>
-
-  <!-- ===== 通用分析与数据查询（上下堆叠） ===== -->
-  <section class="section">
-    <div class="section-label">通用分析与数据查询</div>
-    <div class="grid" style="grid-template-columns:1fr;max-width:1000px;margin:0 auto">
 
       <a href="pages/通用成绩分析.html" class="card card-generic" id="card-generic">
         <div class="card-top">
@@ -392,7 +389,7 @@ h1 .accent{
         <span class="badge badge-generic">手动上传</span>
       </a>
 
-      <a href="pages/admission-info.html" class="card card-admission">
+      <a href="pages/admission-info.html" class="card card-admission wide">
         <div class="card-top">
           <div class="card-icon">🏛️</div>
           <div class="card-titles">
@@ -465,7 +462,8 @@ h1 .accent{
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>if(!window.XLSX){document.write('<script src="https://fastly.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');}</script>
 <script>
 /* =====================================================================
  *  首页 v4.0.0：与校区页同一套视觉语言（简约 + 毛玻璃 + 突出数据）

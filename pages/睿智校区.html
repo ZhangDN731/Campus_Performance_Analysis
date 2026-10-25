@@ -5,10 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>睿智校区成绩分析</title>
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>if(!window.Chart){document.write('<script src="https://fastly.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"><\/script>');}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>if(!window.XLSX){document.write('<script src="https://fastly.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>if(!window.html2canvas){document.write('<script src="https://fastly.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"><\/script>');}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>if(!window.jspdf){document.write('<script src="https://fastly.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"><\/script>');}</script>
 <style>
 :root{
   --primary:#4f46e5;--primary-dark:#4338ca;--primary-darker:#3730a3;
@@ -637,7 +641,7 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
   .analysis-metric-value{font-size:1.02rem}
   .btn{padding:7px 10px;font-size:.78rem}
   .line-setting{padding:3px 6px}
-  .line-setting input{width:38px;font-size:.78rem}
+  .line-setting input{width:38px;font-size:16px}
   .switch{padding:4px 10px 4px 5px;font-size:.74rem}
   .chart-grid-5{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
@@ -3033,7 +3037,8 @@ function renderGoals() {
   }
   goalsInstance = LearningModule.mount($('goalsRoot'), {
     gradeData: gradeData,
-    targetPath: CAMPUS_CONFIG.targetPath
+    targetPath: CAMPUS_CONFIG.targetPath,
+    getSelectedClasses: getGlobalClasses
   });
 }
 
@@ -3116,7 +3121,11 @@ function renderGlobalSelectors() {
     autoSelectByClasses('globalClassWrap', 'globalSubjectWrap', null);
     isAutoSelecting = false;
     autoSetScoreLines();
-    if (state.currentPage) renderCurrentPage();
+    if (state.topTab === 'goals') {
+      if (goalsInstance) goalsInstance.refresh();
+    } else if (state.currentPage) {
+      renderCurrentPage();
+    }
   });
 
   const sw = $('globalSubjectWrap');
@@ -3130,7 +3139,7 @@ function renderGlobalSelectors() {
     autoSelectBySubjects('globalSubjectWrap', 'globalClassWrap', null);
     isAutoSelecting = false;
     autoSetScoreLines();
-    if (state.currentPage) renderCurrentPage();
+    if (state.topTab !== 'goals' && state.currentPage) renderCurrentPage();
   });
 }
 
