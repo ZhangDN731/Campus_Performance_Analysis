@@ -94,6 +94,14 @@ body::before{
 .section-title{font-size:.85rem;font-weight:800;color:var(--text-sub);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
 .back-link{display:inline-block;margin-top:16px;font-size:.8rem;color:var(--primary);text-decoration:none;font-weight:600}
 .back-link:hover{text-decoration:underline}
+.divider{height:1px;background:var(--stroke-soft);margin:24px 0}
+.target-row{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;margin-bottom:14px}
+.target-row .tpl-item{flex:1;min-width:160px}
+.campus-select{padding:11px 12px;border:1px solid var(--stroke);border-radius:10px;font-size:.88rem;background:#f8fafc;color:var(--text-main);font-family:inherit;min-width:150px}
+.campus-select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.12);background:#fff}
+.target-zone{border-color:#c7d2fe;background:#fafbff}
+.target-zone:hover,.target-zone.dragover{border-color:var(--primary);background:var(--primary-light)}
+.muted-note{font-size:.72rem;color:var(--text-muted);margin-top:8px;line-height:1.6}
 /* 文件预览卡片 */
 .preview-card{
   background:linear-gradient(135deg,#fff 0%,var(--primary-light) 100%);
@@ -121,9 +129,13 @@ body::before{
 .preview-error{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:10px 14px;font-size:.78rem;margin-bottom:16px}
 @media (max-width:480px){
   .card{padding:24px 18px}
-  .tpl-list{grid-template-columns:1fr}
+  .upload-header{flex-direction:column;align-items:flex-start;gap:8px}
+  .tpl-list{flex-direction:column}
+  .target-row{flex-direction:column}
+  .target-row .campus-select{min-width:0;width:100%}
   .preview-grid{grid-template-columns:repeat(2,1fr)}
   .preview-item .pi-num{font-size:1.15rem}
+  .form-group input{font-size:16px}
 }
 </style>
 </head>
@@ -205,7 +217,58 @@ body::before{
 
     <div id="resultBox" style="display:none"></div>
 
-    <button class="btn btn-primary" id="uploadBtn" onclick="doUpload()" disabled>开始上传</button>
+    <button class="btn btn-primary" id="uploadBtn" onclick="doUpload()" disabled>上传成绩文件</button>
+
+    <!-- ===== 目标院校表上传（学习目标） ===== -->
+    <div class="divider"></div>
+    <div class="section-title">上传目标院校表（学习目标）</div>
+    <div class="target-row">
+      <a class="tpl-item" href="../assets/templates/目标院校填写模板.xlsx" download>
+        <div class="tpl-icon">🎯</div>
+        <div class="tpl-name">目标院校模板</div>
+        <div class="tpl-desc">点击下载 Excel 模板</div>
+      </a>
+      <select id="targetCampusSelect" class="campus-select" style="display:none" onchange="onTargetCampusChange()"></select>
+    </div>
+
+    <div class="upload-zone target-zone" id="targetZone" onclick="document.getElementById('targetFileInput').click()">
+      <div class="icon">🎯</div>
+      <div class="title">点击选择或拖拽目标院校表到此处</div>
+      <div class="desc">支持 .xlsx 格式，仅更新当前校区目标表，校区分析页会自动拉取</div>
+    </div>
+    <input type="file" id="targetFileInput" accept=".xlsx" style="display:none">
+
+    <div id="targetFileInfo" style="display:none" class="file-info">
+      <span class="name" id="targetFileName"></span>
+      <span class="size" id="targetFileSize"></span>
+    </div>
+
+    <div id="targetPreviewCard" style="display:none" class="preview-card">
+      <div class="preview-header">
+        <div class="ph-icon">✓</div>
+        <div class="ph-title">目标文件预览</div>
+        <div class="ph-sub" id="targetPreviewFileName"></div>
+      </div>
+      <div id="targetPreviewGrid" class="preview-grid">
+        <div class="preview-item"><div class="pi-num" id="tpvClass">—</div><div class="pi-label">班级表</div></div>
+        <div class="preview-item"><div class="pi-num" id="tpvFilled">—</div><div class="pi-label">已填目标</div></div>
+      </div>
+      <div id="targetPreviewLoading" style="display:none" class="preview-loading">
+        <div class="spin"></div><span>正在解析文件…</span>
+      </div>
+    </div>
+    <div id="targetPreviewError" style="display:none" class="preview-error"></div>
+
+    <div id="targetProgressWrap" style="display:none" class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="targetProgressFill"></div></div>
+      <div class="progress-text" id="targetProgressText">准备上传…</div>
+    </div>
+
+    <div id="targetResultBox" style="display:none"></div>
+
+    <button class="btn btn-secondary" id="targetUploadBtn" onclick="doUploadTarget()" disabled>上传目标院校表</button>
+    <div class="muted-note">目标表按「班级工作表 → 姓名 + 目标院校」填写；上传后各校区学习目标页自动读取，无需在校区页内操作上传。</div>
+
     <a href="../index.html" class="back-link">← 返回首页</a>
   </div>
 </div>
@@ -230,13 +293,20 @@ function bufToBase64(buf){
   return btoa(binary);
 }
 
-/* 账户配置：密码用 SHA-256 哈希存储 */
+/* 账户配置：密码用 SHA-256 哈希存储；targetFile 为该校区学习目标表路径（相对仓库根） */
 const ACCOUNTS = {
   'admin':     {hash:'8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', role:'admin',    label:'管理员'},
-  'longquan':  {hash:'b94027baec8a2b669650572e27090b29acde1dba447e7fef4ea8eb80f2a7746b', role:'campus',   label:'龙泉校区', campus:'龙泉校区', file:'27届龙泉周测成绩.xlsx'},
-  'xingyao':   {hash:'fa7b9499876ba65522fd907e5a472011690e17f882542eb73596c4e296ba5a2c', role:'campus',   label:'星耀校区', campus:'星耀校区', file:'27届星耀周测成绩.xlsx'},
-  'ruizhi':    {hash:'2ae0d9da57534f8c9817bb789d32362edd1585124e69fdb4de42d6e38d86a88d', role:'campus',   label:'睿智校区', campus:'睿智校区', file:'27届睿智周测成绩.xlsx'}
+  'longquan':  {hash:'b94027baec8a2b669650572e27090b29acde1dba447e7fef4ea8eb80f2a7746b', role:'campus',   label:'龙泉校区', campus:'龙泉校区', file:'27届龙泉周测成绩.xlsx', targetFile:'data/targets/龙泉校区目标.xlsx'},
+  'xingyao':   {hash:'fa7b9499876ba65522fd907e5a472011690e17f882542eb73596c4e296ba5a2c', role:'campus',   label:'星耀校区', campus:'星耀校区', file:'27届星耀周测成绩.xlsx', targetFile:'data/targets/星耀校区目标.xlsx'},
+  'ruizhi':    {hash:'2ae0d9da57534f8c9817bb789d32362edd1585124e69fdb4de42d6e38d86a88d', role:'campus',   label:'睿智校区', campus:'睿智校区', file:'27届睿智周测成绩.xlsx', targetFile:'data/targets/睿智校区目标.xlsx'}
 };
+
+/* 管理员可选择上传的目标院校表（与三个校区一一对应） */
+const TARGET_CAMPUSES = [
+  {label:'龙泉校区', targetFile:'data/targets/龙泉校区目标.xlsx'},
+  {label:'星耀校区', targetFile:'data/targets/星耀校区目标.xlsx'},
+  {label:'睿智校区', targetFile:'data/targets/睿智校区目标.xlsx'}
+];
 
 /* ==================== 工具函数 ==================== */
 const $ = id => document.getElementById(id);
@@ -290,6 +360,8 @@ function showUploadPage(){
   $('currentUser').textContent = currentAccount.label + '（' + currentAccount.user + '）';
   renderTemplates();
   resetUpload();
+  renderTargetSection();
+  resetTarget();
 }
 
 /* 检查登录状态 */
@@ -542,7 +614,184 @@ function setProgress(pct, text){
   $('progressFill').style.width = pct + '%';
   $('progressText').textContent = text;
 }
+
+/* ==================== 目标院校表上传（学习目标） ==================== */
+let selectedTargetFile = null;
+let targetDest = null;   /* 仓库相对路径，如 data/targets/龙泉校区目标.xlsx */
+
+function encodeRepoPath(path){
+  return path.split('/').map(encodeURIComponent).join('/');
+}
+
+function renderTargetSection(){
+  const sel = $('targetCampusSelect');
+  if(currentAccount.role === 'admin'){
+    sel.style.display = 'block';
+    sel.innerHTML = TARGET_CAMPUSES.map(c =>
+      `<option value="${c.targetFile}">${c.label}目标表</option>`).join('');
+    targetDest = TARGET_CAMPUSES[0].targetFile;
+  } else {
+    sel.style.display = 'none';
+    targetDest = currentAccount.targetFile;
+  }
+}
+
+function onTargetCampusChange(){
+  targetDest = $('targetCampusSelect').value;
+  resetTarget();
+}
+
+const targetZone = $('targetZone');
+targetZone.addEventListener('dragover', e=>{e.preventDefault();targetZone.classList.add('dragover');});
+targetZone.addEventListener('dragleave', ()=>targetZone.classList.remove('dragover'));
+targetZone.addEventListener('drop', e=>{
+  e.preventDefault();targetZone.classList.remove('dragover');
+  if(e.dataTransfer.files.length) handleTargetFile(e.dataTransfer.files[0]);
+});
+$('targetFileInput').addEventListener('change', e=>{ if(e.target.files.length) handleTargetFile(e.target.files[0]); });
+
+function handleTargetFile(file){
+  if(!file.name.toLowerCase().endsWith('.xlsx')){
+    showTargetResult('error','仅支持 .xlsx 格式文件，请重新选择。');
+    hideTargetPreview();
+    return;
+  }
+  selectedTargetFile = file;
+  $('targetFileInfo').style.display = 'flex';
+  $('targetFileName').textContent = file.name;
+  $('targetFileSize').textContent = formatSize(file.size);
+  $('targetUploadBtn').disabled = false;
+  $('targetResultBox').style.display = 'none';
+  parseTargetPreview(file);
+}
+
+function resetTarget(){
+  selectedTargetFile = null;
+  $('targetFileInfo').style.display = 'none';
+  $('targetProgressWrap').style.display = 'none';
+  $('targetResultBox').style.display = 'none';
+  $('targetUploadBtn').disabled = true;
+  $('targetFileInput').value = '';
+  hideTargetPreview();
+}
+
+function hideTargetPreview(){
+  $('targetPreviewCard').style.display = 'none';
+  $('targetPreviewError').style.display = 'none';
+  $('tpvClass').textContent = '—';
+  $('tpvFilled').textContent = '—';
+}
+
+function showTargetPreviewLoading(fileName){
+  $('targetPreviewError').style.display = 'none';
+  $('targetPreviewCard').style.display = 'block';
+  $('targetPreviewFileName').textContent = fileName;
+  $('targetPreviewGrid').style.display = 'none';
+  $('targetPreviewLoading').style.display = 'flex';
+}
+
+function showTargetPreviewError(msg){
+  $('targetPreviewCard').style.display = 'none';
+  $('targetPreviewError').style.display = 'block';
+  $('targetPreviewError').textContent = '⚠ ' + msg;
+}
+
+async function parseTargetPreview(file){
+  if(typeof XLSX === 'undefined'){ hideTargetPreview(); return; }
+  showTargetPreviewLoading(file.name);
+  try{
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(new Uint8Array(buf), {type:'array'});
+    let filled = 0;
+    wb.SheetNames.forEach(sn=>{
+      const ws = wb.Sheets[sn];
+      if(!ws) return;
+      const mat = XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+      if(!mat.length) return;
+      const first = mat[0]||[];
+      const a=String(first[0]??'').trim(), b=String(first[1]??'').trim();
+      const start = (a.indexOf('姓名')>=0||b.indexOf('院校')>=0||b.indexOf('目标')>=0)?1:0;
+      for(let r=start;r<mat.length;r++){
+        const row=mat[r]||[];
+        const name=String(row[0]??'').trim(), target=String(row[1]??'').trim();
+        if(name && target) filled++;
+      }
+    });
+    $('targetPreviewGrid').style.display='grid';
+    $('targetPreviewLoading').style.display='none';
+    $('tpvClass').textContent = wb.SheetNames.length;
+    $('tpvFilled').textContent = filled;
+    if(wb.SheetNames.length===0 || filled===0){
+      showTargetPreviewError('未识别到已填写的目标院校，请核对模板格式（工作表=班级，列：姓名、目标院校）。');
+    }
+  }catch(e){
+    console.error('目标文件预览解析失败:', e);
+    showTargetPreviewError('文件解析失败：' + (e.message||'未知错误') + '，但仍可尝试上传。');
+  }
+}
+
+function showTargetResult(type, msg){
+  const box = $('targetResultBox');
+  box.style.display='block';
+  box.className='result-box result-'+type;
+  box.innerHTML=msg;
+}
+
+function setTargetProgress(pct, text){
+  $('targetProgressFill').style.width=pct+'%';
+  $('targetProgressText').textContent=text;
+}
+
+async function doUploadTarget(){
+  if(!selectedTargetFile || !targetDest) return;
+  $('targetUploadBtn').disabled = true;
+  $('targetProgressWrap').style.display='block';
+  setTargetProgress(10,'读取文件…');
+  try{
+    setTargetProgress(30,'编码文件…');
+    const buf = await selectedTargetFile.arrayBuffer();
+    const b64 = bufToBase64(buf);
+    setTargetProgress(50,'连接 GitHub…');
+    const token = _dec();
+    const apiBase='https://api.github.com';
+    const path = encodeRepoPath(targetDest);
+
+    let sha=null;
+    try{
+      const resp = await fetch(`${apiBase}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}?ref=${GITHUB_BRANCH}`,{
+        headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}
+      });
+      if(resp.ok){ const data=await resp.json(); sha=data.sha; }
+    }catch(e){}
+
+    setTargetProgress(70, sha?'更新目标表…':'上传目标表…');
+    const payload={ message:`upload: ${targetDest}`, content:b64, branch:GITHUB_BRANCH };
+    if(sha) payload.sha=sha;
+    const resp = await fetch(`${apiBase}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`,{
+      method:'PUT',
+      headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+
+    if(resp.ok){
+      setTargetProgress(100,'上传完成！');
+      showTargetResult('success',
+        `✅ 目标院校表上传成功！<br>文件：<b>${targetDest}</b><br>对应校区「学习目标」页刷新后即可看到最新目标，GitHub Pages 约 1-2 分钟生效。`
+      );
+      resetTarget();
+    } else {
+      const err = await resp.json().catch(()=>({message:'HTTP '+resp.status}));
+      throw new Error(err.message||'上传失败');
+    }
+  }catch(e){
+    console.error(e);
+    setTargetProgress(0,'上传失败');
+    showTargetResult('error','❌ 目标表上传失败：' + e.message + '<br>请检查网络连接或 Token 权限。');
+    $('targetUploadBtn').disabled=false;
+  }
+}
 </script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>if(!window.XLSX){document.write('<script src="https://fastly.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');}</script>
 </body>
 </html>

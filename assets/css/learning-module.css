@@ -135,15 +135,20 @@ table.lm-data td.lm-rank,table.lm-data th.lm-rank{
   position:sticky;left:0;width:48px;min-width:48px;max-width:48px;
   background:#fff;z-index:2;box-shadow:1px 0 0 #edf0fa;
 }
+table.lm-data td.lm-class-cell,table.lm-data th.lm-class-col{
+  position:sticky;left:48px;width:78px;min-width:78px;max-width:78px;
+  background:#fff;z-index:2;box-shadow:1px 0 0 #edf0fa;
+  color:var(--lm-ink-soft);font-size:12.5px;
+}
 table.lm-data td.lm-name,table.lm-data th.lm-name{
-  position:sticky;left:48px;width:84px;min-width:84px;max-width:84px;
+  position:sticky;left:126px;width:84px;min-width:84px;max-width:84px;
   background:#fff;z-index:2;box-shadow:1px 0 0 #edf0fa;
 }
-table.lm-data thead th.lm-rank,table.lm-data thead th.lm-name{ background:var(--primary-dark);z-index:4; }
+table.lm-data thead th.lm-rank,table.lm-data thead th.lm-class-col,table.lm-data thead th.lm-name{ background:var(--primary-dark);z-index:4; }
 table.lm-data tbody tr:nth-child(even) td{ background:#fafbff; }
-table.lm-data tbody tr:nth-child(even) td.lm-rank,table.lm-data tbody tr:nth-child(even) td.lm-name{ background:#fafbff; }
+table.lm-data tbody tr:nth-child(even) td.lm-rank,table.lm-data tbody tr:nth-child(even) td.lm-class-cell,table.lm-data tbody tr:nth-child(even) td.lm-name{ background:#fafbff; }
 table.lm-data tbody tr:hover td{ background:#eef2ff; }
-table.lm-data tbody tr:hover td.lm-rank,table.lm-data tbody tr:hover td.lm-name{ background:#eef2ff; }
+table.lm-data tbody tr:hover td.lm-rank,table.lm-data tbody tr:hover td.lm-class-cell,table.lm-data tbody tr:hover td.lm-name{ background:#eef2ff; }
 table.lm-data .lm-total-cell{ font-weight:700;color:var(--primary-dark); }
 table.lm-data .lm-rank-cell{ font-weight:700;color:var(--lm-violet); }
 table.lm-data .lm-name-cell{ color:var(--primary-dark);font-weight:700;cursor:pointer; }
