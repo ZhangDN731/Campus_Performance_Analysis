@@ -70,7 +70,14 @@
 .lm-data-status b{ color:var(--primary-dark); }
 .lm-data-status .ds-ok{ color:var(--up);font-weight:600; }
 .lm-data-status .ds-warn{ color:#d97706;font-weight:600; }
-.lm-filter-actions{ display:flex;gap:10px;align-items:center;flex-wrap:wrap; }
+.lm-filter-actions{ display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto; }
+.lm-filter-actions .lm-btn{ white-space:nowrap; }
+/* 导出快照中：去掉玻璃模糊与阴影，保证 PDF 底色干净 */
+body.lm-exporting .lm-card,body.lm-exporting .lm-stat-box{
+  background:#fff!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  box-shadow:none!important;border-color:#e2e8f0!important;
+}
+body.lm-exporting .lm-mask{ display:none!important; }
 .lm-search-box{
   display:flex;align-items:center;gap:7px;
   border:1px solid var(--lm-line);border-radius:999px;
@@ -308,6 +315,8 @@ table.lm-data .lm-muted-cell{ color:var(--lm-ink-faint); }
   .lm-filter-head{ align-items:stretch; }
   .lm-search-box{ flex:1; }
   .lm-search-box input{ width:100%; }
+  .lm-filter-actions{ width:100%;margin-left:0;justify-content:stretch; }
+  .lm-filter-actions .lm-btn{ flex:1;padding:8px 10px;font-size:13px; }
   .lm-chip-label{ width:100%;padding-top:0; }
   .lm-chip-row{ flex-direction:column;gap:8px; }
   .lm-stat-bar{ grid-template-columns:repeat(2,1fr);gap:10px; }

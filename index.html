@@ -114,8 +114,9 @@ h1 .accent{
 }
 .section-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(15,23,42,.10),transparent)}
 
-/* ===== 功能入口卡片 ===== */
-.grid{display:grid;gap:clamp(12px,1.6vw,18px);grid-template-columns:repeat(3,minmax(0,1fr))}
+/* ===== 功能入口卡片：桌面四列，三张校区卡跨两行，右侧通用/大类上下堆叠 ===== */
+.grid{display:grid;gap:clamp(12px,1.6vw,18px);grid-template-columns:repeat(4,minmax(0,1fr))}
+.card.campus{grid-row:span 2}
 .card{
   position:relative;display:flex;flex-direction:column;gap:12px;
   padding:clamp(18px,2.4vw,26px) clamp(17px,2.2vw,24px);
@@ -193,8 +194,6 @@ h1 .accent{
 .badge-admission{color:#4338ca;background:rgba(79,70,229,.11);border:1px solid rgba(79,70,229,.22)}
 .card-admission{border-color:rgba(79,70,229,.28);background:linear-gradient(135deg,rgba(238,242,255,.9),rgba(245,243,255,.9))}
 .card-admission:hover{border-color:rgba(79,70,229,.55);box-shadow:0 8px 30px rgba(79,70,229,.16)}
-/* 跨两列的宽卡（大类信息），保证网格不空行 */
-.card.wide{grid-column:span 2}
 /* 两列功能网格 */
 .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
 
@@ -254,13 +253,13 @@ h1 .accent{
 /* ===== 响应式 ===== */
 @media (max-width:900px){
   .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .card.wide{grid-column:span 2}
+  .card.campus{grid-row:auto}
   .overview{max-width:none}
 }
 @media (max-width:620px){
   body{padding:16px 12px 26px}
   .grid,.grid-2{grid-template-columns:1fr}
-  .card.wide{grid-column:span 1}
+  .card.campus{grid-row:auto}
   .overview{grid-template-columns:1fr}
   .ov-upload{display:none}
   .card:hover{transform:translateY(-3px)}
@@ -319,7 +318,7 @@ h1 .accent{
     <div class="section-label">功能入口</div>
     <div class="grid">
 
-      <a href="pages/龙泉校区.html" class="card" id="card-lq">
+      <a href="pages/龙泉校区.html" class="card campus" id="card-lq">
         <div class="card-top">
           <div class="card-icon">🏫</div>
           <div class="card-titles">
@@ -337,7 +336,7 @@ h1 .accent{
         <span class="badge badge-load" data-k="badge">正在读取成绩…</span>
       </a>
 
-      <a href="pages/星耀校区.html" class="card" id="card-xy">
+      <a href="pages/星耀校区.html" class="card campus" id="card-xy">
         <div class="card-top">
           <div class="card-icon">🏫</div>
           <div class="card-titles">
@@ -355,7 +354,7 @@ h1 .accent{
         <span class="badge badge-load" data-k="badge">正在读取成绩…</span>
       </a>
 
-      <a href="pages/睿智校区.html" class="card" id="card-rz">
+      <a href="pages/睿智校区.html" class="card campus" id="card-rz">
         <div class="card-top">
           <div class="card-icon">🏫</div>
           <div class="card-titles">
@@ -389,7 +388,7 @@ h1 .accent{
         <span class="badge badge-generic">手动上传</span>
       </a>
 
-      <a href="pages/admission-info.html" class="card card-admission wide">
+      <a href="pages/admission-info.html" class="card card-admission">
         <div class="card-top">
           <div class="card-icon">🏛️</div>
           <div class="card-titles">
