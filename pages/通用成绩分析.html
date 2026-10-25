@@ -3086,10 +3086,12 @@ function renderGlobalSelectors() {
   });
 
   const sw = $('globalSubjectWrap');
-  /* 自动加载后默认全选科目，页面开箱即用；用户可随时取消勾选 */
-  sw.innerHTML = state.subjectList.map(s =>
-    '<label class="checkbox-item checked"><input type="checkbox" value="' + esc(s) + '" checked><span>' + esc(subjectLabel(s)) + '</span></label>'
-  ).join('');
+  /* 自动加载后默认仅勾选「总分」（无总分时回退职测总分），其余科目由用户按需勾选 */
+  const defaultSubj = state.subjectList.find(isTotal) || state.subjectList.find(s => normalizeSubjectKey(s) === '职测总分');
+  sw.innerHTML = state.subjectList.map(s => {
+    const on = s === defaultSubj;
+    return '<label class="checkbox-item' + (on ? ' checked' : '') + '"><input type="checkbox" value="' + esc(s) + '"' + (on ? ' checked' : '') + '><span>' + esc(subjectLabel(s)) + '</span></label>';
+  }).join('');
   bindAllCheckboxes('globalSubjectWrap', () => {
     if (isAutoSelecting) return;
     isAutoSelecting = true;
