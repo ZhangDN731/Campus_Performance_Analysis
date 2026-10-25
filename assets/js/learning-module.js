@@ -40,11 +40,67 @@
     return PURE_NUM_RE.test(t) ? parseFloat(t) : t;
   }
 
+  /* ==================== 分值对齐（与核心分析「对齐最高满分」同口径） ====================
+     规则：以每个「班级 × 科目」历次考试中出现过的最高满分为基准，
+     其余考试成绩按 最高满分 / 当次满分 等比放大；总分未标注满分时，
+     按该次考试各科满分之和推导。只影响本模块显示，不改原始文件。 */
+  function alignGradeData(gd) {
+    if (!gd || !gd.classes) return gd;
+    gd.classes.forEach(function (c) {
+      if (!c.exams || !c.exams.length) return;
+      /* 1) 每次考试每个科目的当前满分（总分缺失时由各科满分推导） */
+      var examMax = c.exams.map(function (ex) {
+        var map = {};
+        ex.subjectKeys.forEach(function (k) {
+          var m = null;
+          ex.students.forEach(function (s) {
+            var sc = s.scores[k];
+            if (sc && sc.max != null && (m == null || sc.max > m)) m = sc.max;
+          });
+          map[k] = m;
+        });
+        if (map['总分'] == null) {
+          var sum = 0, n = 0;
+          ex.subjectKeys.forEach(function (k) {
+            if (k === '总分' || k === '职测总分') return;
+            if (map[k] != null) { sum += map[k]; n++; }
+          });
+          if (n) map['总分'] = sum;
+        }
+        return map;
+      });
+      /* 2) 各班各科目标满分 = 历次最高满分 */
+      var target = {};
+      c.exams.forEach(function (ex, ei) {
+        ex.subjectKeys.forEach(function (k) {
+          var m = examMax[ei][k];
+          if (m != null && (target[k] == null || m > target[k])) target[k] = m;
+        });
+      });
+      /* 3) 等比放大并回写满分；考试总分满分同步到对齐后尺度 */
+      c.exams.forEach(function (ex, ei) {
+        ex.students.forEach(function (s) {
+          Object.keys(s.scores).forEach(function (k) {
+            var sc = s.scores[k];
+            var cur = examMax[ei][k];
+            var t = target[k];
+            if (typeof sc.v !== 'number' || cur == null || cur <= 0 || t == null) return;
+            if (Math.abs(t - cur) < 1e-9) { sc.max = t; return; }
+            sc.v = Math.round(sc.v * t / cur * 10) / 10;
+            sc.max = t;
+          });
+        });
+        if (target['总分'] != null) ex.totalMax = target['总分'];
+      });
+    });
+    return gd;
+  }
+
   /* ==================== 实例状态 ==================== */
   function createInstance(container, opts) {
     var inst = {
       root: container,
-      gradeData: opts.gradeData || null,
+      gradeData: alignGradeData(opts.gradeData || null),
       targetData: null,
       targetPath: opts.targetPath || '',
       campusName: opts.campusName || '',
@@ -1013,7 +1069,7 @@
         renderOverview();
       },
       setGradeData: function (gd) {
-        inst.gradeData = gd;
+        inst.gradeData = alignGradeData(gd);
         renderDataStatus();
         renderExamChips();
         renderOverview();
