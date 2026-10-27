@@ -3577,6 +3577,9 @@ function bindEvents() {
       document.body.style.overflow = '';
       state.topTab = btn.dataset.top;
       if (state.topTab === 'goals') {
+        /* 进入学习目标：班级、科目默认不选，由用户自行勾选 */
+        setCheckboxSelection('globalClassWrap', []);
+        setCheckboxSelection('globalSubjectWrap', []);
         renderTabs();
         renderGoals();
         return;

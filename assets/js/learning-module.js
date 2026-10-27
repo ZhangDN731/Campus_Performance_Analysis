@@ -884,6 +884,7 @@
         '</div>';
 
       el.studentModal.innerHTML = html;
+      el.studentMask.scrollTop = 0;
       el.studentMask.classList.add('show');
       document.body.style.overflow = 'hidden';
     }
@@ -929,6 +930,7 @@
               '</tr></thead><tbody>' + majorsRows + '</tbody></table>' +
           '</div></div>';
       el.schoolModal.innerHTML = html;
+      el.schoolMask.scrollTop = 0;
       el.schoolMask.classList.add('show');
       document.body.style.overflow = 'hidden';
     }
@@ -972,6 +974,9 @@
 
     /* ==================== 构建 DOM ==================== */
     function buildDOM() {
+      /* 清理上次挂载遗留的弹窗（已移入 body） */
+      document.querySelectorAll('.lm-mask').forEach(function (m) { m.remove(); });
+      document.body.style.overflow = '';
       inst.root.innerHTML =
         '<div class="lm-root">' +
           /* 筛选卡：班级选择复用顶部筛选条，此处仅考试 + 搜索 */
@@ -1017,6 +1022,9 @@
       el.studentModal = inst.root.querySelector('#lmStudentModal');
       el.schoolMask = inst.root.querySelector('#lmSchoolMask');
       el.schoolModal = inst.root.querySelector('#lmSchoolModal');
+      /* 弹窗挂到 body，避免被 .container 层叠上下文困住而被吸顶顶栏遮挡 */
+      document.body.appendChild(el.studentMask);
+      document.body.appendChild(el.schoolMask);
 
       /* 事件绑定 */
       el.searchInput.addEventListener('input', applySearch);
