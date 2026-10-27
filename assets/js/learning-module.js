@@ -107,7 +107,8 @@
       getSelectedClasses: typeof opts.getSelectedClasses === 'function' ? opts.getSelectedClasses : null,
       activeExamIdx: 0,
       activeExamLabel: '',
-      hasRows: false
+      hasRows: false,
+      examTouched: false
     };
 
     /* DOM 句柄在构建后填充 */
@@ -190,6 +191,8 @@
       el.examChips.innerHTML = '';
       var exams = examList();
       if (!exams.length) return;
+      /* 用户未手动切换过时，默认选中最新一次考试（列表最后一项） */
+      if (!inst.examTouched) inst.activeExamIdx = exams.length - 1;
       if (inst.activeExamIdx >= exams.length) inst.activeExamIdx = exams.length - 1;
       exams.forEach(function (e, i) {
         var b = document.createElement('button');
@@ -197,6 +200,7 @@
         b.className = 'lm-chip' + (i === inst.activeExamIdx ? ' active' : '');
         b.textContent = e.label + (e.totalMax && e.totalMax !== 750 ? '（' + e.totalMax + '分制）' : '');
         b.addEventListener('click', function () {
+          inst.examTouched = true;
           inst.activeExamIdx = i;
           renderExamChips();
           renderOverview();
@@ -274,8 +278,6 @@
     /* ==================== 总览表（跨已选班级合并展示） ==================== */
     function setExportState(on) {
       inst.hasRows = !!on;
-      if (el.exportExcel) el.exportExcel.disabled = !on;
-      if (el.exportPdf) el.exportPdf.disabled = !on;
     }
 
     function renderOverview() {
@@ -455,11 +457,6 @@
         typeof window.jspdf.jsPDF !== 'function') {
         toast('PDF 组件未加载，请刷新页面重试', 'err'); return;
       }
-      var btn = el.exportPdf;
-      btn.disabled = true;
-      var oldText = btn.textContent;
-      btn.textContent = '导出中…';
-
       var prevBodyOverflow = document.body.style.overflow;
       var prevHtmlOverflow = document.documentElement.style.overflow;
       var area = inst.root;
@@ -615,8 +612,6 @@
         document.body.style.overflow = prevBodyOverflow;
         document.documentElement.style.overflow = prevHtmlOverflow;
         document.body.classList.remove('lm-exporting');
-        btn.disabled = false;
-        btn.textContent = oldText;
       }
     }
 
@@ -986,10 +981,6 @@
               '<div class="lm-search-box" style="flex:1;max-width:320px">' +
                 '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>' +
                 '<input type="search" id="lmSearch" placeholder="输入姓名快速定位…" style="width:100%">' +
-              '</div>' +
-              '<div class="lm-filter-actions">' +
-                '<button type="button" class="lm-btn sm light" id="lmExportExcel" disabled title="导出当前考试总览表（Excel）">📊 导出 Excel</button>' +
-                '<button type="button" class="lm-btn sm" id="lmExportPdf" disabled title="导出当前考试总览表（PDF）">📄 导出 PDF</button>' +
               '</div></div>' +
             '<div class="lm-chip-row">' +
               '<span class="lm-chip-label">考试</span>' +
@@ -1022,8 +1013,6 @@
       el.tableWrap = inst.root.querySelector('#lmTableWrap');
       el.emptyTip = inst.root.querySelector('#lmEmptyTip');
       el.searchInput = inst.root.querySelector('#lmSearch');
-      el.exportExcel = inst.root.querySelector('#lmExportExcel');
-      el.exportPdf = inst.root.querySelector('#lmExportPdf');
       el.studentMask = inst.root.querySelector('#lmStudentMask');
       el.studentModal = inst.root.querySelector('#lmStudentModal');
       el.schoolMask = inst.root.querySelector('#lmSchoolMask');
@@ -1031,8 +1020,6 @@
 
       /* 事件绑定 */
       el.searchInput.addEventListener('input', applySearch);
-      el.exportExcel.addEventListener('click', exportExcel);
-      el.exportPdf.addEventListener('click', function () { exportPdf(); });
       el.tableWrap.addEventListener('click', function (e) {
         var nameCell = e.target.closest('.lm-name-cell');
         if (nameCell) { openStudent(nameCell.getAttribute('data-name')); return; }
@@ -1070,10 +1057,16 @@
       },
       setGradeData: function (gd) {
         inst.gradeData = alignGradeData(gd);
+        /* 重新载入成绩后回到最新一次考试 */
+        inst.examTouched = false;
         renderDataStatus();
         renderExamChips();
         renderOverview();
-      }
+      },
+      /* 导出能力上交给校区页右上角「导出报告」菜单 */
+      exportExcel: exportExcel,
+      exportPdf: exportPdf,
+      hasData: function () { return inst.hasRows; }
     };
   }
 

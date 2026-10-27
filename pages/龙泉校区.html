@@ -612,7 +612,7 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
   .topbar-actions .btn{flex:1 1 auto;justify-content:center}
   .export-wrap{flex:1 1 auto;display:flex}
   .export-wrap .btn{width:100%;justify-content:center}
-  .export-menu{right:auto;left:0;min-width:160px}
+  .export-menu{position:fixed;left:12px;right:12px;bottom:12px;top:auto;width:auto;min-width:0;max-width:none}
   .topbar-settings{flex-direction:column;align-items:stretch;gap:9px}
   .setting-group{justify-content:space-between;gap:8px}
   .setting-fields{flex-wrap:wrap;justify-content:flex-end}
@@ -696,6 +696,7 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
             <div class="menu-hint">导出当前功能</div>
             <button onclick="exportReport()">&#128196; 导出 PDF</button>
             <button onclick="exportExcel()">&#128202; 导出 Excel 表格</button>
+            <div id="exportBatchZone">
             <div class="menu-divider"></div>
             <div class="menu-hint">批量导出达标率</div>
             <button onclick="exportRateBatch('subject')">&#128218; 按学科逐个导出 PDF</button>
@@ -704,6 +705,7 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
             <div class="menu-hint">批量导出数据明细表</div>
             <button onclick="exportDetailBatch('subject')">&#128218; 按学科逐个导出 PDF</button>
             <button onclick="exportDetailBatch('class')">&#127979; 按班级逐个导出 PDF</button>
+            </div>
           </div>
         </div>
       </div>
@@ -3225,6 +3227,12 @@ function cellToValue(text) {
 }
 function exportExcel() {
   closeExportMenu();
+  /* 学习目标标签下，Excel 导出走目标模块 */
+  if (state.topTab === 'goals') {
+    if (!goalsInstance || !goalsInstance.hasData || !goalsInstance.hasData()) { alert('暂无目标数据可导出'); return; }
+    goalsInstance.exportExcel();
+    return;
+  }
   if (!hasData()) { alert('暂无数据'); return; }
   const tables = $('contentArea').querySelectorAll('table.data-table');
   if (!tables.length) { alert('当前功能没有表格可导出，请改用「导出 PDF」。'); return; }
@@ -3260,7 +3268,11 @@ function closeExportMenu() {
 function toggleExportMenu(e) {
   if (e) e.stopPropagation();
   const m = $('exportMenu');
-  if (m) m.classList.toggle('show');
+  if (!m) return;
+  /* 学习目标标签下隐藏批量导出分区（仅保留当前功能的 PDF/Excel） */
+  const zone = $('exportBatchZone');
+  if (zone) zone.style.display = (state.topTab === 'goals') ? 'none' : '';
+  m.classList.toggle('show');
 }
 
 /* ============================================================
@@ -3366,6 +3378,12 @@ function pageUnits(units, usablePx) {
 
 async function exportReport(customFileName) {
   closeExportMenu();
+  /* 学习目标标签下，PDF 导出走目标模块 */
+  if (state.topTab === 'goals') {
+    if (!goalsInstance || !goalsInstance.hasData || !goalsInstance.hasData()) { alert('暂无目标数据可导出'); return; }
+    await goalsInstance.exportPdf();
+    return;
+  }
   if (!hasData()) { alert('暂无数据'); return; }
   const btn = $('exportBtn');
   btn.disabled = true;
