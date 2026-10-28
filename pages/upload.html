@@ -56,7 +56,7 @@ body::before{
 .error-msg{color:var(--danger);font-size:.8rem;margin-top:8px;text-align:center;min-height:18px}
 .hint{font-size:.72rem;color:var(--text-muted);text-align:center;margin-top:16px;line-height:1.6}
 /* 上传页面 */
-.upload-container{max-width:760px}
+.upload-container{max-width:880px}
 .upload-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--stroke-soft)}
 .upload-header h2{font-size:1.1rem;font-weight:800}
 .user-info{font-size:.8rem;color:var(--text-sub)}
@@ -82,36 +82,44 @@ body::before{
 .result-box{padding:14px;border-radius:10px;margin-bottom:16px;font-size:.84rem;line-height:1.6}
 .result-success{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
 .result-error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
-.tpl-list{display:flex;gap:14px;margin-bottom:22px}
+/* 左右两列：成绩文件 / 目标文件 */
+.upload-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:8px;align-items:stretch}
+.up-col{background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px 16px 18px;display:flex;flex-direction:column;height:100%}
+.target-col{background:#fffdf7}
+.col-header{display:flex;align-items:center;gap:8px;font-size:.92rem;font-weight:800;color:#1e293b;padding-bottom:12px;border-bottom:1px solid #e5e7eb;margin-bottom:6px}
+.ch-dot{width:9px;height:9px;border-radius:50%;background:var(--primary);flex:none}
+.target-col .ch-dot{background:#f59e0b}
+.block-title{font-size:.78rem;font-weight:700;color:#475569;margin:14px 0 8px}
+.block-title:first-child{margin-top:2px}
+
+.tpl-list{display:flex;flex-direction:column;gap:10px;margin-bottom:0}
 .tpl-item{
-  flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:7px;padding:20px 14px;border:1px solid #e5e7eb;border-radius:12px;text-align:center;
+  display:flex;flex-direction:row;align-items:center;gap:12px;min-width:0;
+  padding:13px 14px;border:1px solid #e5e7eb;border-radius:12px;text-align:left;
   cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s;background:#fff;
 }
 .tpl-item:hover{border-color:#c7d2fe;background:#f8faff;box-shadow:0 6px 18px rgba(79,70,229,.08)}
-.tpl-item .tpl-icon{display:flex;align-items:center;justify-content:center;color:#64748b}
-.tpl-item .tpl-icon svg{width:26px;height:26px}
-.tpl-item .tpl-name{font-size:.86rem;font-weight:700;color:#1f2937}
-.tpl-item .tpl-desc{font-size:.72rem;color:#94a3b8;margin-top:0;line-height:1.4}
-.section-title{font-size:.9rem;font-weight:700;color:#334155;margin:20px 0 12px}
-.upload-action{background:#e0e7ff;color:#3730a3;border-radius:12px;padding:13px}
-.upload-action:hover:not(:disabled){background:#d9e2ff}
-.upload-action:disabled{background:#e2e8f0;color:#94a3b8;cursor:not-allowed}
+.tpl-item .tpl-icon{flex:none;display:flex;align-items:center;justify-content:center;color:#64748b}
+.tpl-item .tpl-icon svg{width:24px;height:24px}
+.tpl-text{display:flex;flex-direction:column;gap:3px;min-width:0}
+.tpl-item .tpl-name{font-size:.85rem;font-weight:700;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpl-item .tpl-desc{font-size:.72rem;color:#94a3b8;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .back-link{display:inline-block;margin-top:16px;font-size:.8rem;color:var(--primary);text-decoration:none;font-weight:600}
 .back-link:hover{text-decoration:underline}
-.divider{height:1px;background:var(--stroke-soft);margin:24px 0}
-.target-row{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;margin-bottom:14px}
-.target-row .tpl-item{flex:1;min-width:160px}
-.campus-select{padding:11px 12px;border:1px solid var(--stroke);border-radius:10px;font-size:.88rem;background:#f8fafc;color:var(--text-main);font-family:inherit;min-width:150px}
+.upload-action{background:#e0e7ff;color:#3730a3;border-radius:12px;padding:12px;margin-top:auto}
+.upload-action:hover:not(:disabled){background:#d9e2ff}
+.upload-action:disabled{background:#e2e8f0;color:#94a3b8;cursor:not-allowed}
+.target-row{display:flex;flex-direction:column;gap:10px;margin-bottom:0}
+.campus-select{padding:11px 12px;border:1px solid var(--stroke);border-radius:10px;font-size:.86rem;background:#f8fafc;color:var(--text-main);font-family:inherit;width:100%}
 .campus-select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.12);background:#fff}
-.target-zone{border-color:#c7d2fe;background:#fafbff}
-.target-zone:hover,.target-zone.dragover{border-color:var(--primary);background:var(--primary-light)}
-.tpl-item.has-data{background:#fff}
-.tpl-item.has-data .tpl-name{color:#1f2937}
+.target-zone{border-color:#fde68a;background:#fffdf7}
+.target-zone:hover,.target-zone.dragover{border-color:#f59e0b;background:#fffbeb}
 .tpl-item.has-data .tpl-desc{color:#64748b}
 .tpl-item.no-data .tpl-desc{color:#94a3b8}
 .tpl-item.downloading{opacity:.6;pointer-events:none}
 .muted-note{font-size:.72rem;color:var(--text-muted);margin-top:8px;line-height:1.6}
+.upload-cols .upload-zone{margin-bottom:0;padding:18px 12px}
+.up-col .preview-grid{grid-template-columns:repeat(2,1fr)}
 /* 文件预览卡片 */
 .preview-card{
   background:linear-gradient(135deg,#fff 0%,var(--primary-light) 100%);
@@ -137,12 +145,13 @@ body::before{
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 .preview-error{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:10px 14px;font-size:.78rem;margin-bottom:16px}
+@media (max-width:760px){
+  .upload-cols{grid-template-columns:1fr;gap:16px}
+}
 @media (max-width:480px){
   .card{padding:24px 18px}
   .upload-header{flex-direction:column;align-items:flex-start;gap:8px}
-  .tpl-list{flex-direction:column}
-  .target-row{flex-direction:column}
-  .target-row .campus-select{min-width:0;width:100%}
+  .campus-select{width:100%}
   .preview-grid{grid-template-columns:repeat(2,1fr)}
   .preview-item .pi-num{font-size:1.15rem}
   .form-group input{font-size:16px}
@@ -181,103 +190,116 @@ body::before{
 <div class="container upload-container" id="uploadPage" style="display:none">
   <div class="card">
     <div class="upload-header">
-      <h2>📤 成绩文件上传</h2>
+      <h2>📤 数据文件上传管理</h2>
       <div class="user-info">当前用户：<b id="currentUser"></b> <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:.75rem;margin-left:8px" onclick="doLogout()">退出</button></div>
     </div>
 
-    <div class="section-title">下载当前文件（已存最新版 / 空白模板）</div>
-    <div class="tpl-list" id="tplList"></div>
+    <div class="upload-cols">
+      <!-- 左列：成绩文件上传 / 下载 -->
+      <section class="up-col">
+        <div class="col-header"><span class="ch-dot"></span>成绩文件上传</div>
 
-    <div class="section-title">上传成绩文件</div>
-    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-      <div class="icon">📁</div>
-      <div class="title">点击选择或拖拽文件到此处</div>
-      <div class="desc">支持 .xlsx 格式，文件名将自动规范化</div>
+        <div class="block-title">下载当前文件</div>
+        <div class="tpl-list" id="tplList"></div>
+
+        <div class="block-title">上传成绩文件</div>
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+          <div class="icon">📁</div>
+          <div class="title">点击选择或拖拽文件到此处</div>
+          <div class="desc">支持 .xlsx 格式，文件名将自动规范化</div>
+        </div>
+        <input type="file" id="fileInput" accept=".xlsx" style="display:none">
+
+        <div id="fileInfo" style="display:none" class="file-info">
+          <span class="name" id="fileName"></span>
+          <span class="size" id="fileSize"></span>
+        </div>
+
+        <!-- 文件预览：上传前快速解析基本信息 -->
+        <div id="previewCard" style="display:none" class="preview-card">
+          <div class="preview-header">
+            <div class="ph-icon">✓</div>
+            <div class="ph-title">文件预览</div>
+            <div class="ph-sub" id="previewFileName"></div>
+          </div>
+          <div id="previewGrid" class="preview-grid">
+            <div class="preview-item"><div class="pi-num" id="pvClass">—</div><div class="pi-label">班级</div></div>
+            <div class="preview-item"><div class="pi-num" id="pvExam">—</div><div class="pi-label">考试</div></div>
+            <div class="preview-item"><div class="pi-num" id="pvStudent">—</div><div class="pi-label">学生</div></div>
+            <div class="preview-item"><div class="pi-num" id="pvSubject">—</div><div class="pi-label">科目</div></div>
+          </div>
+          <div id="previewLoading" style="display:none" class="preview-loading">
+            <div class="spin"></div><span>正在解析文件…</span>
+          </div>
+        </div>
+        <div id="previewError" style="display:none" class="preview-error"></div>
+
+        <div id="progressWrap" style="display:none" class="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="progress-text" id="progressText">准备上传…</div>
+        </div>
+
+        <div id="resultBox" style="display:none"></div>
+
+        <button class="btn upload-action" id="uploadBtn" onclick="doUpload()" disabled>上传成绩文件</button>
+      </section>
+
+      <!-- 右列：目标文件上传 / 下载（学习目标） -->
+      <section class="up-col target-col">
+        <div class="col-header"><span class="ch-dot"></span>目标文件上传</div>
+
+        <div class="block-title">下载当前文件</div>
+        <div class="target-row">
+          <div class="tpl-item" id="targetDlCard" onclick="downloadTargetFile()">
+            <div class="tpl-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg></div>
+            <div class="tpl-text">
+              <div class="tpl-name" id="targetDlName">目标院校模板</div>
+              <div class="tpl-desc" id="targetDlDesc">正在查询最新文件…</div>
+            </div>
+          </div>
+          <select id="targetCampusSelect" class="campus-select" style="display:none" onchange="onTargetCampusChange()"></select>
+        </div>
+
+        <div class="block-title">上传目标文件</div>
+        <div class="upload-zone target-zone" id="targetZone" onclick="document.getElementById('targetFileInput').click()">
+          <div class="icon">🎯</div>
+          <div class="title">点击选择或拖拽目标院校表到此处</div>
+          <div class="desc">仅更新当前校区目标表，校区分析页自动拉取</div>
+        </div>
+        <input type="file" id="targetFileInput" accept=".xlsx" style="display:none">
+
+        <div id="targetFileInfo" style="display:none" class="file-info">
+          <span class="name" id="targetFileName"></span>
+          <span class="size" id="targetFileSize"></span>
+        </div>
+
+        <div id="targetPreviewCard" style="display:none" class="preview-card">
+          <div class="preview-header">
+            <div class="ph-icon">✓</div>
+            <div class="ph-title">目标文件预览</div>
+            <div class="ph-sub" id="targetPreviewFileName"></div>
+          </div>
+          <div id="targetPreviewGrid" class="preview-grid">
+            <div class="preview-item"><div class="pi-num" id="tpvClass">—</div><div class="pi-label">班级表</div></div>
+            <div class="preview-item"><div class="pi-num" id="tpvFilled">—</div><div class="pi-label">已填目标</div></div>
+          </div>
+          <div id="targetPreviewLoading" style="display:none" class="preview-loading">
+            <div class="spin"></div><span>正在解析文件…</span>
+          </div>
+        </div>
+        <div id="targetPreviewError" style="display:none" class="preview-error"></div>
+
+        <div id="targetProgressWrap" style="display:none" class="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" id="targetProgressFill"></div></div>
+          <div class="progress-text" id="targetProgressText">准备上传…</div>
+        </div>
+
+        <div id="targetResultBox" style="display:none"></div>
+
+        <button class="btn upload-action" id="targetUploadBtn" onclick="doUploadTarget()" disabled>上传目标文件</button>
+        <div class="muted-note">目标表按「班级工作表 → 姓名 + 目标院校」填写；上传后各校区学习目标页自动读取。</div>
+      </section>
     </div>
-    <input type="file" id="fileInput" accept=".xlsx" style="display:none">
-
-    <div id="fileInfo" style="display:none" class="file-info">
-      <span class="name" id="fileName"></span>
-      <span class="size" id="fileSize"></span>
-    </div>
-
-    <!-- 文件预览：上传前快速解析基本信息 -->
-    <div id="previewCard" style="display:none" class="preview-card">
-      <div class="preview-header">
-        <div class="ph-icon">✓</div>
-        <div class="ph-title">文件预览</div>
-        <div class="ph-sub" id="previewFileName"></div>
-      </div>
-      <div id="previewGrid" class="preview-grid">
-        <div class="preview-item"><div class="pi-num" id="pvClass">—</div><div class="pi-label">班级</div></div>
-        <div class="preview-item"><div class="pi-num" id="pvExam">—</div><div class="pi-label">考试</div></div>
-        <div class="preview-item"><div class="pi-num" id="pvStudent">—</div><div class="pi-label">学生</div></div>
-        <div class="preview-item"><div class="pi-num" id="pvSubject">—</div><div class="pi-label">科目</div></div>
-      </div>
-      <div id="previewLoading" style="display:none" class="preview-loading">
-        <div class="spin"></div><span>正在解析文件…</span>
-      </div>
-    </div>
-    <div id="previewError" style="display:none" class="preview-error"></div>
-
-    <div id="progressWrap" style="display:none" class="progress-wrap">
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="progress-text" id="progressText">准备上传…</div>
-    </div>
-
-    <div id="resultBox" style="display:none"></div>
-
-    <button class="btn upload-action" id="uploadBtn" onclick="doUpload()" disabled>上传成绩文件</button>
-
-    <!-- ===== 目标院校表上传（学习目标） ===== -->
-    <div class="divider"></div>
-    <div class="section-title">上传目标院校表（学习目标）</div>
-    <div class="target-row">
-      <div class="tpl-item" id="targetDlCard" onclick="downloadTargetFile()">
-        <div class="tpl-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg></div>
-        <div class="tpl-name" id="targetDlName">目标院校模板</div>
-        <div class="tpl-desc" id="targetDlDesc">正在查询最新文件…</div>
-      </div>
-      <select id="targetCampusSelect" class="campus-select" style="display:none" onchange="onTargetCampusChange()"></select>
-    </div>
-
-    <div class="upload-zone target-zone" id="targetZone" onclick="document.getElementById('targetFileInput').click()">
-      <div class="icon">🎯</div>
-      <div class="title">点击选择或拖拽目标院校表到此处</div>
-      <div class="desc">支持 .xlsx 格式，仅更新当前校区目标表，校区分析页会自动拉取</div>
-    </div>
-    <input type="file" id="targetFileInput" accept=".xlsx" style="display:none">
-
-    <div id="targetFileInfo" style="display:none" class="file-info">
-      <span class="name" id="targetFileName"></span>
-      <span class="size" id="targetFileSize"></span>
-    </div>
-
-    <div id="targetPreviewCard" style="display:none" class="preview-card">
-      <div class="preview-header">
-        <div class="ph-icon">✓</div>
-        <div class="ph-title">目标文件预览</div>
-        <div class="ph-sub" id="targetPreviewFileName"></div>
-      </div>
-      <div id="targetPreviewGrid" class="preview-grid">
-        <div class="preview-item"><div class="pi-num" id="tpvClass">—</div><div class="pi-label">班级表</div></div>
-        <div class="preview-item"><div class="pi-num" id="tpvFilled">—</div><div class="pi-label">已填目标</div></div>
-      </div>
-      <div id="targetPreviewLoading" style="display:none" class="preview-loading">
-        <div class="spin"></div><span>正在解析文件…</span>
-      </div>
-    </div>
-    <div id="targetPreviewError" style="display:none" class="preview-error"></div>
-
-    <div id="targetProgressWrap" style="display:none" class="progress-wrap">
-      <div class="progress-bar"><div class="progress-fill" id="targetProgressFill"></div></div>
-      <div class="progress-text" id="targetProgressText">准备上传…</div>
-    </div>
-
-    <div id="targetResultBox" style="display:none"></div>
-
-    <button class="btn upload-action" id="targetUploadBtn" onclick="doUploadTarget()" disabled>上传目标院校表</button>
-    <div class="muted-note">目标表按「班级工作表 → 姓名 + 目标院校」填写；上传后各校区学习目标页自动读取，无需在校区页内操作上传。</div>
 
     <a href="../index.html" class="back-link">← 返回首页</a>
   </div>
@@ -456,8 +478,10 @@ function renderTemplates(){
   list.innerHTML = gradeCampusList().map(c=>`
     <div class="tpl-item" data-path="data/${c.file}" data-file="${c.file}" data-name="${c.name}">
       <div class="tpl-icon">${DOC_SVG}</div>
-      <div class="tpl-name">${c.name}成绩表</div>
-      <div class="tpl-desc">正在查询最新文件…</div>
+      <div class="tpl-text">
+        <div class="tpl-name">${c.name}成绩表</div>
+        <div class="tpl-desc">正在查询最新文件…</div>
+      </div>
     </div>
   `).join('');
   list.querySelectorAll('.tpl-item').forEach(card=>{
