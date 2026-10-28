@@ -56,7 +56,7 @@ body::before{
 .error-msg{color:var(--danger);font-size:.8rem;margin-top:8px;text-align:center;min-height:18px}
 .hint{font-size:.72rem;color:var(--text-muted);text-align:center;margin-top:16px;line-height:1.6}
 /* 上传页面 */
-.upload-container{max-width:640px}
+.upload-container{max-width:760px}
 .upload-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--stroke-soft)}
 .upload-header h2{font-size:1.1rem;font-weight:800}
 .user-info{font-size:.8rem;color:var(--text-sub)}
@@ -82,16 +82,21 @@ body::before{
 .result-box{padding:14px;border-radius:10px;margin-bottom:16px;font-size:.84rem;line-height:1.6}
 .result-success{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
 .result-error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
-.tpl-list{display:flex;gap:10px;margin-bottom:20px}
+.tpl-list{display:flex;gap:14px;margin-bottom:22px}
 .tpl-item{
-  flex:1;padding:14px 10px;border:1px solid var(--stroke);border-radius:10px;text-align:center;
-  cursor:pointer;transition:all .2s;background:#fff;
+  flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:7px;padding:20px 14px;border:1px solid #e5e7eb;border-radius:12px;text-align:center;
+  cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s;background:#fff;
 }
-.tpl-item:hover{border-color:var(--primary);background:var(--primary-light)}
-.tpl-item .tpl-icon{font-size:20px;margin-bottom:4px}
-.tpl-item .tpl-name{font-size:.78rem;font-weight:700;color:var(--text-main)}
-.tpl-item .tpl-desc{font-size:.66rem;color:var(--text-muted);margin-top:2px}
-.section-title{font-size:.85rem;font-weight:800;color:var(--text-sub);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.tpl-item:hover{border-color:#c7d2fe;background:#f8faff;box-shadow:0 6px 18px rgba(79,70,229,.08)}
+.tpl-item .tpl-icon{display:flex;align-items:center;justify-content:center;color:#64748b}
+.tpl-item .tpl-icon svg{width:26px;height:26px}
+.tpl-item .tpl-name{font-size:.86rem;font-weight:700;color:#1f2937}
+.tpl-item .tpl-desc{font-size:.72rem;color:#94a3b8;margin-top:0;line-height:1.4}
+.section-title{font-size:.9rem;font-weight:700;color:#334155;margin:20px 0 12px}
+.upload-action{background:#e0e7ff;color:#3730a3;border-radius:12px;padding:13px}
+.upload-action:hover:not(:disabled){background:#d9e2ff}
+.upload-action:disabled{background:#e2e8f0;color:#94a3b8;cursor:not-allowed}
 .back-link{display:inline-block;margin-top:16px;font-size:.8rem;color:var(--primary);text-decoration:none;font-weight:600}
 .back-link:hover{text-decoration:underline}
 .divider{height:1px;background:var(--stroke-soft);margin:24px 0}
@@ -101,9 +106,10 @@ body::before{
 .campus-select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.12);background:#fff}
 .target-zone{border-color:#c7d2fe;background:#fafbff}
 .target-zone:hover,.target-zone.dragover{border-color:var(--primary);background:var(--primary-light)}
-.tpl-item.has-data{border-color:#86efac;background:#f0fdf4}
-.tpl-item.has-data .tpl-name{color:#15803d}
-.tpl-item.no-data{background:#fff}
+.tpl-item.has-data{background:#fff}
+.tpl-item.has-data .tpl-name{color:#1f2937}
+.tpl-item.has-data .tpl-desc{color:#64748b}
+.tpl-item.no-data .tpl-desc{color:#94a3b8}
 .tpl-item.downloading{opacity:.6;pointer-events:none}
 .muted-note{font-size:.72rem;color:var(--text-muted);margin-top:8px;line-height:1.6}
 /* 文件预览卡片 */
@@ -221,14 +227,14 @@ body::before{
 
     <div id="resultBox" style="display:none"></div>
 
-    <button class="btn btn-primary" id="uploadBtn" onclick="doUpload()" disabled>上传成绩文件</button>
+    <button class="btn upload-action" id="uploadBtn" onclick="doUpload()" disabled>上传成绩文件</button>
 
     <!-- ===== 目标院校表上传（学习目标） ===== -->
     <div class="divider"></div>
     <div class="section-title">上传目标院校表（学习目标）</div>
     <div class="target-row">
       <div class="tpl-item" id="targetDlCard" onclick="downloadTargetFile()">
-        <div class="tpl-icon">🎯</div>
+        <div class="tpl-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg></div>
         <div class="tpl-name" id="targetDlName">目标院校模板</div>
         <div class="tpl-desc" id="targetDlDesc">正在查询最新文件…</div>
       </div>
@@ -270,7 +276,7 @@ body::before{
 
     <div id="targetResultBox" style="display:none"></div>
 
-    <button class="btn btn-secondary" id="targetUploadBtn" onclick="doUploadTarget()" disabled>上传目标院校表</button>
+    <button class="btn upload-action" id="targetUploadBtn" onclick="doUploadTarget()" disabled>上传目标院校表</button>
     <div class="muted-note">目标表按「班级工作表 → 姓名 + 目标院校」填写；上传后各校区学习目标页自动读取，无需在校区页内操作上传。</div>
 
     <a href="../index.html" class="back-link">← 返回首页</a>
@@ -286,6 +292,9 @@ const API_BASE = 'https://api.github.com';
 /* GitHub Token：先反转再 Base64 编码，绕过 secret scanning，运行时解码还原 */
 const _ENC = 'QmZ3N2Uxbzl4dGJ0Q0M0SkJFa015N0d2WExURldWdFd0bTNlX3BoZw==';
 function _dec(){let s=atob(_ENC);return s.split('').reverse().join('');}
+
+/* 卡片内联图标（文档 / 靶心），颜色跟随 .tpl-icon 的 currentColor */
+const DOC_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>';
 
 /* 大文件分块转 base64，避免扩展运算符栈溢出 */
 function bufToBase64(buf){
@@ -446,7 +455,7 @@ function renderTemplates(){
   const list = $('tplList');
   list.innerHTML = gradeCampusList().map(c=>`
     <div class="tpl-item" data-path="data/${c.file}" data-file="${c.file}" data-name="${c.name}">
-      <div class="tpl-icon">📋</div>
+      <div class="tpl-icon">${DOC_SVG}</div>
       <div class="tpl-name">${c.name}成绩表</div>
       <div class="tpl-desc">正在查询最新文件…</div>
     </div>
@@ -466,8 +475,8 @@ async function probeGradeCard(card){
     if(f){
       fileMetaCache[path] = {exists:true, size:f.size};
       card.classList.add('has-data'); card.classList.remove('no-data');
-      nameEl.textContent = card.dataset.name + '成绩表（最新）';
-      desc.textContent = '已上传 · ' + formatSize(f.size) + ' · 点击下载';
+      nameEl.textContent = card.dataset.name + '成绩表';
+      desc.textContent = '已上传 · ' + formatSize(f.size) + ' · 点击下载最新版';
       return;
     }
   }catch(e){ console.warn('查询成绩文件失败：', e); }
@@ -755,8 +764,8 @@ async function refreshTargetDownloadCard(){
     if(f){
       targetMeta = {exists:true, size:f.size};
       card.classList.add('has-data'); card.classList.remove('no-data');
-      nameEl.textContent = label + '目标表（最新）';
-      desc.textContent = '已上传 · ' + formatSize(f.size) + ' · 点击下载';
+      nameEl.textContent = label + '目标表';
+      desc.textContent = '已上传 · ' + formatSize(f.size) + ' · 点击下载最新版';
       return;
     }
   }catch(e){ console.warn('查询目标文件失败：', e); }
