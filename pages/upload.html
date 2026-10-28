@@ -101,6 +101,10 @@ body::before{
 .campus-select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.12);background:#fff}
 .target-zone{border-color:#c7d2fe;background:#fafbff}
 .target-zone:hover,.target-zone.dragover{border-color:var(--primary);background:var(--primary-light)}
+.tpl-item.has-data{border-color:#86efac;background:#f0fdf4}
+.tpl-item.has-data .tpl-name{color:#15803d}
+.tpl-item.no-data{background:#fff}
+.tpl-item.downloading{opacity:.6;pointer-events:none}
 .muted-note{font-size:.72rem;color:var(--text-muted);margin-top:8px;line-height:1.6}
 /* 文件预览卡片 */
 .preview-card{
@@ -175,7 +179,7 @@ body::before{
       <div class="user-info">当前用户：<b id="currentUser"></b> <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:.75rem;margin-left:8px" onclick="doLogout()">退出</button></div>
     </div>
 
-    <div class="section-title">下载模板</div>
+    <div class="section-title">下载当前文件（已存最新版 / 空白模板）</div>
     <div class="tpl-list" id="tplList"></div>
 
     <div class="section-title">上传成绩文件</div>
@@ -223,11 +227,11 @@ body::before{
     <div class="divider"></div>
     <div class="section-title">上传目标院校表（学习目标）</div>
     <div class="target-row">
-      <a class="tpl-item" href="../assets/templates/目标院校填写模板.xlsx" download>
+      <div class="tpl-item" id="targetDlCard" onclick="downloadTargetFile()">
         <div class="tpl-icon">🎯</div>
-        <div class="tpl-name">目标院校模板</div>
-        <div class="tpl-desc">点击下载 Excel 模板</div>
-      </a>
+        <div class="tpl-name" id="targetDlName">目标院校模板</div>
+        <div class="tpl-desc" id="targetDlDesc">正在查询最新文件…</div>
+      </div>
       <select id="targetCampusSelect" class="campus-select" style="display:none" onchange="onTargetCampusChange()"></select>
     </div>
 
@@ -278,6 +282,7 @@ body::before{
 const GITHUB_OWNER = 'zhangdn731';
 const GITHUB_REPO = 'Campus_Performance_Analysis';
 const GITHUB_BRANCH = 'main';
+const API_BASE = 'https://api.github.com';
 /* GitHub Token：先反转再 Base64 编码，绕过 secret scanning，运行时解码还原 */
 const _ENC = 'QmZ3N2Uxbzl4dGJ0Q0M0SkJFa015N0d2WExURldWdFd0bTNlX3BoZw==';
 function _dec(){let s=atob(_ENC);return s.split('').reverse().join('');}
@@ -323,6 +328,11 @@ function formatSize(bytes){
 
 /* ==================== 登录 ==================== */
 let currentAccount = null;
+/* 上传与下载状态（必须在恢复登录 IIFE 之前完成初始化，避免 TDZ） */
+let selectedFile = null;
+let selectedTargetFile = null;
+let targetDest = null;   /* 仓库相对路径，如 data/targets/龙泉校区目标.xlsx */
+let targetMeta = null;    /* {exists:bool,size} 目标表下载卡片状态 */
 
 async function doLogin(){
   const user = $('username').value.trim();
@@ -368,7 +378,7 @@ function showUploadPage(){
 (function(){
   const saved = sessionStorage.getItem('upload_user');
   if(saved){
-    try{ currentAccount = JSON.parse(saved); showUploadPage(); }catch(e){}
+    try{ currentAccount = JSON.parse(saved); showUploadPage(); }catch(e){ console.error('恢复登录态失败：', e); }
   }
 })();
 
@@ -376,23 +386,44 @@ function showUploadPage(){
 $('password').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
 $('username').addEventListener('keydown', e=>{ if(e.key==='Enter') $('password').focus(); });
 
-/* ==================== 模板下载 ==================== */
-function renderTemplates(){
-  const list = $('tplList');
-  const campuses = currentAccount.role === 'admin'
-    ? [{name:'龙泉校区',file:'27届龙泉周测成绩.xlsx'},{name:'星耀校区',file:'27届星耀周测成绩.xlsx'},{name:'睿智校区',file:'27届睿智周测成绩.xlsx'}]
-    : [{name:currentAccount.campus,file:currentAccount.file}];
-  list.innerHTML = campuses.map(c=>`
-    <div class="tpl-item" onclick="downloadTemplate('${c.file}','${c.name}')">
-      <div class="tpl-icon">📋</div>
-      <div class="tpl-name">${c.name}模板</div>
-      <div class="tpl-desc">点击下载 Excel 模板</div>
-    </div>
-  `).join('');
+/* ==================== 下载：优先取仓库最新已存文件，缺失时回退空白模板 ==================== */
+const fileMetaCache = {};
+
+/* 从 GitHub Contents API 拉取仓库内文件字节；不存在返回 null */
+async function fetchRepoFile(repoPath){
+  const token = _dec();
+  const resp = await fetch(`${API_BASE}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodeRepoPath(repoPath)}?ref=${GITHUB_BRANCH}`, {
+    headers: {'Authorization':'token '+token, 'Accept':'application/vnd.github.v3+json'}
+  });
+  if(!resp.ok) return null;
+  const d = await resp.json();
+  if(d.content){
+    const bin = atob(String(d.content).replace(/\s/g,''));
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    return {bytes:bytes, size:d.size || bytes.length, sha:d.sha};
+  }
+  if(d.download_url){
+    const r2 = await fetch(d.download_url);
+    if(!r2.ok) return null;
+    return {bytes:new Uint8Array(await r2.arrayBuffer()), size:d.size || 0, sha:d.sha};
+  }
+  return null;
 }
 
-function downloadTemplate(fileName, campusName){
-  /* 生成一个简单的 xlsx 模板 */
+function saveBytesAs(bytes, fileName){
+  const blob = new Blob([bytes], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+}
+
+/* 仓库尚无成绩文件时的空白模板回退 */
+function downloadEmptyGradeTemplate(fileName){
   const wb = XLSX.utils.book_new();
   const aoa = [
     ['9.19周测','','','','','',''],
@@ -405,9 +436,71 @@ function downloadTemplate(fileName, campusName){
   XLSX.writeFile(wb, fileName.replace('.xlsx','_模板.xlsx'));
 }
 
-/* ==================== 文件上传 ==================== */
-let selectedFile = null;
+function gradeCampusList(){
+  return currentAccount.role === 'admin'
+    ? [{name:'龙泉校区',file:'27届龙泉周测成绩.xlsx'},{name:'星耀校区',file:'27届星耀周测成绩.xlsx'},{name:'睿智校区',file:'27届睿智周测成绩.xlsx'}]
+    : [{name:currentAccount.campus,file:currentAccount.file}];
+}
 
+function renderTemplates(){
+  const list = $('tplList');
+  list.innerHTML = gradeCampusList().map(c=>`
+    <div class="tpl-item" data-path="data/${c.file}" data-file="${c.file}" data-name="${c.name}">
+      <div class="tpl-icon">📋</div>
+      <div class="tpl-name">${c.name}成绩表</div>
+      <div class="tpl-desc">正在查询最新文件…</div>
+    </div>
+  `).join('');
+  list.querySelectorAll('.tpl-item').forEach(card=>{
+    card.addEventListener('click', ()=>onGradeCardClick(card));
+    probeGradeCard(card);
+  });
+}
+
+async function probeGradeCard(card){
+  const path = card.dataset.path;
+  const desc = card.querySelector('.tpl-desc');
+  const nameEl = card.querySelector('.tpl-name');
+  try{
+    const f = await fetchRepoFile(path);
+    if(f){
+      fileMetaCache[path] = {exists:true, size:f.size};
+      card.classList.add('has-data'); card.classList.remove('no-data');
+      nameEl.textContent = card.dataset.name + '成绩表（最新）';
+      desc.textContent = '已上传 · ' + formatSize(f.size) + ' · 点击下载';
+      return;
+    }
+  }catch(e){ console.warn('查询成绩文件失败：', e); }
+  fileMetaCache[path] = {exists:false};
+  card.classList.add('no-data'); card.classList.remove('has-data');
+  nameEl.textContent = card.dataset.name + '空白模板';
+  desc.textContent = '尚未上传 · 点击下载空白模板';
+}
+
+async function onGradeCardClick(card){
+  const path = card.dataset.path, file = card.dataset.file;
+  const desc = card.querySelector('.tpl-desc');
+  const cached = fileMetaCache[path];
+  if(cached && cached.exists){
+    const oldText = desc.textContent;
+    card.classList.add('downloading');
+    desc.textContent = '正在下载…';
+    try{
+      const f = await fetchRepoFile(path);
+      if(f){ saveBytesAs(f.bytes, file); return; }
+    }catch(e){ console.warn('下载最新成绩失败：', e); }
+    card.classList.remove('downloading');
+    desc.textContent = oldText;
+  }
+  downloadEmptyGradeTemplate(file);
+}
+
+/* 上传成功后刷新卡片状态（刚上传的文件立即显示为最新版） */
+function refreshGradeCards(){
+  document.querySelectorAll('#tplList .tpl-item').forEach(probeGradeCard);
+}
+
+/* ==================== 文件上传 ==================== */
 const zone = $('uploadZone');
 zone.addEventListener('dragover', e=>{e.preventDefault();zone.classList.add('dragover');});
 zone.addEventListener('dragleave', ()=>zone.classList.remove('dragover'));
@@ -598,6 +691,7 @@ async function doUpload(){
         `✅ 上传成功！<br>文件：<b>${targetFile}</b><br>GitHub Pages 将在 1-2 分钟内自动更新。<br>访问地址：<a href="https://${GITHUB_OWNER}.github.io/${GITHUB_REPO}/" target="_blank">https://${GITHUB_OWNER}.github.io/${GITHUB_REPO}/</a>`
       );
       resetUpload();
+      refreshGradeCards();
     } else {
       const err = await resp.json().catch(()=>({message:'HTTP '+resp.status}));
       throw new Error(err.message || '上传失败');
@@ -616,11 +710,17 @@ function setProgress(pct, text){
 }
 
 /* ==================== 目标院校表上传（学习目标） ==================== */
-let selectedTargetFile = null;
-let targetDest = null;   /* 仓库相对路径，如 data/targets/龙泉校区目标.xlsx */
-
 function encodeRepoPath(path){
   return path.split('/').map(encodeURIComponent).join('/');
+}
+
+function targetCampusLabel(){
+  if(currentAccount.role === 'admin'){
+    const sel = $('targetCampusSelect');
+    if(sel && sel.selectedIndex >= 0) return sel.options[sel.selectedIndex].text.replace('目标表','').trim();
+    return '校区';
+  }
+  return currentAccount.campus || '';
 }
 
 function renderTargetSection(){
@@ -634,11 +734,59 @@ function renderTargetSection(){
     sel.style.display = 'none';
     targetDest = currentAccount.targetFile;
   }
+  refreshTargetDownloadCard();
 }
 
 function onTargetCampusChange(){
   targetDest = $('targetCampusSelect').value;
   resetTarget();
+  refreshTargetDownloadCard();
+}
+
+/* 探测当前校区目标表是否已存在，更新下载卡片文案与状态 */
+async function refreshTargetDownloadCard(){
+  if(!targetDest) return;
+  const label = targetCampusLabel();
+  const card = $('targetDlCard'), nameEl = $('targetDlName'), desc = $('targetDlDesc');
+  nameEl.textContent = label + '目标表';
+  desc.textContent = '正在查询最新文件…';
+  try{
+    const f = await fetchRepoFile(targetDest);
+    if(f){
+      targetMeta = {exists:true, size:f.size};
+      card.classList.add('has-data'); card.classList.remove('no-data');
+      nameEl.textContent = label + '目标表（最新）';
+      desc.textContent = '已上传 · ' + formatSize(f.size) + ' · 点击下载';
+      return;
+    }
+  }catch(e){ console.warn('查询目标文件失败：', e); }
+  targetMeta = {exists:false};
+  card.classList.add('no-data'); card.classList.remove('has-data');
+  nameEl.textContent = label + '空白目标模板';
+  desc.textContent = '尚未上传 · 点击下载空白模板';
+}
+
+/* 点击目标表下载卡片：已存则下载仓库最新版，否则下载空白模板 */
+async function downloadTargetFile(){
+  if(!targetDest) return;
+  const card = $('targetDlCard'), desc = $('targetDlDesc');
+  if(targetMeta && targetMeta.exists){
+    const oldText = desc.textContent;
+    card.classList.add('downloading');
+    desc.textContent = '正在下载…';
+    try{
+      const f = await fetchRepoFile(targetDest);
+      if(f){ saveBytesAs(f.bytes, targetDest.split('/').pop()); return; }
+    }catch(e){ console.warn('下载最新目标表失败：', e); }
+    card.classList.remove('downloading');
+    desc.textContent = oldText;
+  }
+  const a = document.createElement('a');
+  a.href = '../assets/templates/目标院校填写模板.xlsx';
+  a.download = '目标院校填写模板.xlsx';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 const targetZone = $('targetZone');
@@ -779,6 +927,7 @@ async function doUploadTarget(){
         `✅ 目标院校表上传成功！<br>文件：<b>${targetDest}</b><br>对应校区「学习目标」页刷新后即可看到最新目标，GitHub Pages 约 1-2 分钟生效。`
       );
       resetTarget();
+      refreshTargetDownloadCard();
     } else {
       const err = await resp.json().catch(()=>({message:'HTTP '+resp.status}));
       throw new Error(err.message||'上传失败');
