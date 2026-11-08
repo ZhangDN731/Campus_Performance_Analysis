@@ -23,6 +23,10 @@ _backup/
 *.tmp
 *.bak
 
+# ===== 本地开发脚手架（不发布） =====
+tools/
+_upload_harness.html
+
 # ===== 系统与编辑器 =====
 .DS_Store
 Thumbs.db
