@@ -316,6 +316,19 @@ body::before{
 .analysis-metric-value.font-down{color:var(--down)}
 .analysis-metric-value.font-flat{color:var(--text-muted)}
 
+/* 综合总结：单行紧凑 chips */
+.summary-chip-block{margin-bottom:12px}
+.summary-chip-block:last-child{margin-bottom:0}
+.sum-row-label{font-size:.82rem;font-weight:800;color:var(--primary-dark);margin:2px 0 8px;padding-left:12px;position:relative}
+.sum-row-label::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:4px;height:13px;border-radius:2px;background:linear-gradient(180deg,#22d3ee,#4f46e5)}
+.summary-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sum-chip{display:inline-flex;align-items:baseline;gap:6px;padding:7px 11px;border-radius:10px;background:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.9);box-shadow:var(--shadow-s);font-size:.82rem;line-height:1.35}
+.sum-chip i{font-style:normal;font-weight:800;color:var(--text-muted);font-size:.72rem;white-space:nowrap}
+.sum-chip b{font-weight:800;color:var(--primary-darker);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sum-chip b.up{color:var(--up)}
+.sum-chip b.down{color:var(--down)}
+.sum-chip .seg{color:var(--text-sub)}
+
 .analysis-text p{font-size:.87rem;color:var(--text-sub);line-height:2;padding-left:17px;position:relative;margin-bottom:5px}
 .analysis-text p:last-child{margin-bottom:0}
 .analysis-text p::before{
@@ -2520,36 +2533,27 @@ function drawF5() {
   if (!sumSubs.length || !sumClasses.length) {
     summaryWrap.innerHTML = '';
   } else {
-    let byClsHead = '<tr><th>班级</th>' + sumSubs.map(s => '<th>' + esc(subjectLabel(s)) + '</th>').join('') + '</tr>';
-    let byClsRows = '';
+    let byClsChips = '';
     sumClasses.forEach(cls => {
-      byClsRows += '<tr><td><b>' + esc(cls) + '</b></td>';
-      sumSubs.forEach(sub => {
+      const segs = sumSubs.map(sub => {
         const r = rangeOf(cls, sub);
-        byClsRows += '<td class="num">' + (r ? sumFmt(r.min) + ' ~ ' + sumFmt(r.max) : '—') + '</td>';
-      });
-      byClsRows += '</tr>';
+        return '<span class="seg">' + esc(subjectLabel(sub)) + ' ' + (r ? sumFmt(r.min) + '~' + sumFmt(r.max) : '—') + '</span>';
+      }).join(' · ');
+      byClsChips += '<span class="sum-chip"><b>' + esc(cls) + '</b>' + segs + '</span>';
     });
-    const byClsTable = '<div class="focus-sum-wrap"><table class="focus-sum-table"><thead>' + byClsHead +
-      '</thead><tbody>' + byClsRows + '</tbody></table></div>';
-
-    let bySubHead = '<tr><th>科目</th>' + sumClasses.map(c => '<th>' + esc(c) + '</th>').join('') + '</tr>';
-    let bySubRows = '';
+    let bySubChips = '';
     sumSubs.forEach(sub => {
-      bySubRows += '<tr><td><b>' + esc(subjectLabel(sub)) + '</b></td>';
-      sumClasses.forEach(cls => {
+      const segs = sumClasses.map(cls => {
         const r = rangeOf(cls, sub);
-        bySubRows += '<td class="num">' + (r ? sumFmt(r.max) + ' / ' + sumFmt(r.min) : '—') + '</td>';
-      });
-      bySubRows += '</tr>';
+        return '<span class="seg">' + esc(cls) + ' ' + (r ? sumFmt(r.max) + '/' + sumFmt(r.min) : '—') + '</span>';
+      }).join(' · ');
+      bySubChips += '<span class="sum-chip"><b>' + esc(subjectLabel(sub)) + '</b>' + segs + '</span>';
     });
-    const bySubTable = '<div class="focus-sum-wrap"><table class="focus-sum-table"><thead>' + bySubHead +
-      '</thead><tbody>' + bySubRows + '</tbody></table></div>';
 
-    summaryWrap.innerHTML = analysisPanel([
-      { title: '按班级：各科目最低 ~ 最高（' + esc(last) + '）', extra: byClsTable },
-      { title: '按科目：各班最高 / 最低（' + esc(last) + '）', extra: bySubTable }
-    ]);
+    summaryWrap.innerHTML = '<div class="analysis-panel"><div class="analysis-panel-title">综合分析总结<span class="tip">教学洞察</span></div>' +
+      '<div class="summary-chip-block"><div class="sum-row-label">按班级 · 各科最低~最高（' + esc(last) + '）</div><div class="summary-chips">' + byClsChips + '</div></div>' +
+      '<div class="summary-chip-block"><div class="sum-row-label">按科目 · 各班最高/最低（' + esc(last) + '）</div><div class="summary-chips">' + bySubChips + '</div></div>' +
+      '</div>';
   }
   rows.forEach(r => { r._streaks = computeStreaks(r.scores); });
   const rankValsByCol = exams.map((_, i) => rows.map(rr => rr.scores[i]).filter(v => v != null).sort((a,b)=>b-a));
@@ -2703,50 +2707,49 @@ function drawF6() {
     });
   });
   if (!rows.length) { wrap.innerHTML = '<div class="empty-hint">所选条件下暂无数据</div>'; return; }
-  /* 综合总结：仅在「只选一个班级」或「只选一个科目」时展示极值与进退步；其余情况不显示 */
-  const rateNote = (name, val) => '<b>' + esc(name) + '</b><div class="metric-note">' + val + '</div>';
-  const deltaText = (d, name) => {
-    const v = d * 100;
-    return (v > 0 ? '+' : '') + v.toFixed(1) + 'pp<div class="metric-note">' + esc(name) + '</div>';
-  };
-  const extremaSection = (title, list, nameOf, rateKey, prevKey, unitName) => {
+  /* 综合总结：仅在「只选一个班级」或「只选一个科目」时展示极值与进退步；单行 chips 紧凑汇总 */
+  const mkChip = (label, name, val, cls) =>
+    '<span class="sum-chip"><i>' + esc(label) + '</i><b class="' + (cls || '') + '">' + esc(name) + (val ? ' ' + val : '') + '</b></span>';
+  const extremaChips = (list, nameOf, rateKey, prevKey, unitName) => {
     const valid = list.filter(r => r[rateKey] != null);
-    if (!valid.length) return null;
+    if (!valid.length) return [];
     const hi = valid.reduce((a, b) => a[rateKey] > b[rateKey] ? a : b);
     const lo = valid.reduce((a, b) => a[rateKey] < b[rateKey] ? a : b);
     const deltaOf = r => (r[prevKey] == null ? null : r[rateKey] - r[prevKey]);
     const withDelta = list.filter(r => deltaOf(r) != null);
     const up = withDelta.filter(r => deltaOf(r) > 0).sort((a, b) => deltaOf(b) - deltaOf(a))[0];
     const down = withDelta.filter(r => deltaOf(r) < 0).sort((a, b) => deltaOf(a) - deltaOf(b))[0];
-    const items = [
-      {label:'最高' + unitName, value:rateNote(nameOf(hi), pct(hi[rateKey])), cls:'font-up'},
-      {label:'最低' + unitName, value:rateNote(nameOf(lo), pct(lo[rateKey])), cls:'font-down'}
+    const chips = [
+      mkChip('最高' + unitName, nameOf(hi), pct(hi[rateKey]), 'up'),
+      mkChip('最低' + unitName, nameOf(lo), pct(lo[rateKey]), 'down')
     ];
-    if (!withDelta.length) {
-      items.push({label:'较上次', value:'暂无可比考试'});
-    } else {
-      items.push({label:'提升最多', value:up ? deltaText(deltaOf(up), nameOf(up)) : '无提升', cls:'font-up'});
-      items.push({label:'下降最多', value:down ? deltaText(deltaOf(down), nameOf(down)) : '无下降', cls:'font-down'});
+    if (withDelta.length) {
+      chips.push(up ? mkChip('提升最多', nameOf(up), '+' + (deltaOf(up) * 100).toFixed(1) + 'pp', 'up') : mkChip('提升最多', '无提升', '', ''));
+      chips.push(down ? mkChip('下降最多', nameOf(down), (deltaOf(down) * 100).toFixed(1) + 'pp', 'down') : mkChip('下降最多', '无下降', '', ''));
     }
-    return {title:title, items:items};
+    return chips;
   };
 
-  const extraSections = [];
+  const f6Rows = [];
   if (classes.length === 1) {
     const scope = rows.filter(r => r.cls === classes[0]);
     const base = scope.filter(r => !isAggregate(r.sub)).length ? scope.filter(r => !isAggregate(r.sub)) : scope;
-    const oneMin = extremaSection('单班 · 最低达标率（按科目）', base, r => subjectLabel(r.sub), 'minRate', 'prevMinRate', '科目');
-    const oneStd = extremaSection('单班 · 标准达标率（按科目）', base, r => subjectLabel(r.sub), 'stdRate', 'prevStdRate', '科目');
-    if (oneMin) extraSections.push(oneMin);
-    if (oneStd) extraSections.push(oneStd);
+    const c1 = extremaChips(base, r => subjectLabel(r.sub), 'minRate', 'prevMinRate', '科目');
+    const c2 = extremaChips(base, r => subjectLabel(r.sub), 'stdRate', 'prevStdRate', '科目');
+    if (c1.length) f6Rows.push({ title: '单班 · 最低达标率（按科目）', chips: c1 });
+    if (c2.length) f6Rows.push({ title: '单班 · 标准达标率（按科目）', chips: c2 });
   } else if (subs.length === 1) {
     const scope = rows.filter(r => r.sub === subs[0]);
-    const oneMin = extremaSection('单科 · 最低达标率（按班级）', scope, r => r.cls, 'minRate', 'prevMinRate', '班级');
-    const oneStd = extremaSection('单科 · 标准达标率（按班级）', scope, r => r.cls, 'stdRate', 'prevStdRate', '班级');
-    if (oneMin) extraSections.push(oneMin);
-    if (oneStd) extraSections.push(oneStd);
+    const c1 = extremaChips(scope, r => r.cls, 'minRate', 'prevMinRate', '班级');
+    const c2 = extremaChips(scope, r => r.cls, 'stdRate', 'prevStdRate', '班级');
+    if (c1.length) f6Rows.push({ title: '单科 · 最低达标率（按班级）', chips: c1 });
+    if (c2.length) f6Rows.push({ title: '单科 · 标准达标率（按班级）', chips: c2 });
   }
-  summaryWrap.innerHTML = extraSections.length ? analysisPanel(extraSections) : '';
+  summaryWrap.innerHTML = f6Rows.length
+    ? '<div class="analysis-panel"><div class="analysis-panel-title">综合分析总结<span class="tip">教学洞察</span></div>' +
+      f6Rows.map(r => '<div class="summary-chip-block"><div class="sum-row-label">' + esc(r.title) + '</div><div class="summary-chips">' + r.chips.join('') + '</div></div>').join('') +
+      '</div>'
+    : '';
   const rateCls = r => r>=0.8?'rate-good':r>=0.5?'rate-mid':'rate-low';
   const deltaHtml = (cur,prev) => {
     if (prev == null) return '<span class="rate-delta flat">—</span>';
@@ -2880,22 +2883,17 @@ function drawF7() {
     return a.type.localeCompare(b.type, 'zh');
   });
   const rateClsType = v => v >= 0.8 ? 'rate-good' : v >= 0.5 ? 'rate-mid' : 'rate-low';
-  let typeRowsHtml = '';
+  const shortLine = { control: '控', private: '民', public: '公', estimate: '预' };
+  let f7Chips = '';
   typeList.forEach(a => {
-    typeRowsHtml += '<tr><td><b>' + esc(a.type) + '</b></td><td class="num">' + a.classes + '</td><td class="num">' + a.students + '</td>';
-    F7_LINE_DEFS.forEach(d => {
+    const segs = F7_LINE_DEFS.map(d => {
       const v = a.den[d.key] ? a.pass[d.key] / a.den[d.key] : null;
-      typeRowsHtml += '<td class="num ' + (v == null ? '' : rateClsType(v)) + '">' + (v == null ? '-' : pct(v)) + '</td>';
-    });
-    typeRowsHtml += '</tr>';
+      const cls = v == null ? '' : rateClsType(v);
+      return '<span class="seg ' + cls + '">' + shortLine[d.key] + ' ' + (v == null ? '-' : pct(v)) + '</span>';
+    }).join(' · ');
+    f7Chips += '<span class="sum-chip"><i>' + esc(a.type) + '</i><b>' + a.students + '人</b>' + segs + '</span>';
   });
-  const typeTable = '<div class="focus-sum-wrap"><table class="focus-sum-table"><thead><tr>' +
-    '<th>大类</th><th>班级数</th><th>参考人数</th>' +
-    F7_LINE_DEFS.map(d => '<th>' + d.label + '</th>').join('') +
-    '</tr></thead><tbody>' + typeRowsHtml + '</tbody></table></div>';
-  if (summaryWrap) summaryWrap.innerHTML = analysisPanel([
-    { title: '各大类四线达标率', extra: typeTable }
-  ]);
+  if (summaryWrap) summaryWrap.innerHTML = '<div class="analysis-panel"><div class="analysis-panel-title">综合分析总结<span class="tip">教学洞察</span></div><div class="summary-chips">' + f7Chips + '</div></div>';
   const rateCls = r => r >= 0.8 ? 'rate-good' : r >= 0.5 ? 'rate-mid' : 'rate-low';
   const buildLineCols = plus => F7_LINE_DEFS.map(d => {
     const passKey = d.key + (plus ? 'Pass50' : 'Pass');
@@ -4333,6 +4331,10 @@ async function qrAiRun(i, file, root, onState) {
     if (onState) onState(text, err);
   };
   const cfg = (window.Auth && Auth.aiConfigFor) ? Auth.aiConfigFor() : null;
+  if (cfg && cfg.disabled) {
+    alert('当前账号已被管理员禁用 AI 接口，不可使用 AI 读卷。');
+    return;
+  }
   if (!cfg || !cfg.key) {
     alert('还没有配置硅基流动 API。请管理员登录后到「AI 配置」填写管理员 Key，或给当前老师分配独立 Key。');
     return;
@@ -5418,8 +5420,10 @@ function setAllCheckboxes(wrapId, checked) {
   const wrap = $(wrapId);
   if (!wrap) return;
   wrap.querySelectorAll('input[type="checkbox"]').forEach(inp => {
+    const it = inp.closest('.checkbox-item');
+    if (it && it.style.display === 'none') return;   /* 登录锁定后隐藏的非本人班级/科目不参与全选 */
     inp.checked = checked;
-    inp.closest('.checkbox-item').classList.toggle('checked', checked);
+    it.classList.toggle('checked', checked);
   });
   if (state.currentPage) renderCurrentPage();
 }
@@ -5439,16 +5443,15 @@ function renderTabs() {
     btn.addEventListener('click', () => {
       document.body.style.overflow = '';
       state.currentPage = btn.dataset.page;
+      /* 非核心页签：无论登录与否，进入即清空班级/科目并弹引导浮窗，交用户按班级重选 */
+      const FOCUS_PAGES = ['f3a', 'f1a', 'f2a', 'f3b', 'f4a', 'goals', 'f8', 'f9', 'f10'];
+      if (FOCUS_PAGES.indexOf(btn.dataset.page) >= 0) resetSelectionForFocus();
       if (btn.dataset.page === 'goals') {
         state.topTab = 'report';
-        setCheckboxSelection('globalClassWrap', []);
-        setCheckboxSelection('globalSubjectWrap', []);
-        if (window.Auth && Auth.afterGoalsClear) Auth.afterGoalsClear();
         renderTabs();
         renderGoals();
         return;
       }
-      if (['f3a', 'f1a', 'f2a', 'f3b', 'f4a'].indexOf(btn.dataset.page) >= 0) resetSelectionForFocus();
       renderTabs();
       renderCurrentPage();
     });

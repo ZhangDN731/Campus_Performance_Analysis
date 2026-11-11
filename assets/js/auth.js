@@ -235,6 +235,9 @@
     const u = currentUser();
     if (!u || u.role !== 'admin' && u.role !== 'teacher') return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: g.defaultKey || '' };
     const t = (a.teachers || {})[u.u] || null;
+    if (t && t.mode === 'disabled') {
+      return { disabled: true, baseUrl: '', textModel: '', visionModel: '', key: '' };
+    }
     if (u.role === 'admin' || !t || t.mode === 'default') {
       return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: g.defaultKey || '' };
     }
@@ -474,8 +477,9 @@
       it.classList.toggle('checked', inp.checked);
       inp.disabled = false;
     });
+    /* 班级行的全选/清空按钮保持可见；锁定状态下只对可见（本人）班级生效 */
     const acts = box.parentElement && box.parentElement.querySelector('.group-actions');
-    if (acts) acts.style.display = lock ? 'none' : '';
+    if (acts) acts.style.display = '';
 
     if (changed) {
       try { autoSetScoreLines && autoSetScoreLines(); } catch (e) {}
@@ -966,6 +970,7 @@
           '<option value="default"' + (mode === 'default' ? ' selected' : '') + '>共用管理员 API</option>' +
           '<option value="self"' + (mode === 'self' ? ' selected' : '') + '>独立 API</option>' +
           '<option value="share"' + (mode === 'share' ? ' selected' : '') + '>与某老师共用 API</option>' +
+          '<option value="disabled"' + (mode === 'disabled' ? ' selected' : '') + '>禁用 API</option>' +
         '</select></span>' +
         '<span class="ai-key-cell" style="display:' + (mode === 'self' ? '' : 'none') + '"><input class="ai-key" data-ai-key data-u="' + esc(u.u) + '" placeholder="该老师自己的 Key" value="' + esc(key) + '"></span>' +
         '<span class="ai-share-cell" style="display:' + (mode === 'share' ? '' : 'none') + '"><select class="ai-sel" data-ai-share data-u="' + esc(u.u) + '"><option value="">选择老师</option>' + peerOptions + '</select></span>' +
