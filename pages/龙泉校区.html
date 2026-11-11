@@ -2259,13 +2259,15 @@ function renderF3a(root) {
   }
   const enabledSubs = getGlobalSubjects();
   const classSubs = getClassSubjects(cls).filter(s => enabledSubs.includes(s));
+  /* 教师登录后默认选中自己的任课科目（未登录/管理员仍默认总分） */
+  const __ts = (window.Auth && Auth.teacherSubject) ? Auth.teacherSubject() : '';
   root.innerHTML =
     '<div id="singleClassSummary"></div>' +
     '<div class="card">' +
       '<div class="filter-row">' +
         '<div class="filter-group"><label>科目</label><select id="clsSub">' +
           '<option value="">请选择科目</option>' +
-          classSubs.map(s=>'<option value="'+esc(s)+'"'+(isTotal(s)?' selected':'')+'>'+esc(subjectLabel(s))+'</option>').join('') +
+          classSubs.map(s=>'<option value="'+esc(s)+'"'+((( __ts && s === __ts) || (!__ts && isTotal(s)))?' selected':'')+'>'+esc(subjectLabel(s))+'</option>').join('') +
         '</select></div>' +
         '<span class="info-text">当前班级：' + esc(cls) + '；点击考试列表头可排序</span>' +
       '</div>' +

@@ -53,7 +53,7 @@
   /* 各角色可见的核心页签 */
   const PAGES_BASE = ['f6', 'f7', 'f5', 'f4b', 'f3a', 'f1a'];
   const PAGES_ADMIN = PAGES_BASE.concat(['f8', 'f9']);
-  const PAGES_TEACHER = ['f6', 'f7', 'f3a', 'f8', 'f9', 'f10'];
+  const PAGES_TEACHER = PAGES_BASE.concat(['f8', 'f9', 'f10']);
 
   let db = null;
   let view = 'login';
@@ -257,7 +257,8 @@
     core.pages = ids.map(id => reg[id]).filter(Boolean);
 
     const extra = TOP_TABS.find(g => g.id === 'extra');
-    const hideExtra = !!(u && u.role === 'teacher');
+    /* 登录只是加权限，不削减原有页面：教师同样保留「拓展分析」 */
+    const hideExtra = false;
     document.querySelectorAll('.main-tab').forEach(b => {
       if (b.dataset.top === 'extra') b.style.display = hideExtra ? 'none' : '';
     });
@@ -395,6 +396,37 @@
     return changed;
   }
 
+  /* 教师登录后科目勾选默认落到本人任课科目；只做一次，之后用户手动改不再覆盖 */
+  function applySubjectDefault() {
+    const u = currentUser();
+    if (!u || u.role !== 'teacher' || u.mode === 'leader') return;
+    const sub = mapSubject(u.subject);
+    if (!sub) return;
+    const box = el('globalSubjectWrap');
+    if (!box) return;
+    const items = Array.prototype.slice.call(box.querySelectorAll('.checkbox-item'));
+    if (!items.length) return;
+    const has = items.some(it => {
+      const inp = it.querySelector('input');
+      return inp && inp.value === sub;
+    });
+    if (!has) return;
+    const sig = u.u + '|' + sub + '|' + items.length;
+    if (window.__AUTH_SUBJ_SIG === sig) return;
+    window.__AUTH_SUBJ_SIG = sig;
+    let changed = false;
+    items.forEach(it => {
+      const inp = it.querySelector('input');
+      if (!inp) return;
+      const on = inp.value === sub;
+      if (inp.checked !== on) { inp.checked = on; changed = true; }
+      it.classList.toggle('checked', on);
+    });
+    if (changed) {
+      try { autoSetScoreLines && autoSetScoreLines(); } catch (e) {}
+    }
+  }
+
   function applyAll(reRender) {
     if (reRender) window.__AUTH_LOCK_SIG = null;
     const admin = isAdmin();
@@ -402,6 +434,7 @@
     if (area && !admin) area.dataset.adminConsole = '0';
     try { applyTabs(); } catch (e) { console.warn('页签应用失败', e); }
     try { applyClassLock(false); } catch (e) { console.warn('班级锁定失败', e); }
+    if (reRender) { try { applySubjectDefault(); } catch (e) { console.warn('科目默认失败', e); } }
     renderEntry();
     if (reRender && !admin) {
       try {
@@ -561,7 +594,7 @@
           msgHtml() +
           '<div class="auth-row">' +
             '<button class="btn btn-primary" type="submit">保存新密码</button>' +
-            '<button class="btn" type="button" data-act="profile">稍后再说</button>' +
+            '<button class="btn" type="button" data-act="close">稍后再说</button>' +
           '</div>' +
         '</form>' +
       '</div>';
@@ -1017,8 +1050,9 @@
       return;
     }
     if (u.pwd === DEFAULT_PWD || u.defaultPwd) { u.defaultPwd = true; saveDB(); view = 'change-pwd'; renderCard(); return; }
+    /* 教师：登录后直接落在成绩分析页（弹窗关掉），个人资料从右上角头像进入 */
     view = 'profile';
-    renderCard();
+    close_();
   }
 
   function doLogout() {
