@@ -871,7 +871,17 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
 .seat-link { border: 0; background: none; color: #6366f1; font-size: 11px; cursor: pointer; padding: 0 2px; }
 .seat-link:hover { text-decoration: underline; }.seat-why { margin: 4px 0 6px; font-size: 12px; line-height: 1.7; color: #64748b; background: #fff7ed; border-radius: 8px; padding: 6px 10px; }
 .seat-why b { color: #b45309; }
-/* ===== 打印 / 导出：去背景特效，保证 PDF 干净 ===== */
+.seat-batch-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.seat-batch-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.seat-batch-tip { font-size: 12px; color: #64748b; line-height: 1.7; margin: 2px 0 8px; }
+.seat-batch-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; padding: 8px 12px; margin-bottom: 8px; }
+.seat-batch-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; flex: 1 1 420px; }
+.seat-batch-name { font-size: 13px; font-weight: 600; color: #334155; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seat-batch-stat { font-size: 12px; color: #64748b; }
+.seat-batch-stat b { color: #1d4ed8; }
+.seat-batch-err { font-size: 12px; color: #b91c1c; line-height: 1.6; }
+.seat-batch-empty { font-size: 13px; color: #64748b; padding: 8px 0; }
+
 @media print{
   body::before,#particleCanvas{display:none!important}
   .topbar{position:static}
@@ -4469,6 +4479,8 @@ const seatState = {
   entries: [], unmatched: [], matchedNames: [], noSeat: [], manual: {}, notes: [],
   dup: 0, ambiguous: [], clsEdit: false, detail: 'brief'
 };
+/* 批量座位表：一次上传多个班级的多份 .docx，逐份识别班级、逐份导出 */
+const seatBatch = { active: false, busy: false, items: [] };
 
 function seatNorm(s) {
   return String(s == null ? '' : s)
@@ -4929,6 +4941,163 @@ async function seatLoadFile(file) {
   renderCurrentPage();
 }
 
+/* ---------- 批量：多个班级同时上传多份座位表 ---------- */
+function seatBatchAssign(item, res) {
+  item.entries = res.entries;
+  item.unmatched = res.unmatched;
+  item.matchedNames = res.matched;
+  item.noSeat = res.noSeat;
+  item.dup = res.dup;
+}
+async function seatParseItem(file) {
+  const item = {
+    fileName: file.name, parts: null, docXml: '', xmlDecl: '', docRoot: null,
+    cls: '', guess: '', ready: false, error: '', entries: [], unmatched: [],
+    matchedNames: [], noSeat: [], manual: {}, notes: [], dup: 0, ambiguous: []
+  };
+  if (!/\.docx$/i.test(file.name)) {
+    item.error = '只支持 .docx，请先另存为 Word 2007+ 格式';
+    return item;
+  }
+  try {
+    const buf = new Uint8Array(await file.arrayBuffer());
+    const parts = fflate.unzipSync(buf);
+    if (!parts['word/document.xml']) throw new Error('不是标准 docx（缺少 word/document.xml）');
+    const xml = new TextDecoder('utf-8').decode(parts['word/document.xml']);
+    const declMatch = xml.match(/^<\?xml[^>]*\?>/);
+    const root = seatParseXml(xml);
+    if (!root) throw new Error('document.xml 解析失败');
+    item.parts = parts;
+    item.docXml = xml;
+    item.xmlDecl = declMatch ? declMatch[0] : '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+    item.docRoot = root;
+    const det = seatDetect(root);
+    item.guess = det.cls;
+    item.cls = det.cls;
+    item.ambiguous = det.ambiguous || [];
+    if (!det.cls || !det.top.hits) {
+      item.error = '没认出班级（最多匹配 ' + (det.top.hits || 0) + ' 个姓名），可在右侧下拉里手动指定';
+    } else {
+      seatBatchAssign(item, seatScan(root, det.cls));
+      item.ready = true;
+      item.notes = ['识别方式：' + det.how];
+    }
+  } catch (e) {
+    item.error = '读取失败：' + (e && e.message ? e.message : e);
+  }
+  return item;
+}
+async function seatLoadFiles(files) {
+  files = Array.prototype.slice.call(files || []).filter(Boolean);
+  if (!files.length) return;
+  if (files.length === 1) {
+    seatBatch.active = false;
+    seatBatch.items = [];
+    return seatLoadFile(files[0]);
+  }
+  seatBatch.active = true;
+  seatBatch.busy = true;
+  seatBatch.items = [];
+  renderCurrentPage();
+  for (let i = 0; i < files.length; i++) {
+    seatBatch.items.push(await seatParseItem(files[i]));
+  }
+  seatBatch.busy = false;
+  renderCurrentPage();
+}
+function seatBatchSetClass(idx, cls) {
+  const it = seatBatch.items[idx];
+  if (!it || !it.docRoot || !cls) return;
+  it.cls = cls;
+  it.ambiguous = [];
+  const res = seatScan(it.docRoot, cls);
+  seatBatchAssign(it, res);
+  if (!res.matched.length) {
+    it.ready = false;
+    it.error = '「' + cls + '」名册没有匹配到姓名，换一个班或检查文件';
+  } else {
+    it.ready = true;
+    it.error = '';
+  }
+  renderCurrentPage();
+}
+function seatBatchHint(text) {
+  const hint = document.getElementById('seatHint');
+  if (hint) hint.textContent = text;
+}
+function seatBatchExportOne(idx, silent) {
+  const it = seatBatch.items[idx];
+  if (!it || !it.ready || !it.parts) return false;
+  try {
+    const root = seatParseXml(it.docXml);
+    if (!root) throw new Error('重新解析 document.xml 失败');
+    const res = seatWrite(root, it.cls, seatState.sub, seatState.exam, it.manual);
+    const ser = new XMLSerializer().serializeToString(root);
+    const outXml = it.xmlDecl + '\n' + ser.replace(/^<\?xml[^>]*\?>/, '');
+    const files = {};
+    Object.keys(it.parts).forEach(function (k) { files[k] = it.parts[k]; });
+    files['word/document.xml'] = new TextEncoder().encode(outXml);
+    const zipped = fflate.zipSync(files, { level: 6 });
+    const base = it.fileName.replace(/\.docx$/i, '');
+    const name = base + '_' + it.cls + '_' + seatState.exam + '_' + seatState.sub + '成绩.docx';
+    const blob = new Blob([zipped], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 2000);
+    if (!silent) seatBatchHint('已导出：' + name + '（写入 ' + res.written + ' 人，缺考 ' + res.absent + ' 人）');
+    return true;
+  } catch (e) {
+    if (!silent) seatBatchHint('导出失败：' + (e && e.message ? e.message : e));
+    return false;
+  }
+}
+function seatBatchExportAll() {
+  const ready = seatBatch.items.filter(function (it) { return it.ready; });
+  if (!ready.length) return;
+  ready.forEach(function (it, i) {
+    setTimeout(function () { seatBatchExportOne(seatBatch.items.indexOf(it), true); }, i * 700);
+  });
+  seatBatchHint('已开始导出 ' + ready.length + ' 份座位表（浏览器若提示「下载多个文件」，请点允许）');
+}
+function seatBatchRefresh() {
+  seatBatch.items.forEach(function (it) {
+    if (!it.docRoot || !it.cls) return;
+    const res = seatScan(it.docRoot, it.cls);
+    seatBatchAssign(it, res);
+    it.ready = true;
+    it.error = '';
+  });
+}
+function seatBatchHtml() {
+  if (seatBatch.busy) return '<div class="seat-block"><div class="seat-block-t">批量座位表</div><div class="seat-batch-empty">正在解析 ' + (seatBatch.items.length || '') + ' 个文件…</div></div>';
+  const items = seatBatch.items;
+  const classes = (window.Auth && Auth.myClasses && Auth.myClasses().length) ? Auth.myClasses() : state.classList.slice();
+  const readyN = items.filter(function (it) { return it.ready; }).length;
+  const cards = items.map(function (it, idx) {
+    const opts = ['<option value="">未识别</option>'].concat(classes.map(function (c) {
+      return '<option value="' + esc(c) + '"' + (it.cls === c ? ' selected' : '') + '>' + esc(c) + '</option>';
+    })).join('');
+    const absent = it.ready ? it.matchedNames.filter(function (n) { return seatScoreOf(it.cls, n, seatState.exam, seatState.sub) == null; }).length : 0;
+    const stat = it.error
+      ? '<span class="seat-batch-err">' + esc(it.error) + '</span>'
+      : '<span class="seat-batch-stat">命中 <b>' + it.matchedNames.length + '</b> 人 · 缺考 ' + absent + ' 人' +
+        (it.unmatched.length ? ' · 未匹配 ' + it.unmatched.length : '') + '</span>';
+    return '<div class="seat-batch-item">' +
+      '<div class="seat-batch-main"><div class="seat-batch-name" title="' + esc(it.fileName) + '">' + esc(it.fileName) + '</div>' +
+      (it.docRoot ? '<select class="seat-sel" data-batch-class="' + idx + '">' + opts + '</select>' : '') +
+      stat + '</div>' +
+      '<button class="btn btn-primary" type="button" data-batch-export="' + idx + '"' + (it.ready ? '' : ' disabled') + '>导出这份</button>' +
+      '</div>';
+  }).join('');
+  return '<div class="seat-block"><div class="seat-batch-bar"><div class="seat-block-t">批量座位表：' + items.length + ' 个文件（可导出 ' + readyN + ' 份）</div>' +
+    '<div class="seat-batch-actions"><button class="btn btn-primary" type="button" id="seatBatchAll"' + (readyN ? '' : ' disabled') + '>批量导出全部</button>' +
+    '<button class="btn" type="button" id="seatBatchClear">退出批量</button></div></div>' +
+    '<div class="seat-batch-tip">每个文件自动识别班级；识别错了在文件后面下拉改班再导出。考试和「成绩行」设置对上方的选择生效。</div>' +
+    cards + '</div>';
+}
+
 /* ---------- 导出 ---------- */
 function seatExport(btn) {
   if (!seatState.ready || !seatState.parts) return;
@@ -4998,7 +5167,9 @@ function renderF10(root) {
   }).join('');
   /* 班级：识别到就按识别结果写死显示，只有识别有歧义或用户点「改」才出下拉 */
   let clsBar;
-  if (seatState.ambiguous.length && !seatState.clsEdit) {
+  if (seatBatch.active) {
+    clsBar = '<span class="seat-fixed-tip">批量模式：每个文件自动识别班级</span>';
+  } else if (seatState.ambiguous.length && !seatState.clsEdit) {
     clsBar = '<select id="seatCls" title="两个班名册命中数接近，请确认">' + ambOpts + '</select>' +
       '<span class="seat-fixed-tip">两个班都像，确认一下</span>';
   } else if (seatState.ready && !seatState.clsEdit) {
@@ -5011,7 +5182,10 @@ function renderF10(root) {
   }
 
   let body;
-  if (seatState.error) {
+  if (seatBatch.active && !seatBatch.busy) seatBatchRefresh();
+  if (seatBatch.active && seatBatch.items.length) {
+    body = seatBatchHtml();
+  } else if (seatState.error) {
     body = '<div class="seat-err">' + esc(seatState.error) + '</div>';
   } else if (!seatState.ready) {
     body = '<div class="seat-empty">还没上传座位表。选一个 .docx 座位表（Word 电子版），系统会自动认出班级、把每个学生的成绩写到名字下面，原版式不动。</div>';
@@ -5077,19 +5251,21 @@ function renderF10(root) {
         '</select></div>' +
       '</div>' +
       '<div class="seat-upload" id="seatDrop">' +
-        '<div class="seat-up-t">上传 Word 座位表（.docx）</div>' +
-        '<div class="seat-up-d">点这里选文件，或把 .docx 拖进来。只改「姓名下方」这一行成绩，模板里的表格、图片、字体、字号都保留。</div>' +
-        '<input type="file" id="seatFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>' +
-        '<button class="btn btn-primary" type="button" id="seatPick">选择座位表文件</button>' +
-        (seatState.fileName ? '<span class="seat-file">当前文件：' + esc(seatState.fileName) + '</span>' : '') +
+        '<div class="seat-up-t">上传 Word 座位表（.docx，可一次选多个班级的多份文件）</div>' +
+        '<div class="seat-up-d">点这里选文件，或把多个 .docx 拖进来。只改「姓名下方」这一行成绩，模板里的表格、图片、字体、字号都保留。' +
+          '一次选 1 个文件＝单份预览；一次选多个＝批量识别班级、逐份导出。</div>' +
+        '<input type="file" id="seatFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple hidden>' +
+        '<button class="btn btn-primary" type="button" id="seatPick">选择座位表文件（可多选）</button>' +
+        (!seatBatch.active && seatState.fileName ? '<span class="seat-file">当前文件：' + esc(seatState.fileName) + '</span>' : '') +
       '</div>' +
       body +
       '<div class="seat-foot">' +
-        '<button class="btn btn-primary" type="button" id="seatExport"' + (seatState.ready ? '' : ' disabled') + '>导出 Word（原版式 + 成绩）</button>' +
-        '<span class="info-text" id="seatHint">' + (seatState.ready ? '名字下面写一行：本次成绩(本次排名)-上次成绩↑↓增减；红色上升、绿色下降。' : '') + '</span>' +
+        (seatBatch.active ? '' :
+          '<button class="btn btn-primary" type="button" id="seatExport"' + (seatState.ready ? '' : ' disabled') + '>导出 Word（原版式 + 成绩）</button>') +
+        '<span class="info-text" id="seatHint">' + (seatBatch.active ? '批量模式：每份文件单独导出，互不覆盖。' : (seatState.ready ? '名字下面写一行：本次成绩(本次排名)-上次成绩↑↓增减；红色上升、绿色下降。' : '')) + '</span>' +
       '</div>' +
       '<div class="seat-note">说明：① 只支持 .docx 电子版（.doc 请先另存为 docx；照片/扫描件认不出，别上传图片）；' +
-      '② 科目按登录账号自动带出，班级按座位表自动识别，识别不准时点「不对？改」换班；' +
+      '② 科目按登录账号自动带出；单份模式班级按座位表自动识别（不准时点「不对？改」换班），批量模式可在每个文件后面下拉改班；' +
       '③ 姓名按成绩名册精确比对，同音错字不会自动改，需要你在上面手动指认；' +
       '④ 一个格子挤多个姓名时，成绩分行写在格子内；同一个人名在文档里重复出现只写一次；' +
       '⑤ 「成绩行」可选两种：简洁＝本次成绩(排名)+增减（成绩 10 磅、排名灰小字 9 磅），完整＝本次(排名)-上次+增减（8 磅）；' +
@@ -5118,8 +5294,8 @@ function renderF10(root) {
   }
   $('seatPick').addEventListener('click', function () { $('seatFile').click(); });
   $('seatFile').addEventListener('change', function (ev) {
-    const f = ev.target.files && ev.target.files[0];
-    if (f) seatLoadFile(f);
+    const fs = ev.target.files ? Array.prototype.slice.call(ev.target.files) : [];
+    if (fs.length) seatLoadFiles(fs);
   });
   const drop = $('seatDrop');
   ['dragenter', 'dragover'].forEach(function (t) {
@@ -5129,9 +5305,23 @@ function renderF10(root) {
     drop.addEventListener(t, function (ev) { ev.preventDefault(); drop.classList.remove('on'); });
   });
   drop.addEventListener('drop', function (ev) {
-    const f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
-    if (f) seatLoadFile(f);
+    const fs = ev.dataTransfer && ev.dataTransfer.files ? Array.prototype.slice.call(ev.dataTransfer.files) : [];
+    if (fs.length) seatLoadFiles(fs);
   });
+  if (seatBatch.active) {
+    root.querySelectorAll('[data-batch-class]').forEach(function (sel) {
+      sel.addEventListener('change', function () { seatBatchSetClass(parseInt(sel.dataset.batchClass, 10), sel.value); });
+    });
+    root.querySelectorAll('[data-batch-export]').forEach(function (btn) {
+      btn.addEventListener('click', function () { seatBatchExportOne(parseInt(btn.dataset.batchExport, 10), false); });
+    });
+    const allBtn = $('seatBatchAll');
+    if (allBtn) allBtn.addEventListener('click', seatBatchExportAll);
+    const clearBtn = $('seatBatchClear');
+    if (clearBtn) clearBtn.addEventListener('click', function () {
+      seatBatch.active = false; seatBatch.items = []; seatBatch.busy = false; renderCurrentPage();
+    });
+  }
   root.querySelectorAll('[data-seat=map]').forEach(function (sel) {
     sel.addEventListener('change', function () {
       const k = sel.dataset.name;
@@ -5139,7 +5329,7 @@ function renderF10(root) {
       renderCurrentPage();
     });
   });
-  $('seatExport').addEventListener('click', function () { seatExport(this); });
+  if ($('seatExport')) $('seatExport').addEventListener('click', function () { seatExport(this); });
 }
 
 /* ============ 批量导出：按学科 / 按班级逐个导出 PDF ============ */
