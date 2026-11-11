@@ -830,6 +830,41 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
 .qr-pchip.on em { color: #6366f1; }
 .qr-pchip.on:hover { border-color: #ef4444; background: #fee2e2; color: #b91c1c; }
 .qr-pchip.on:hover em { color: #b91c1c; }
+/* ===== 快速报表：AI 读卷按钮（相对低存在感） ===== */
+.qr-ai-btn { margin-left: auto; border: 1px dashed rgba(99,102,241,.35); background: rgba(238,242,255,.55); color: #6366f1; font-size: 11px; border-radius: 7px; padding: 3px 8px; cursor: pointer; opacity: .75; transition: .15s; }
+.qr-ai-btn:hover { opacity: 1; background: #eef2ff; border-color: #818cf8; }
+.qr-ai-btn:disabled { opacity: .5; cursor: wait; }
+.qr-ai-status { margin-left: 6px; font-size: 11px; color: #64748b; }
+.qr-ai-status.err { color: #b91c1c; }
+.qr-ai-mask { position: fixed; inset: 0; z-index: 9998; background: rgba(15,23,42,.42); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.qr-ai-card { width: 460px; max-width: 94vw; max-height: 90vh; overflow: auto; background: #fff; border-radius: 16px; box-shadow: 0 18px 60px rgba(15,23,42,.28); padding: 16px 18px 14px; box-sizing: border-box; }
+.qr-ai-card-head { display: flex; align-items: center; justify-content: space-between; font-size: 15px; color: #1e293b; }
+.qr-ai-card-head b { font-weight: 700; }
+.qr-ai-close { border: 0; background: transparent; color: #94a3b8; font-size: 20px; line-height: 1; cursor: pointer; padding: 0 4px; }
+.qr-ai-close:hover { color: #dc2626; }
+.qr-ai-sub { margin: 8px 0 12px; font-size: 12px; line-height: 1.6; color: #64748b; }
+.qr-ai-drop { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 1px dashed #a5b4fc; background: #f8faff; border-radius: 12px; padding: 16px 12px; cursor: pointer; text-align: center; transition: .15s; }
+.qr-ai-drop:hover, .qr-ai-drop.on { border-color: #6366f1; background: #eef2ff; }
+.qr-ai-drop-ico { font-size: 22px; }
+.qr-ai-drop-t { font-size: 13px; color: #475569; }
+.qr-ai-drop-f { font-size: 11px; color: #94a3b8; word-break: break-all; }
+.qr-ai-modal-status { min-height: 18px; margin: 8px 0 2px; font-size: 12px; color: #64748b; line-height: 1.5; }
+.qr-ai-modal-status.err { color: #b91c1c; }
+.qr-ai-reward { margin: 8px 0 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.qr-ai-reward-tip { font-size: 11px; color: #94a3b8; }
+.qr-ai-reward-link { border: 0; background: transparent; color: #d97706; font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.qr-ai-reward-link:hover { color: #b45309; }
+.qr-reward-mask { position: fixed; inset: 0; z-index: 9999; background: rgba(15,23,42,.5); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.qr-reward-card { width: 260px; max-width: 92vw; background: #fff; border-radius: 16px; box-shadow: 0 18px 60px rgba(15,23,42,.3); padding: 14px 16px; text-align: center; box-sizing: border-box; }
+.qr-reward-head { display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: #1e293b; margin-bottom: 10px; }
+.qr-reward-close { border: 0; background: transparent; font-size: 20px; line-height: 1; color: #94a3b8; cursor: pointer; }
+.qr-reward-card img { width: 180px; height: 180px; object-fit: contain; border-radius: 10px; border: 1px solid #f1f5f9; }
+.qr-reward-sub { margin-top: 10px; font-size: 12px; color: #64748b; }
+.qr-ai-card-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.qr-ai-card-foot .btn { min-width: 96px; height: 34px; padding: 0 14px; font-size: 13px; }
+@media (max-width: 520px) { .qr-ai-card { width: 100%; padding: 14px; } .qr-ai-card-foot .btn { flex: 1; } }
+
+
 .qr-mod-fm { margin-left: 8px; font-size: 11px; color: #6366f1; background: #eef2ff; border-radius: 5px; padding: 1px 6px; }.qr-warn { margin-top: 6px; font-size: 11px; line-height: 1.5; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 4px 8px; }.qr-cls-tools { flex-wrap: wrap; }
 .qr-tip-full { flex: 1 1 100%; }
 .qr-cls-tools .qr-mini { white-space: nowrap; }/* ===== F10 座位表 ===== */
@@ -892,6 +927,9 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
 .metric-note { display: block; font-size: 12px; line-height: 1.5; font-weight: 400; color: #64748b; margin-top: 3px; white-space: normal; }
 .selection-guide { position: fixed; top: 82px; left: 50%; transform: translate(-50%, -10px); z-index: 3000; background: rgba(30, 41, 59, .94); color: #fff; border-radius: 10px; padding: 10px 18px; box-shadow: 0 12px 32px rgba(15, 23, 42, .22); text-align: center; opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; max-width: calc(100vw - 32px); }
 .selection-guide.show { opacity: 1; transform: translate(-50%, 0); }
+.home-btn { display: inline-flex; align-items: center; gap: 5px; height: 38px; padding: 0 12px; border-radius: 11px; border: 1px solid rgba(99,102,241,.22); background: rgba(255,255,255,.8); color: #3730a3; font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.home-btn:hover { background: #fff; border-color: rgba(99,102,241,.45); }
+@media (max-width: 720px) { .home-btn { padding: 0 10px; } .home-btn span { display: none; } }
 .selection-guide b { display: block; font-size: 15px; margin-bottom: 3px; }
 .selection-guide span { font-size: 12px; color: #cbd5e1; }
 @media (max-width: 720px) { .selection-guide { top: 72px; width: calc(100vw - 32px); } }
@@ -927,6 +965,7 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
 <div class="topbar">
   <div class="topbar-inner">
     <div class="topbar-main">
+      <a class="home-btn" href="../index.html" title="返回主页">&#8592; <span>主页</span></a>
       <div class="auth-slot">
         <button class="auth-entry" id="authEntry" type="button" title="登录后可查看成绩分析">
           <span class="auth-avatar" id="authAvatar">登</span>
@@ -1023,8 +1062,8 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
   <div class="tabs-row">
     <div class="main-tabs" id="mainTabs">
       <button class="main-tab active" data-top="core">核心分析</button>
+      <button class="main-tab" data-top="report">报表处理组</button>
       <button class="main-tab" data-top="extra">拓展分析</button>
-      <button class="main-tab" data-top="goals">学习目标</button>
     </div>
     <div class="sub-tabs" id="subTabs"></div>
   </div>
@@ -1064,50 +1103,45 @@ const TOP_TABS = [
     id: 'core',
     label: '核心分析',
     pages: [
-      { id: 'f6',  label: '达标率' },
-      { id: 'f7',  label: '四线达标率' },
-      { id: 'f5',  label: '数据明细表' },
-      { id: 'f3a', label: '全班成绩' },
-      { id: 'f1a', label: '个人趋势' },
+      { id: 'f6',  label: '周测达标率' },
+      { id: 'f7',  label: '总分四线达标率' },
+      { id: 'f5',  label: '历次平均分汇总' },
+      { id: 'f3a', label: '全班单科成绩汇总' },
+      { id: 'f1a', label: '个人成绩变化' }
+    ]
+  },
+  {
+    id: 'report',
+    label: '报表处理组',
+    pages: [
+      { id: 'goals', label: '预估学习目标' },
       { id: 'f8', label: '单科分析报告' },
-      { id: 'f9', label: '快速报表' },
-      { id: 'f10', label: '座位表' }
+      { id: 'f9', label: '多班级批量成绩分析报告' },
+      { id: 'f10', label: '座位表写成绩' }
     ]
   },
   {
     id: 'extra',
     label: '拓展分析',
     pages: [
-      { id: 'm2a', label: '班级综合分析' },
-      { id: 'm2b', label: '进步与名次' },
-      { id: 'm2c', label: '学生明细图谱' }
+      { id: 'f2a', label: '班级整体趋势' },
+      { id: 'f2b', label: '多班三分对比' },
+      { id: 'f3b', label: '单科进退步榜' },
+      { id: 'f4a', label: '全班成绩图' }
     ]
   }
 ];
 
-/* 合并页：一个页签内承载多个原有功能，用顶部分段按钮切换 */
-const MERGED_PAGES = {
-  m2a: { title: '班级综合分析', segments: [
-    { id: 'f2a', label: '班级整体趋势' },
-    { id: 'f2b', label: '多班三分对比' }
-  ]},
-  m2b: { title: '进步与名次', segments: [
-    { id: 'f3b', label: '单科进步榜' },
-    { id: 'f1b', label: '名次变化' }
-  ]},
-  m2c: { title: '学生明细图谱', segments: [
-    { id: 'f1c', label: '稳定性分析' },
-    { id: 'f4a', label: '全班成绩图' }
-  ]}
-};
+/* 拓展分析直接平铺二级页签，不再做第三层分组 */
+const MERGED_PAGES = {};
 
 const PAGE_NAMES = {
-  f1a: '个人趋势', f1b: '名次变化', f1c: '稳定性分析',
+  f1a: '个人成绩变化',
   f2a: '班级整体趋势', f2b: '多班三分对比',
-  f3a: '全班成绩', f3b: '单科进步榜',
-  f4a: '全班成绩图', f4b: '分数段分布',
-  f5: '数据明细表', f6: '达标率', f7: '四线达标率', f8: '单科分析报告', f9: '快速报表', f10: '座位表',
-  m2a: '班级综合分析', m2b: '进步与名次', m2c: '学生明细图谱'
+  f3a: '全班单科成绩汇总', f3b: '单科进退步榜',
+  f4a: '全班成绩图',
+  f5: '历次平均分汇总', f6: '周测达标率', f7: '总分四线达标率', f8: '单科分析报告', f9: '多班级批量成绩分析报告', f10: '座位表写成绩',
+  goals: '预估学习目标'
 };
 
 const state = {
@@ -1129,6 +1163,13 @@ let p4Observer = null;
 let _uid = 0;
 const classSubCache = new Map();
 let isAutoSelecting = false;
+/* 供 auth.js 跨脚本访问（顶层 const 不会挂到 window 上） */
+window.TOP_TABS = TOP_TABS;
+window.state = state;
+window.renderTabs = renderTabs;
+window.renderCurrentPage = renderCurrentPage;
+window.renderGoals = renderGoals;
+
 
 const sortState = {
   classTable:{col:-1,asc:true}, rank:{col:-1,asc:true}, stability:{col:-1,asc:true},
@@ -1927,199 +1968,6 @@ function drawF1a() {
   setTimeout(bindHoverTips, 10);
 }
 
-/* ============================================================
- *  F1b 名次变化（下拉默认不选）
- * ============================================================ */
-function renderF1b(root) {
-  const cls = getPrimaryClass();
-  if (!cls || !state.classes[cls]) {
-    root.innerHTML = emptyTip('请先在顶部选择至少一个班级');
-    return;
-  }
-  const enabledSubs = getGlobalSubjects();
-  const classSubs = getClassSubjects(cls).filter(s => enabledSubs.includes(s));
-  root.innerHTML =
-    '<div id="rankSummary"></div>' +
-    '<div class="card">' +
-      '<div class="page-title">名次变化追踪</div>' +
-      '<div class="filter-row">' +
-        '<div class="filter-group"><label>科目</label><select id="rankSubject">' +
-          '<option value="">请选择科目</option>' +
-          classSubs.map(s=>'<option value="'+esc(s)+'"'+(isTotal(s)?' selected':'')+'>'+esc(subjectLabel(s))+'</option>').join('') +
-        '</select></div>' +
-        '<div class="filter-group"><label>对比</label><select id="rankCompare">' +
-          '<option value="last" selected>最新 vs 上次</option>' +
-          '<option value="first">最新 vs 首次</option>' +
-        '</select></div>' +
-        '<span class="info-text">当前班级：' + esc(cls) + '；点击表头可排序</span>' +
-      '</div>' +
-      '<div id="rankTable"></div>' +
-    '</div>';
-  $('rankSubject').addEventListener('change', drawF1b);
-  $('rankCompare').addEventListener('change', drawF1b);
-  drawF1b();
-}
-function drawF1b() {
-  const cls = getPrimaryClass();
-  if (!cls) return;
-  const sub = $('rankSubject').value;
-  const compareMode = $('rankCompare').value;
-  const summaryWrap = $('rankSummary');
-  const tableWrap = $('rankTable');
-  summaryWrap.innerHTML = '';
-  tableWrap.innerHTML = '';
-  if (!sub || !compareMode) {
-    tableWrap.innerHTML = '<div class="empty-hint">请先选择科目和对比方式</div>';
-    return;
-  }
-  const exams = state.examList;
-  if (exams.length < 2) { tableWrap.innerHTML = '<div class="empty-hint">数据不足，至少需要 2 次考试</div>'; return; }
-  const last = exams[exams.length-1], first = exams[0], prev = exams[exams.length-2];
-  const examA = compareMode === 'first' ? first : prev;
-  const examB = last;
-  const students = state.classes[cls].students;
-  const names = Object.keys(students);
-  const sA = {}, sB = {};
-  names.forEach(n => {
-    const a = students[n]?.[examA]?.[sub];
-    const b = students[n]?.[examB]?.[sub];
-    if (typeof a === 'number') sA[n] = a;
-    if (typeof b === 'number') sB[n] = b;
-  });
-  const rA = computeRanks(names.map(n=>sA[n]??null));
-  const rB = computeRanks(names.map(n=>sB[n]??null));
-  const rows = names.map((n,i)=>({
-    name:n, scoreA:sA[n]??null, scoreB:sB[n]??null,
-    rankA:rA[i], rankB:rB[i], delta:(rA[i]!=null&&rB[i]!=null)?rA[i]-rB[i]:null
-  })).filter(r=>r.scoreB!=null||r.scoreA!=null);
-  let upCnt = 0, downCnt = 0, flatCnt = 0;
-  const upNames = [], downNames = [];
-  rows.forEach(r => {
-    if (r.delta == null) return;
-    if (r.delta > 0) { upCnt++; upNames.push({name:r.name,value:'+'+r.delta,tone:'good'}); }
-    else if (r.delta < 0) { downCnt++; downNames.push({name:r.name,value:r.delta+'',tone:'bad'}); }
-    else flatCnt++;
-  });
-  const items = [
-    {label:'科目',value:esc(sub)},
-    {label:'对比区间',value:esc(examA)+' → '+esc(examB)},
-    {label:'进步人数',value:upCnt+' 人',cls:upCnt?'font-up':'',tipItems:upNames},
-    {label:'退步人数',value:downCnt+' 人',cls:downCnt?'font-down':'',tipItems:downNames},
-    {label:'名次持平',value:flatCnt+' 人'}
-  ];
-  const valid = rows.filter(r=>r.delta!=null);
-  const bestUp = [...valid].sort((a,b)=>b.delta-a.delta)[0];
-  const bestDown = [...valid].sort((a,b)=>a.delta-b.delta)[0];
-  const paras = [];
-  if (bestUp && bestUp.delta > 0) paras.push('进步最大：<b class="hl">' + esc(bestUp.name) + '</b>，上升 <b class="font-up">' + bestUp.delta + ' 名</b>。');
-  if (bestDown && bestDown.delta < 0) paras.push('退步最大：<b class="warn">' + esc(bestDown.name) + '</b>，下降 <b class="font-down">' + Math.abs(bestDown.delta) + ' 名</b>。');
-  summaryWrap.innerHTML = analysisPanel([{title:'名次变化综合统计',items,paras}]);
-  const cols = [
-    {label:'序号',width:56,sticky:true,sortable:false,render:(r,i)=>'<td style="font-weight:700">'+(i+1)+'</td>'},
-    {label:'姓名',width:110,sticky:true,sortable:true,getValue:r=>r.name,render:r=>'<td style="font-weight:700">'+esc(r.name)+'</td>'},
-    {label:examA+' 分数',width:100,sortable:true,getValue:r=>r.scoreA,render:r=>'<td>'+(r.scoreA??'—')+'</td>'},
-    {label:examA+' 名次',width:100,sortable:true,getValue:r=>r.rankA,render:r=>'<td>'+(r.rankA??'—')+'</td>'},
-    {label:examB+' 分数',width:100,sortable:true,getValue:r=>r.scoreB,render:r=>'<td>'+(r.scoreB??'—')+'</td>'},
-    {label:examB+' 名次',width:100,sortable:true,getValue:r=>r.rankB,render:r=>'<td>'+(r.rankB??'—')+'</td>'},
-    {label:'名次变化',width:110,sortable:true,getValue:r=>r.delta==null?-99999:r.delta,render:r=>{
-      let h = '<span class="rank-flat">—</span>';
-      if (r.delta != null) {
-        if (r.delta > 0) h = '<span class="rank-up">↑ ' + r.delta + '</span>';
-        else if (r.delta < 0) h = '<span class="rank-down">↓ ' + Math.abs(r.delta) + '</span>';
-        else h = '<span class="rank-flat">持平</span>';
-      } else if (r.rankA == null && r.rankB != null) h = '<span class="rank-new">新入榜</span>';
-      return '<td>' + h + '</td>';
-    }}
-  ];
-  renderGridTable(cols, rows, 'rank', tableWrap, drawF1b);
-}
-
-/* ============================================================
- *  F1c 个人稳定性分析（加科目下拉，默认不选）
- * ============================================================ */
-function renderF1c(root) {
-  const cls = getPrimaryClass();
-  if (!cls || !state.classes[cls]) {
-    root.innerHTML = emptyTip('请先在顶部选择至少一个班级');
-    return;
-  }
-  const enabledSubs = getGlobalSubjects();
-  const classSubs = getClassSubjects(cls).filter(s => enabledSubs.includes(s));
-  root.innerHTML =
-    '<div id="stabilitySummary"></div>' +
-    '<div class="card">' +
-      '<div class="page-title">成绩稳定性分析</div>' +
-      '<div class="filter-row">' +
-        '<div class="filter-group"><label>科目</label><select id="stabilitySubject">' +
-          '<option value="">请选择科目</option>' +
-          classSubs.map(s=>'<option value="'+esc(s)+'"'+(isTotal(s)?' selected':'')+'>'+esc(subjectLabel(s))+'</option>').join('') +
-        '</select></div>' +
-        '<span class="info-text">当前班级：' + esc(cls) + '；标准差越小越稳定</span>' +
-      '</div>' +
-      '<div id="stabilityTable"></div>' +
-    '</div>';
-  $('stabilitySubject').addEventListener('change', drawF1c);
-  drawF1c();
-}
-function drawF1c() {
-  const cls = getPrimaryClass();
-  if (!cls) return;
-  const sub = $('stabilitySubject').value;
-  const summaryWrap = $('stabilitySummary');
-  const tableWrap = $('stabilityTable');
-  summaryWrap.innerHTML = '';
-  tableWrap.innerHTML = '';
-  if (!sub) {
-    tableWrap.innerHTML = '<div class="empty-hint">请先选择科目</div>';
-    return;
-  }
-  const exams = state.examList;
-  if (exams.length < 2) { tableWrap.innerHTML = '<div class="empty-hint">数据不足，至少需要 2 次考试</div>'; return; }
-  const students = state.classes[cls].students;
-  const rows = [];
-  for (const name in students) {
-    const scores = [];
-    exams.forEach(ex => {
-      const v = students[name]?.[ex]?.[sub];
-      if (typeof v === 'number') scores.push(v);
-    });
-    if (scores.length < 2) continue;
-    const avg = scores.reduce((a,b)=>a+b,0)/scores.length;
-    const variance = scores.reduce((a,b)=>a+(b-avg)**2,0)/scores.length;
-    const std = Math.round(Math.sqrt(variance)*10)/10;
-    rows.push({name,scores,count:scores.length,avg:Math.round(avg*10)/10,std,range:Math.max(...scores)-Math.min(...scores)});
-  }
-  if (!rows.length) { tableWrap.innerHTML = '<div class="empty-hint">该科目数据不足</div>'; return; }
-  const stabCls = s => s<=5?'stability-good':s<=12?'stability-mid':'stability-poor';
-  const stabLabel = s => s<=5?'非常稳定':s<=12?'较稳定':'波动较大';
-  const avgStd = rows.reduce((a,r)=>a+r.std,0)/rows.length;
-  const very = rows.filter(r=>r.std<=5);
-  const mid = rows.filter(r=>r.std>5&&r.std<=12);
-  const poor = rows.filter(r=>r.std>12);
-  const items = [
-    {label:'科目',value:esc(sub)},
-    {label:'学生数',value:rows.length+' 人'},
-    {label:'标准差均值',value:avgStd.toFixed(1)},
-    {label:'非常稳定',value:very.length+' 人',cls:very.length?'font-up':'',tipItems:very.map(r=>({name:r.name,value:'±'+r.std,tone:'good'}))},
-    {label:'波动较大',value:poor.length+' 人',cls:poor.length?'font-down':'',tipItems:poor.map(r=>({name:r.name,value:'±'+r.std,tone:'bad'}))}
-  ];
-  const paras = [
-    '班级标准差均值 <b class="hl">' + avgStd.toFixed(1) + '</b>，' + (avgStd<=5?'非常稳定。':avgStd<=12?'相对稳定。':'波动较大。'),
-    '非常稳定 <b class="font-up">' + very.length + '</b> 人，较稳定 <b>' + mid.length + '</b> 人，波动较大 <b class="warn">' + poor.length + '</b> 人。'
-  ];
-  summaryWrap.innerHTML = analysisPanel([{title:'稳定性综合统计',items,paras}]);
-  const cols = [
-    {label:'序号',width:56,sticky:true,sortable:false,render:(r,i)=>'<td style="font-weight:700">'+(i+1)+'</td>'},
-    {label:'姓名',width:110,sticky:true,sortable:true,getValue:r=>r.name,render:r=>'<td style="font-weight:700">'+esc(r.name)+'</td>'},
-    {label:'参考次数',width:90,sortable:true,getValue:r=>r.count,render:r=>'<td>'+r.count+'</td>'},
-    {label:'平均分',width:90,sortable:true,getValue:r=>r.avg,render:r=>'<td>'+r.avg+'</td>'},
-    {label:'标准差',width:90,sortable:true,getValue:r=>r.std,render:r=>'<td class="'+stabCls(r.std)+'">'+r.std+'</td>'},
-    {label:'波动幅度',width:100,sortable:true,getValue:r=>r.range,render:r=>'<td>'+r.range+'</td>'},
-    {label:'稳定性',width:100,sortable:true,getValue:r=>r.std,render:r=>'<td class="'+stabCls(r.std)+'">'+stabLabel(r.std)+'</td>'},
-    {label:'成绩序列',width:300,sortable:false,render:r=>'<td style="font-size:.78rem;color:#475569">'+r.scores.join(' → ')+'</td>'}
-  ];
-  renderGridTable(cols, rows, 'stability', tableWrap, drawF1c);
-}
 
 /* ============================================================
  *  F2a 班级整体
@@ -2598,7 +2446,7 @@ function renderStudentCharts(card) {
 }
 
 /* ============================================================
- *  F4b 分数段分布（下拉默认不选）
+ *  分数段档位（F8 单科分析报告的人数分布复用）
  * ============================================================ */
 const SEG_LEVELS = [
   {key:'s',label:'卓越',min:0.90,cls:'seg-s'},
@@ -2613,157 +2461,6 @@ function classifyScore(score, fullMark) {
   for (const lv of SEG_LEVELS) if (r >= lv.min) return lv.key;
   return 'd';
 }
-function renderF4b(root) {
-  root.innerHTML =
-    '<div id="segSummary"></div>' +
-    '<div class="card">' +
-      '<div class="page-title">分数段分布</div>' +
-      '<div class="filter-row">' +
-        '<div class="filter-group"><label>考试</label><select id="segExam">' +
-          state.examList.map((ex,i,a)=>'<option value="'+i+'"'+(i===a.length-1?' selected':'')+'>'+esc(ex)+(i===a.length-1?'（最新）':'')+'</option>').join('') +
-        '</select></div>' +
-        '<div class="filter-group"><label>统计方式</label><select id="segMode">' +
-          '<option value="count" selected>人数</option><option value="ratio">占比</option>' +
-        '</select></div>' +
-        '<span class="info-text">使用顶部已加载班级与已加载科目</span>' +
-      '</div>' +
-      '<div id="segChartWrap" class="chart-grid" style="margin-top:14px"></div>' +
-      '<div id="segTable"></div>' +
-    '</div>';
-  $('segExam').addEventListener('change', drawF4b);
-  $('segMode').addEventListener('change', drawF4b);
-  drawF4b();
-}
-function drawF4b() {
-  const summaryWrap = $('segSummary');
-  const tableWrap = $('segTable');
-  const chartWrap = $('segChartWrap');
-  if (!summaryWrap) return;
-  summaryWrap.innerHTML = '';
-  tableWrap.innerHTML = '';
-  chartWrap.innerHTML = '';
-  const examVal = $('segExam').value;
-  const mode = $('segMode').value;
-  if (!examVal || !mode) { tableWrap.innerHTML = '<div class="empty-hint">请先选择考试和统计方式</div>'; return; }
-  const examIdx = parseInt(examVal, 10);
-  const classes = getGlobalClasses();
-  const subs = getGlobalSubjects();
-  const exams = state.examList;
-  if (!exams.length || Number.isNaN(examIdx)) { tableWrap.innerHTML = '<div class="empty-hint">暂无考试数据</div>'; return; }
-  const exam = exams[examIdx];
-  if (!classes.length || !subs.length) { tableWrap.innerHTML = '<div class="empty-hint">请先在顶部勾选班级和科目</div>'; return; }
-  const rows = [];
-  subs.forEach(sub => {
-    classes.forEach(cls => {
-      const fullMark = repFullMark(cls, exam, sub).value;
-      const students = state.classes[cls]?.students || {};
-      const listByLevel = {};
-      SEG_LEVELS.forEach(lv => listByLevel[lv.key] = []);
-      for (const name in students) {
-        const v = students[name]?.[exam]?.[sub];
-        if (typeof v === 'number' && fullMark != null) {
-          const k = classifyScore(v, fullMark);
-          if (k) listByLevel[k].push({name,value:v+' 分'});
-        }
-      }
-      const total = SEG_LEVELS.reduce((a,lv)=>a+listByLevel[lv.key].length,0);
-      if (!total) return;
-      rows.push({sub,cls,fullMark,total,listByLevel});
-    });
-  });
-  if (!rows.length) { tableWrap.innerHTML = '<div class="empty-hint">所选条件下暂无数据</div>'; return; }
-  let totalRef = 0;
-  const sumCounts = {}; SEG_LEVELS.forEach(lv => sumCounts[lv.key] = 0);
-  const nameList = {}; SEG_LEVELS.forEach(lv => nameList[lv.key] = []);
-  rows.forEach(r => {
-    totalRef += r.total;
-    SEG_LEVELS.forEach(lv => {
-      sumCounts[lv.key] += r.listByLevel[lv.key].length;
-      r.listByLevel[lv.key].forEach(x => nameList[lv.key].push({name:r.cls+' · '+x.name,value:x.value}));
-    });
-  });
-  const items = [
-    {label:'统计考试',value:esc(exam)},
-    {label:'统计项',value:rows.length+' 项'},
-    {label:'参考人次',value:totalRef+' 次'}
-  ];
-  SEG_LEVELS.forEach(lv => {
-    const c = sumCounts[lv.key];
-    const ratio = totalRef ? c/totalRef : 0;
-    items.push({
-      label:lv.label+'('+(lv.min*100).toFixed(0)+'%+)',
-      value:mode === 'ratio' ? pct(ratio) : c+' 人次',
-      cls: lv.key === 's' || lv.key === 'a' ? 'font-up' : lv.key === 'd' ? 'font-down' : '',
-      tipItems:nameList[lv.key]
-    });
-  });
-  const rateTop = totalRef ? (sumCounts.s + sumCounts.a)/totalRef : 0;
-  const rateWeak = totalRef ? sumCounts.d/totalRef : 0;
-  const paras = [
-    '卓越+优秀率 <b class="hl">' + pct(rateTop) + '</b>，' + (rateTop >= 0.5 ? '整体水平较高。' : rateTop >= 0.25 ? '仍有提升空间。' : '建议加强尖子生培养。'),
-    '待提高占比 <b class="warn">' + pct(rateWeak) + '</b>，' + (rateWeak >= 0.3 ? '建议重点关注基础薄弱学生。' : rateWeak >= 0.15 ? '可针对性补弱。' : '整体达标情况良好。')
-  ];
-  summaryWrap.innerHTML = analysisPanel([{title:'分数段综合统计',items,paras}]);
-  subs.forEach(sub => {
-    const card = document.createElement('div');
-    card.className = 'chart-card';
-    const id = uid();
-    card.innerHTML = '<h4 title="' + esc(subjectLabel(sub)) + '">' + esc(sub) + ' 分数段分布</h4><div class="chart-box"><canvas id="' + id + '"></canvas></div>';
-    chartWrap.appendChild(card);
-    const labels = classes.slice();
-    const countsByLevel = {}; SEG_LEVELS.forEach(lv => countsByLevel[lv.key] = []);
-    classes.forEach(cls => {
-      const fullMark = repFullMark(cls, exam, sub).value;
-      const students = state.classes[cls]?.students || {};
-      const counts = {}; SEG_LEVELS.forEach(lv => counts[lv.key] = 0);
-      let total = 0;
-      for (const name in students) {
-        const v = students[name]?.[exam]?.[sub];
-        if (typeof v === 'number' && fullMark != null) {
-          const k = classifyScore(v, fullMark);
-          if (k) counts[k]++;
-          total++;
-        }
-      }
-      SEG_LEVELS.forEach(lv => countsByLevel[lv.key].push(mode === 'ratio' ? (total ? Math.round(counts[lv.key]/total*1000)/10 : 0) : counts[lv.key]));
-    });
-    const colors = {
-      s:{bg:'rgba(22,163,74,.8)',border:'#166534'},
-      a:{bg:'rgba(34,197,94,.75)',border:'#16a34a'},
-      b:{bg:'rgba(59,130,246,.75)',border:'#2563eb'},
-      c:{bg:'rgba(245,158,11,.75)',border:'#d97706'},
-      d:{bg:'rgba(239,68,68,.75)',border:'#dc2626'}
-    };
-    const datasets = SEG_LEVELS.map(lv => ({
-      label:lv.label+'('+(lv.min*100).toFixed(0)+'%+)',
-      data:countsByLevel[lv.key],
-      backgroundColor:colors[lv.key].bg,
-      borderColor:colors[lv.key].border,
-      borderWidth:1
-    }));
-    addChart(makeBarChart(id, labels, datasets));
-  });
-  const isRatio = mode === 'ratio';
-  const cols = [
-    {label:'序号',width:56,sticky:true,sortable:false,render:(r,i)=>'<td style="font-weight:700">'+(i+1)+'</td>'},
-    {label:'科目',width:170,sticky:true,sortable:true,getValue:r=>r.sub,render:r=>'<td class="cell-subject" title="'+esc(subjectLabel(r.sub))+'">'+esc(subjectLabel(r.sub))+'</td>'},
-    {label:'班级',width:86,sticky:true,sortable:true,getValue:r=>r.cls,render:r=>'<td class="cell-class">'+esc(r.cls)+'</td>'},
-    {label:'满分',width:80,sortable:true,getValue:r=>r.fullMark,render:r=>'<td>'+r.fullMark+'</td>'},
-    {label:'参考人数',width:100,sortable:true,getValue:r=>r.total,render:r=>'<td><span class="count-cell" data-tip-title="参考学生名单" data-tip-items=\''+JSON.stringify(SEG_LEVELS.flatMap(lv=>r.listByLevel[lv.key])).replace(/'/g,"&#39;")+'\'>'+r.total+'</span></td>'}
-  ];
-  SEG_LEVELS.forEach(lv => {
-    cols.push({
-      label:lv.label+'('+(lv.min*100).toFixed(0)+'%+)',width:120,sortable:true,
-      getValue:r=>r.listByLevel[lv.key].length,
-      render:r=>{
-        const c = r.listByLevel[lv.key].length;
-        const val = isRatio ? pct(r.total?c/r.total:0) : c+' 人';
-        return '<td><span class="seg-badge '+lv.cls+' count-cell" data-tip-title="'+esc(lv.label)+'（'+c+' 人）" data-tip-items=\''+JSON.stringify(r.listByLevel[lv.key]).replace(/'/g,"&#39;")+'\'>'+val+'</span></td>';
-      }
-    });
-  });
-  renderGridTable(cols, rows, 'seg', tableWrap, drawF4b);
-}
 
 /* ============================================================
  *  F5 数据明细表（维度下拉默认不选）
@@ -2772,7 +2469,7 @@ function renderF5(root) {
   root.innerHTML =
     '<div id="dataTableSummary"></div>' +
     '<div class="card">' +
-      '<div class="page-title">各科目成绩明细对比表</div>' +
+      '<div class="page-title">历次平均分汇总</div>' +
       '<div class="filter-row">' +
         '<div class="filter-group"><label>维度</label><select id="tableMode">' +
           '<option value="avg" selected>平均分</option><option value="max">最高分</option><option value="min">最低分</option>' +
@@ -2894,7 +2591,7 @@ function renderF6(root) {
   root.innerHTML =
     '<div id="rateSummary"></div>' +
     '<div class="card">' +
-      '<div class="page-title">成绩达标率统计</div>' +
+      '<div class="page-title">周测达标率</div>' +
       '<div class="filter-row">' +
         '<div class="filter-group"><label>考试</label><select id="rateExam">' +
           state.examList.map((ex,i,a)=>'<option value="'+i+'"'+(i===a.length-1?' selected':'')+'>'+esc(ex)+(i===a.length-1?'（最新）':'')+'</option>').join('') +
@@ -3006,30 +2703,7 @@ function drawF6() {
     });
   });
   if (!rows.length) { wrap.innerHTML = '<div class="empty-hint">所选条件下暂无数据</div>'; return; }
-  /* 顶部只保留本次达标率总览 */
-  let totalRef = 0, totalMinPass = 0, totalStdPass = 0;
-  const allMinPass = [], allStdPass = [];
-  rows.forEach(r => {
-    totalRef += r.total; totalMinPass += r.minPass; totalStdPass += r.stdPass;
-    r.minPassList.forEach(x => allMinPass.push({name:r.cls+' · '+x.name,value:x.value}));
-    r.stdPassList.forEach(x => allStdPass.push({name:r.cls+' · '+x.name,value:x.value}));
-  });
-  const avgMin = totalRef ? totalMinPass/totalRef : 0;
-  const avgStd = totalRef ? totalStdPass/totalRef : 0;
-  const items = [
-    {label:'统计考试',value:esc(curExam)},
-    {label:'统计项',value:rows.length+' 项'},
-    {label:'最低达标率均值',value:pct(avgMin),tipItems:allMinPass},
-    {label:'标准达标率均值',value:pct(avgStd),tipItems:allStdPass}
-  ];
-  const paras = [];
-  if (avgMin >= 0.8) paras.push('整体最低达标率表现良好。');
-  else if (avgMin >= 0.5) paras.push('整体最低达标率处于中等水平。');
-  else paras.push('整体最低达标率偏低，建议加强基础教学。');
-  const fmSet = new Set(rows.map(r=>r.fullMark));
-  if (fmSet.size > 1) paras.push('所选范围存在多种科目满分，已按各班实际满分独立计算。');
-
-  /* 单班 / 单科时的达标率极值与变化 */
+  /* 综合总结：仅在「只选一个班级」或「只选一个科目」时展示极值与进退步；其余情况不显示 */
   const rateNote = (name, val) => '<b>' + esc(name) + '</b><div class="metric-note">' + val + '</div>';
   const deltaText = (d, name) => {
     const v = d * 100;
@@ -3072,7 +2746,7 @@ function drawF6() {
     if (oneMin) extraSections.push(oneMin);
     if (oneStd) extraSections.push(oneStd);
   }
-  summaryWrap.innerHTML = analysisPanel([{title:'达标率综合统计',items,paras}].concat(extraSections));
+  summaryWrap.innerHTML = extraSections.length ? analysisPanel(extraSections) : '';
   const rateCls = r => r>=0.8?'rate-good':r>=0.5?'rate-mid':'rate-low';
   const deltaHtml = (cur,prev) => {
     if (prev == null) return '<span class="rate-delta flat">—</span>';
@@ -3119,7 +2793,7 @@ function renderF7(root) {
   root.innerHTML =
     '<div id="f7Summary"></div>' +
     '<div class="card">' +
-      '<div class="page-title">四线达标率（按班级）</div>' +
+      '<div class="page-title">总分四线达标率（按班级）</div>' +
       '<div class="filter-row">' +
         '<div class="filter-group"><label>考试</label><select id="f7Exam">' +
           state.examList.map((ex,i,a)=>'<option value="'+i+'"'+(i===a.length-1?' selected':'')+'>'+esc(ex)+(i===a.length-1?'（最新）':'')+'</option>').join('') +
@@ -3129,7 +2803,7 @@ function renderF7(root) {
       '<div id="f7TableBase"></div>' +
     '</div>' +
     '<div class="card" style="margin-top:16px">' +
-      '<div class="page-title">四线+50达标率（按班级）</div>' +
+      '<div class="page-title">总分四线+50达标率（按班级）</div>' +
       '<div id="f7TablePlus"></div>' +
     '</div>';
   $('f7Exam').addEventListener('change', drawF7);
@@ -4335,6 +4009,9 @@ function qrModuleHtml(m, i) {
     : '';
   return '<div class="qr-mod" data-mod="' + i + '">' +
     '<div class="qr-mod-head"><span class="qr-mod-no">第 ' + (i + 1) + ' 模块</span>' + headFm +
+      '<button class="qr-ai-btn" type="button" data-qr="ai" data-i="' + i + '" title="上传周测试卷，AI 自动填写考点与失分模块">✦ AI 读卷</button>' +
+      '<span class="qr-ai-status" id="qrAiStatus' + i + '"></span>' +
+      '<input class="qr-ai-file" type="file" data-i="' + i + '" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp" style="display:none">' +
       (qrState.modules.length > 1 ? '<button class="qr-del" type="button" data-qr="del" data-i="' + i + '">删除模块</button>' : '') +
     '</div>' +
     '<div class="qr-row"><span class="qr-lb">班级列表</span>' +
@@ -4369,7 +4046,7 @@ function renderF9(root) {
     qrState.modules.map((m, i) => '第' + (i + 1) + '模块 ' + (m.fm ? qrFmText(Number(m.fm)) + ' 分' : '未定分值') + '（' + m.classes.length + ' 班）').join(' · ');
   root.innerHTML =
     '<div class="card qr-card">' +
-      '<div class="page-title">快速报表</div>' +
+      '<div class="page-title">多班级批量成绩分析报告</div>' +
       '<div class="qr-top">' +
         '<div class="filter-group"><label>科目</label><select id="qrSubject">' +
           subs.map(s => '<option value="' + esc(s) + '"' + (s === qrState.sub ? ' selected' : '') + '>' + esc(subjectLabel(s)) + '</option>').join('') +
@@ -4444,12 +4121,290 @@ function renderF9(root) {
       });
     } else if (act === 'fm' || act === 'teacher') {
       node.addEventListener('input', () => { qrState.modules[i][act] = node.value; qrSave(); });
+    } else if (act === 'ai') {
+      node.addEventListener('click', () => qrAiOpenModal(i, root));
     } else if (act === 'one') {
       node.addEventListener('click', () => qrGenerate([i], node));
     }
   });
 
+  root.querySelectorAll('.qr-ai-file').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const i = Number(inp.dataset.i);
+      const file = inp.files && inp.files[0];
+      inp.value = '';
+      if (!file) return;
+      qrAiRun(i, file, root);
+    });
+  });
   $('qrAll').addEventListener('click', () => qrGenerate(qrState.modules.map((m, i) => i), $('qrAll')));
+}
+
+/* ================= 快速报表 · AI 读卷（硅基流动） ================= */
+function qrAiSetStatus(i, text, isErr) {
+  const el = $('qrAiStatus' + i);
+  if (!el) return;
+  el.textContent = text || '';
+  el.className = 'qr-ai-status' + (isErr ? ' err' : '');
+  clearTimeout(el._timer);
+  if (text) el._timer = setTimeout(() => { el.textContent = ''; }, 6000);
+}
+function qrAiLoadScript(src, isReady) {
+  if (isReady()) return Promise.resolve(true);
+  return new Promise((resolve, reject) => {
+    const old = document.querySelector('script[data-ai-lib="' + src + '"]');
+    if (old) { old.addEventListener('load', () => resolve(true)); old.addEventListener('error', reject); return; }
+    const s = document.createElement('script');
+    s.src = src;
+    s.dataset.aiLib = src;
+    s.onload = () => resolve(true);
+    s.onerror = () => reject(new Error('加载 ' + src + ' 失败'));
+    document.head.appendChild(s);
+  });
+}
+function qrAiImageData(file) {
+  return new Promise((resolve, reject) => {
+    const rd = new FileReader();
+    rd.onerror = () => reject(new Error('图片读取失败'));
+    rd.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('图片解析失败'));
+      img.onload = () => {
+        const max = 1500;
+        let w = img.naturalWidth || 1, h = img.naturalHeight || 1;
+        if (Math.max(w, h) > max) { const k = max / Math.max(w, h); w = Math.round(w * k); h = Math.round(h * k); }
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(cv.toDataURL('image/jpeg', 0.86));
+      };
+      img.src = String(rd.result || '');
+    };
+    rd.readAsDataURL(file);
+  });
+}
+async function qrAiReadFile(file) {
+  const name = (file.name || '').toLowerCase();
+  const ext = (name.split('.').pop() || '');
+  if (ext === 'txt') {
+    const text = await file.text();
+    return { text: text };
+  }
+  if (ext === 'docx') {
+    await qrAiLoadScript('https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js', () => !!window.mammoth);
+    const buf = await file.arrayBuffer();
+    const res = await window.mammoth.extractRawText({ arrayBuffer: buf });
+    return { text: res.value || '' };
+  }
+  if (ext === 'pdf') {
+    await qrAiLoadScript('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js', () => !!window.pdfjsLib);
+    const pdfjsLib = window.pdfjsLib;
+    if (!pdfjsLib) throw new Error('PDF 解析库未加载');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    const buf = await file.arrayBuffer();
+    const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+    const parts = [];
+    for (let p = 1; p <= Math.min(doc.numPages, 12); p++) {
+      const page = await doc.getPage(p);
+      const tc = await page.getTextContent();
+      parts.push(tc.items.map(x => x.str || '').join(' '));
+    }
+    const text = parts.join('\n').trim();
+    if (text.length >= 80) return { text: text };
+    /* 扫描版 PDF：把第一页渲染成图交给识图模型 */
+    const page = await doc.getPage(1);
+    const viewport = page.getViewport({ scale: 1.6 });
+    const cv = document.createElement('canvas');
+    cv.width = viewport.width; cv.height = viewport.height;
+    await page.render({ canvasContext: cv.getContext('2d'), viewport: viewport }).promise;
+    return { text: text, image: cv.toDataURL('image/jpeg', 0.86) };
+  }
+  if (['png', 'jpg', 'jpeg', 'webp'].indexOf(ext) >= 0) {
+    return { image: await qrAiImageData(file) };
+  }
+  throw new Error('暂不支持该文件类型，请上传 PDF / DOCX / TXT / 图片');
+}
+function qrAiClamp(s) {
+  return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, 100);
+}
+function qrAiParse(content) {
+  let s = String(content || '').trim();
+  s = s.replace(/^```(json)?/i, '').replace(/```$/i, '').trim();
+  const m = s.match(/\{[\s\S]*\}/);
+  if (m) {
+    try {
+      const o = JSON.parse(m[0]);
+      const point = o.point || o['相关考点'] || o.kaodian;
+      const lose = o.lose || o['失分模块'] || o.shifen;
+      if (point || lose) return { point: point || '', lose: lose || '' };
+    } catch (e) {}
+  }
+  const p = s.match(/(?:相关考点|考点)[：:]\s*([\s\S]*?)(?=(?:失分模块|失分)[：:]|$)/);
+  const l = s.match(/(?:失分模块|失分)[：:]\s*([\s\S]*)$/);
+  return { point: p ? p[1] : '', lose: l ? l[1] : '' };
+}
+/* 赞赏码：独立小浮窗，不直接展示在 AI 读卷弹窗里 */
+function openRewardPopup() {
+  const old = document.getElementById('qrRewardModal');
+  if (old) old.remove();
+  const mask = document.createElement('div');
+  mask.id = 'qrRewardModal';
+  mask.className = 'qr-reward-mask';
+  mask.innerHTML =
+    '<div class="qr-reward-card" role="dialog" aria-modal="true">' +
+      '<div class="qr-reward-head"><b>赞赏支持</b><button type="button" class="qr-reward-close" title="关闭">×</button></div>' +
+      '<img src="../assets/img/reward.png" alt="赞赏码">' +
+      '<p class="qr-reward-sub">感谢支持，愿把这份工具做得更好。</p>' +
+    '</div>';
+  document.body.appendChild(mask);
+  const close = () => mask.remove();
+  mask.querySelector('.qr-reward-close').addEventListener('click', close);
+  mask.addEventListener('click', e => { if (e.target === mask) close(); });
+}
+function qrAiOpenModal(i, root) {
+  const old = document.getElementById('qrAiModal');
+  if (old) old.remove();
+  const mask = document.createElement('div');
+  mask.id = 'qrAiModal';
+  mask.className = 'qr-ai-mask';
+  mask.innerHTML =
+    '<div class="qr-ai-card" role="dialog" aria-modal="true">' +
+      '<div class="qr-ai-card-head"><b>上传周测试卷 · AI 读卷</b><button class="qr-ai-close" type="button" title="关闭">×</button></div>' +
+      '<p class="qr-ai-sub">支持 PDF / DOCX / TXT / 图片。AI 会提炼 100 字以内的「相关考点」和「失分模块」，并自动填入第 ' + (i + 1) + ' 模块。</p>' +
+      '<label class="qr-ai-drop" id="qrAiDrop">' +
+        '<input type="file" id="qrAiModalFile" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp" hidden>' +
+        '<span class="qr-ai-drop-ico">📄</span>' +
+        '<span class="qr-ai-drop-t">点击选择，或把试卷拖到这里</span>' +
+        '<span class="qr-ai-drop-f" id="qrAiFileName">未选择文件</span>' +
+      '</label>' +
+      '<div class="qr-ai-modal-status" id="qrAiModalStatus"></div>' +
+      '<div class="qr-ai-reward">' +
+        '<span class="qr-ai-reward-tip">可否赞赏支持一下我购买 token 服务呢？</span>' +
+        '<button type="button" class="qr-ai-reward-link" id="qrAiRewardLink">去赞赏</button>' +
+      '</div>' +
+      '<div class="qr-ai-card-foot"><button type="button" class="btn qr-ai-cancel">取消</button>' +
+        '<button type="button" class="btn btn-primary qr-ai-go" disabled>开始 AI 读卷</button></div>' +
+    '</div>';
+  document.body.appendChild(mask);
+  const fileInp = mask.querySelector('#qrAiModalFile');
+  const nameEl = mask.querySelector('#qrAiFileName');
+  const statusEl = mask.querySelector('#qrAiModalStatus');
+  const go = mask.querySelector('.qr-ai-go');
+  let picked = null;
+  const close = () => mask.remove();
+  const setStatus = (text, err) => {
+    statusEl.textContent = text || '';
+    statusEl.className = 'qr-ai-modal-status' + (err ? ' err' : '');
+  };
+  mask.querySelector('.qr-ai-close').addEventListener('click', close);
+  mask.querySelector('.qr-ai-cancel').addEventListener('click', close);
+  mask.addEventListener('click', e => { if (e.target === mask) close(); });
+  mask.querySelector('#qrAiRewardLink').addEventListener('click', openRewardPopup);
+  const drop = mask.querySelector('#qrAiDrop');
+  drop.addEventListener('click', () => fileInp.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('on'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('on'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('on');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) { picked = e.dataTransfer.files[0]; nameEl.textContent = picked.name; go.disabled = false; setStatus(''); }
+  });
+  fileInp.addEventListener('change', () => {
+    picked = fileInp.files && fileInp.files[0];
+    if (!picked) return;
+    nameEl.textContent = picked.name;
+    go.disabled = false;
+    setStatus('');
+  });
+  go.addEventListener('click', () => {
+    if (!picked) return;
+    go.disabled = true; go.textContent = '识别中…';
+    qrAiRun(i, picked, root, (text, err) => {
+      setStatus(text, err);
+      go.textContent = err ? '重新识别' : '识别中…';
+      if (!err) { go.disabled = true; setTimeout(close, 1400); }
+      else { go.disabled = false; }
+    });
+  });
+}
+async function qrAiRun(i, file, root, onState) {
+  const btn = root.querySelector('[data-qr="ai"][data-i="' + i + '"]');
+  const notify = (text, err) => {
+    qrAiSetStatus(i, text, err);
+    if (onState) onState(text, err);
+  };
+  const cfg = (window.Auth && Auth.aiConfigFor) ? Auth.aiConfigFor() : null;
+  if (!cfg || !cfg.key) {
+    alert('还没有配置硅基流动 API。请管理员登录后到「AI 配置」填写管理员 Key，或给当前老师分配独立 Key。');
+    return;
+  }
+  if (!cfg.baseUrl || !cfg.textModel) {
+    alert('AI 配置不完整，请管理员检查 API 地址和模型名。');
+    return;
+  }
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '识别中…'; }
+  notify('正在解析试卷…');
+  try {
+    const got = await qrAiReadFile(file);
+    const text = (got.text || '').slice(0, 14000);
+    if (!text && !got.image) throw new Error('没有读取到试卷内容');
+    const m = qrState.modules[i] || {};
+    const prompt = [
+      '你是河北单招机构的教研老师。请阅读这份周测试卷，结合题型和知识点，输出严格 JSON（不要 Markdown、不要解释）：',
+      '{"point":"相关考点，100字以内","lose":"学生最容易失分的模块，100字以内"}',
+      '科目：' + (qrState.sub || '未选') + '；考试：' + (qrState.exam || '未选') +
+        '；模块班级：' + ((m.classes || []).join('、') || '未选') + '。',
+      text ? ('试卷文本：\n' + text) : '试卷以图片形式附上，请直接识图。'
+    ].join('\n');
+    const content = got.image
+      ? [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: got.image } }]
+      : prompt;
+    const res = await fetch(cfg.baseUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.key },
+      body: JSON.stringify({
+        model: got.image ? (cfg.visionModel || cfg.textModel) : cfg.textModel,
+        messages: [
+          { role: 'system', content: '你只输出合法 JSON，字段为 point 和 lose，不要输出其他内容。' },
+          { role: 'user', content: content }
+        ],
+        temperature: 0.2,
+        max_tokens: 700
+      })
+    });
+    const raw = await res.text();
+    if (!res.ok) throw new Error('AI 接口 HTTP ' + res.status + '：' + raw.slice(0, 160));
+    let data;
+    try { data = JSON.parse(raw); } catch (e) { throw new Error('AI 返回不是 JSON：' + raw.slice(0, 120)); }
+    const answer = data && data.choices && data.choices[0] && data.choices[0].message
+      ? data.choices[0].message.content : '';
+    if (!answer) throw new Error('AI 没有返回内容');
+    const parsed = qrAiParse(answer);
+    const point = qrAiClamp(parsed.point);
+    const lose = qrAiClamp(parsed.lose);
+    if (!point && !lose) throw new Error('AI 返回格式无法识别');
+    const mod = qrState.modules[i];
+    mod.point = point;
+    mod.lose = lose;
+    qrSave();
+    const pEl = root.querySelector('[data-qr="point"][data-i="' + i + '"]');
+    const lEl = root.querySelector('[data-qr="lose"][data-i="' + i + '"]');
+    if (pEl) {
+      pEl.value = point;
+      const c = $('qrPointCount' + i);
+      if (c) c.textContent = '最多 100 字 · 当前 ' + point.length + ' 字';
+    }
+    if (lEl) {
+      lEl.value = lose;
+      const c = $('qrLoseCount' + i);
+      if (c) c.textContent = '最多 100 字 · 当前 ' + lose.length + ' 字';
+    }
+    notify('已填入，可继续修改');
+  } catch (err) {
+    notify((err && err.message ? err.message : 'AI 读卷失败').slice(0, 120), true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig || '✦ AI 读卷'; }
+  }
 }
 
 /* 生成指定模块：每班一份 xlsx，多份打包 */
@@ -5295,7 +5250,7 @@ function renderF10(root) {
 
   root.innerHTML =
     '<div class="card seat-card">' +
-      '<div class="page-title">座位表</div>' +
+      '<div class="page-title">座位表写成绩</div>' +
       '<div class="qr-top">' +
         '<div class="filter-group"><label>科目</label><span class="seat-fixed">' + esc(subjectLabel(seatState.sub)) + '</span>' +
           '<span class="seat-fixed-tip">按登录账号带出</span></div>' +
@@ -5475,8 +5430,6 @@ function renderTabs() {
     b.classList.toggle('active', b.dataset.top === state.topTab);
   });
   const subTabsEl = $('subTabs');
-  /* 学习目标为独立整页，无子标签 */
-  if (state.topTab === 'goals') { subTabsEl.innerHTML = ''; return; }
   const group = TOP_TABS.find(g => g.id === state.topTab);
   if (!group) { subTabsEl.innerHTML = ''; return; }
   subTabsEl.innerHTML = group.pages.map(p =>
@@ -5484,8 +5437,18 @@ function renderTabs() {
   ).join('');
   subTabsEl.querySelectorAll('.sub-tab').forEach(btn => {
     btn.addEventListener('click', () => {
+      document.body.style.overflow = '';
       state.currentPage = btn.dataset.page;
-      if (btn.dataset.page === 'f3a' || btn.dataset.page === 'f1a') resetSelectionForFocus();
+      if (btn.dataset.page === 'goals') {
+        state.topTab = 'report';
+        setCheckboxSelection('globalClassWrap', []);
+        setCheckboxSelection('globalSubjectWrap', []);
+        if (window.Auth && Auth.afterGoalsClear) Auth.afterGoalsClear();
+        renderTabs();
+        renderGoals();
+        return;
+      }
+      if (['f3a', 'f1a', 'f2a', 'f3b', 'f4a'].indexOf(btn.dataset.page) >= 0) resetSelectionForFocus();
       renderTabs();
       renderCurrentPage();
     });
@@ -5495,14 +5458,11 @@ function renderTabs() {
 /* ============ 页面调度 ============ */
 function dispatchPage(page, root) {
   if (page === 'f1a') renderF1a(root);
-  else if (page === 'f1b') renderF1b(root);
-  else if (page === 'f1c') renderF1c(root);
   else if (page === 'f2a') renderF2a(root);
   else if (page === 'f2b') renderF2b(root);
   else if (page === 'f3a') renderF3a(root);
   else if (page === 'f3b') renderF3b(root);
   else if (page === 'f4a') renderF4a(root);
-  else if (page === 'f4b') renderF4b(root);
   else if (page === 'f5') renderF5(root);
   else if (page === 'f6') renderF6(root);
   else if (page === 'f7') renderF7(root);
@@ -5540,6 +5500,7 @@ function renderCurrentPage() {
   destroyCharts();
   const area = $('contentArea');
   if (!state.currentPage) { area.innerHTML = ''; return; }
+  if (state.currentPage === 'goals') { renderGoals(); return; }
   if (!hasData()) { area.innerHTML = emptyTip('请先上传成绩文件'); return; }
   area.innerHTML = '<div id="pageRoot"></div>';
   dispatchPage(state.currentPage, $('pageRoot'));
@@ -6104,15 +6065,6 @@ function bindEvents() {
       /* 切换标签前关闭可能打开的学习目标弹窗并恢复滚动 */
       document.body.style.overflow = '';
       state.topTab = btn.dataset.top;
-      if (state.topTab === 'goals') {
-        /* 进入学习目标：班级、科目默认不选，由用户自行勾选 */
-        setCheckboxSelection('globalClassWrap', []);
-        setCheckboxSelection('globalSubjectWrap', []);
-        if (window.Auth && Auth.afterGoalsClear) Auth.afterGoalsClear();
-        renderTabs();
-        renderGoals();
-        return;
-      }
       const group = TOP_TABS.find(g => g.id === state.topTab);
       if (group && group.pages.length) {
         if (!group.pages.some(p => p.id === state.currentPage)) {
@@ -6155,14 +6107,14 @@ document.addEventListener('click', () => closeExportMenu());
 
 /* ============================================================
  *  分值对齐引擎
- *  背景：同一科目在不同考试里满分可能不同（实测睿智 1类：物理
+ *  背景：同一科目在不同考试里满分可能不同（实测龙泉 1类：物理
  *        入学测 245 → 周测 105，地理 105 → 45）。不折算就会把
  *        「满分缩水」误判成「成绩暴跌」。
  *  规则：以每个「班级 × 科目」历次考试中出现过的最高满分为基准，
  *        把其余考试的成绩按 最高满分 / 当次满分 等比放大。
  *        选「最高」而非「最新」：放大到最大尺度不丢分辨率，
  *        且满分最高的那次成绩保持原样不动。
- *  总分：表里常不标满分（如睿智只有「总分」而无「总分（450）」），
+ *  总分：表里常不标满分（如龙泉只有「总分」而无「总分（450）」），
  *        此时按该次考试各科满分之和推导，保证单科满分一变、总分
  *        也跟着对齐。
  *  安全：解析完先存原始快照 RAW_CLASSES，开关切换都从快照重算，

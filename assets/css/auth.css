@@ -300,3 +300,21 @@ body.pw-admin .status-bar { display: none !important; }
   white-space: normal; display: -webkit-box; -webkit-line-clamp: 2;
   -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5;
 }
+
+/* ===== 管理台：AI / 硅基流动配置 ===== */
+.auth-mask.admin-mode .ai-form { margin: 8px 0 16px; }
+.auth-mask.admin-mode .ai-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.auth-mask.admin-mode .ai-table { border: 1px solid #e5eaf4; border-radius: 12px; overflow: hidden; margin: 6px 0 14px; background: #fff; }
+.auth-mask.admin-mode .ai-tr { display: grid; grid-template-columns: 1.1fr 1.05fr 1.5fr 1.15fr; gap: 10px; align-items: center; padding: 9px 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+.auth-mask.admin-mode .ai-tr:last-child { border-bottom: 0; }
+.auth-mask.admin-mode .ai-tr.ai-head { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 12px; }
+.auth-mask.admin-mode .ai-tr > span { min-width: 0; }
+.auth-mask.admin-mode .ai-tr > span > b { display: block; color: #1e293b; font-size: 13px; }
+.auth-mask.admin-mode .ai-tr > span > em { display: block; font-style: normal; color: #94a3b8; font-size: 11px; margin-top: 2px; }
+.auth-mask.admin-mode .ai-sel, .auth-mask.admin-mode .ai-key { width: 100%; box-sizing: border-box; height: 32px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0 8px; font-size: 12px; color: #0f172a; background: #fff; }
+.auth-mask.admin-mode .ai-key { font-family: ui-monospace, Consolas, monospace; }
+@media (max-width: 900px) {
+  .auth-mask.admin-mode .ai-tr { grid-template-columns: 1fr 1fr; }
+  .auth-mask.admin-mode .ai-head { display: none; }
+  .auth-mask.admin-mode .ai-two { grid-template-columns: 1fr; }
+}

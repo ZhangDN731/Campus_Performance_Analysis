@@ -44,6 +44,19 @@
   const DEFAULT_PWD = '123456';
   const SUBJECTS = ['语文', '数学', '英语', '物理', '化学', '生物', '政治', '历史', '地理', '信息技术', '美术'];
 
+  /* AI（硅基流动）配置：global 为管理员统一配置；teachers 为每位老师的 API 模式 */
+  function aiDefaults() {
+    return {
+      global: {
+        baseUrl: 'https://api.siliconflow.cn/v1/chat/completions',
+        textModel: 'Qwen/Qwen2.5-7B-Instruct',
+        visionModel: 'Qwen/Qwen2.5-VL-72B-Instruct',
+        defaultKey: ''
+      },
+      teachers: {}
+    };
+  }
+
   /* ---------- 三校区共用一套数据库：账号带校区，班级分组按校区隔离 ---------- */
   const CAMPUSES = ['龙泉校区', '星耀校区', '睿智校区'];
   const CAMPUS = (typeof CAMPUS_CONFIG !== 'undefined' && CAMPUS_CONFIG.name) || '龙泉校区';
@@ -53,7 +66,7 @@
   /* 各角色可见的核心页签 */
   const PAGES_BASE = ['f6', 'f7', 'f5', 'f3a', 'f1a'];
   const PAGES_ADMIN = PAGES_BASE.concat(['f8', 'f9']);
-  const PAGES_TEACHER = PAGES_BASE.concat(['f8', 'f9', 'f10']);
+  const PAGES_TEACHER = PAGES_BASE.concat(['goals', 'f8', 'f9', 'f10']);
 
   let db = null;
   let view = 'login';
@@ -101,7 +114,8 @@
       v: DB_VERSION, updatedAt: nowStr(), users: seedUsers(),
       campuses: emptyCampusMap(),
       subjectClasses: {},           /* 兼容旧字段，迁移时并入「龙泉校区」 */
-      logs: []
+      logs: [],
+      ai: aiDefaults()
     };
   }
   function loadDB() {
@@ -178,6 +192,9 @@
         cm[key] = u.classes.slice();
       }
     });
+    if (!o.ai || typeof o.ai !== 'object') o.ai = aiDefaults();
+    if (!o.ai.global) o.ai.global = aiDefaults().global;
+    if (!o.ai.teachers || typeof o.ai.teachers !== 'object') o.ai.teachers = {};
   }
   function saveDB(o) {
     db = o || db;
@@ -189,6 +206,45 @@
     if (!Array.isArray(db.logs)) db.logs = [];
     db.logs.push({ t: nowStr(), text: String(text) });
     if (db.logs.length > 200) db.logs = db.logs.slice(-200);
+  }
+
+  /* ---------------- AI（硅基流动）配置 ---------------- */
+  function aiConfig() {
+    if (!db.ai || typeof db.ai !== 'object') db.ai = aiDefaults();
+    if (!db.ai.global) db.ai.global = aiDefaults().global;
+    if (!db.ai.teachers || typeof db.ai.teachers !== 'object') db.ai.teachers = {};
+    return db.ai;
+  }
+  function aiSaveGlobal(data) {
+    const a = aiConfig();
+    a.global = Object.assign({}, aiDefaults().global, a.global, data || {});
+    saveDB();
+    logAct('更新 AI 全局配置（地址 / 模型 / 默认 Key）');
+  }
+  function aiSaveTeachers(map) {
+    const a = aiConfig();
+    a.teachers = map || {};
+    saveDB();
+    logAct('更新教师 AI API 分配');
+  }
+  /* 解析当前登录教师实际使用的 AI 配置：共用管理员 / 独立 Key / 与某老师共用 */
+  function aiConfigFor() {
+    const a = aiConfig();
+    const g = a.global || {};
+    const u = currentUser();
+    if (!u || u.role !== 'admin' && u.role !== 'teacher') return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: g.defaultKey || '' };
+    const t = (a.teachers || {})[u.u] || null;
+    if (u.role === 'admin' || !t || t.mode === 'default') {
+      return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: g.defaultKey || '' };
+    }
+    if (t.mode === 'self' && t.key) {
+      return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: t.key };
+    }
+    if (t.mode === 'share' && t.share) {
+      const peer = (a.teachers || {})[t.share];
+      if (peer && peer.key) return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: peer.key };
+    }
+    return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: g.defaultKey || '' };
   }
   function findUser(u) {
     if (!u) return null;
@@ -218,6 +274,12 @@
     return SUBJECT_ALIAS[s] || s;
   }
   function el(id) { return document.getElementById(id); }
+  /* 是否被 iframe 内嵌（上传页的「教师管理」标签里嵌着本页管理台） */
+  function inIframe() { try { return window.self !== window.top; } catch (e) { return false; } }
+  /* 管理员统一在「成绩上传」页面登录；校区页独立打开时不再承载管理台 */
+  function redirectToUpload() {
+    try { location.href = 'upload.html'; } catch (e) { location.replace('upload.html'); }
+  }
   function esc(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -252,24 +314,58 @@
     const subBar = document.querySelector('.sub-tabs');
     if (tabsBar) tabsBar.style.display = isAdmin ? 'none' : '';
     if (subBar) subBar.style.display = isAdmin ? 'none' : '';
-    if (isAdmin) { renderAdminConsole(); return; }
-
-    core.pages = ids.map(id => reg[id]).filter(Boolean);
-
-    const extra = TOP_TABS.find(g => g.id === 'extra');
-    /* 登录只是加权限，不削减原有页面：教师同样保留「拓展分析」 */
-    const hideExtra = false;
-    document.querySelectorAll('.main-tab').forEach(b => {
-      if (b.dataset.top === 'extra') b.style.display = hideExtra ? 'none' : '';
-    });
-    if (hideExtra && (!state || state.topTab === 'extra')) {
-      try { state.topTab = 'core'; } catch (e) {}
+    if (isAdmin) {
+      /* 独立打开校区页：管理员不在这里登录/管理，直接回到成绩上传页；仅 iframe 内嵌时保留管理台 */
+      if (!inIframe()) { redirectToUpload(); return; }
+      renderAdminConsole(); return;
     }
-    if (state && core.pages.length && !core.pages.some(p => p.id === state.currentPage)) {
+
+    /* 核心分析只放 5 个核心页；报表处理组单独取 goals/f8/f9/f10，避免串页 */
+    core.pages = ['f6', 'f7', 'f5', 'f3a', 'f1a'].map(id => reg[id]).filter(Boolean);
+
+    /* 两层结构：核心分析 / 报表处理组 / 拓展分析；登录前只露出核心分析 */
+    const report = TOP_TABS.find(g => g.id === 'report');
+    if (report) report.pages = ids.filter(id => ['goals', 'f8', 'f9', 'f10'].indexOf(id) >= 0).map(id => reg[id]).filter(Boolean);
+    const extra = TOP_TABS.find(g => g.id === 'extra');
+    const visible = {
+      core: true,
+      report: !!(u && report && report.pages.length),
+      extra: !!(u && extra && extra.pages.length)
+    };
+    document.querySelectorAll('.main-tab').forEach(b => {
+      b.style.display = visible[b.dataset.top] ? '' : 'none';
+    });
+    if (state && !visible[state.topTab]) {
+      state.topTab = 'core';
+      state.currentPage = core.pages[0] ? core.pages[0].id : 'f6';
+      state.mergedSeg = {};
+    }
+    if (state && core.pages.length && state.topTab === 'core' && !core.pages.some(p => p.id === state.currentPage)) {
       state.currentPage = core.pages[0].id;
     }
     if (typeof renderTabs === 'function') renderTabs();
-    if (extra && hideExtra && !extra.pages.length) extra.pages = [];
+  }
+
+  /* 未登录：默认勾选全部班级、全部科目，开箱即可看全量数据 */
+  function applyGuestDefaults() {
+    if (currentUser()) return;
+    let changed = false;
+    [['globalClassWrap'], ['globalSubjectWrap']].forEach(pair => {
+      const box = el(pair[0]);
+      if (!box) return;
+      const items = Array.prototype.slice.call(box.querySelectorAll('.checkbox-item'));
+      if (!items.length) return;
+      items.forEach(it => {
+        const inp = it.querySelector('input');
+        if (!inp) return;
+        if (!inp.checked) { inp.checked = true; changed = true; }
+        it.style.display = '';
+        it.classList.add('checked');
+      });
+    });
+    if (changed) {
+      try { autoSetScoreLines && autoSetScoreLines(); } catch (e) {}
+    }
   }
 
   /* 审核员专用：登录后直接进入整页管理台（教师管理为主界面，不再有控制台卡片） */
@@ -435,6 +531,7 @@
     try { applyTabs(); } catch (e) { console.warn('页签应用失败', e); }
     try { applyClassLock(false); } catch (e) { console.warn('班级锁定失败', e); }
     if (reRender) { try { applySubjectDefault(); } catch (e) { console.warn('科目默认失败', e); } }
+    if (!currentUser()) { try { applyGuestDefaults(); } catch (e) { console.warn('访客全选失败', e); } }
     renderEntry();
     if (reRender && !admin) {
       try {
@@ -482,7 +579,12 @@
       if (!lockedClasses()) return;
       window.__AUTH_LOCK_SIG = null;
       applyClassLock(false);
-    }
+    },
+    /* AI 配置：读取 / 保存全局 / 保存教师分配 / 解析当前可用配置 */
+    aiRaw: function () { const a = aiConfig(); return { global: a.global, teachers: a.teachers }; },
+    aiSaveGlobal: aiSaveGlobal,
+    aiSaveTeachers: aiSaveTeachers,
+    aiConfigFor: aiConfigFor
   };
 
   /* ---------------- 顶部入口按钮 ---------------- */
@@ -660,6 +762,7 @@
       { id: 'users', label: '教师管理' },
       { id: 'pending', label: '待审核' },
       { id: 'classes', label: '默认班级' },
+      { id: 'ai', label: 'AI 配置' },
       { id: 'data', label: '数据备份' },
       { id: 'secure', label: '安全设置' }
     ];
@@ -670,6 +773,7 @@
     if (adminTab === 'pending') body = adminPending();
     else if (adminTab === 'users') body = adminUsers();
     else if (adminTab === 'classes') body = adminClasses();
+    else if (adminTab === 'ai') body = adminAi();
     else if (adminTab === 'data') body = adminData();
     else if (adminTab === 'import') body = adminImport();
     else body = adminSecure();
@@ -839,6 +943,42 @@
       '<button class="btn" type="button" data-act="admin-tab" data-tab="users">取消</button></div>' +
       '<p class="auth-tip">新建账号直接为「正常」状态，可直接登录；账号全库唯一，校区只决定他能看到哪个校区的班级。</p></form>';
   }
+  function adminAi() {
+    const a = aiConfig();
+    const g = Object.assign({}, aiDefaults().global, a.global || {});
+    const teachers = db.users.filter(u => u.role !== 'admin');
+    const rows = teachers.map(u => {
+      const t = (a.teachers || {})[u.u] || { mode: 'default', key: '', share: '' };
+      const mode = t.mode || 'default';
+      const key = t.key || '';
+      const share = t.share || '';
+      const peerOptions = teachers.filter(p => p.u !== u.u)
+        .map(p => '<option value="' + esc(p.u) + '"' + (p.u === share ? ' selected' : '') + '>' + esc(p.name) + '（' + esc(p.subject || '-') + '）</option>').join('');
+      return '<div class="ai-tr" data-u="' + esc(u.u) + '">' +
+        '<span><b>' + esc(u.name) + '</b><em>' + esc(u.campus || '龙泉校区') + ' · ' + esc(u.subject || '-') + '</em></span>' +
+        '<span><select class="ai-sel" data-ai-mode data-u="' + esc(u.u) + '">' +
+          '<option value="default"' + (mode === 'default' ? ' selected' : '') + '>共用管理员 API</option>' +
+          '<option value="self"' + (mode === 'self' ? ' selected' : '') + '>独立 API</option>' +
+          '<option value="share"' + (mode === 'share' ? ' selected' : '') + '>与某老师共用 API</option>' +
+        '</select></span>' +
+        '<span class="ai-key-cell" style="display:' + (mode === 'self' ? '' : 'none') + '"><input class="ai-key" data-ai-key data-u="' + esc(u.u) + '" placeholder="该老师自己的 Key" value="' + esc(key) + '"></span>' +
+        '<span class="ai-share-cell" style="display:' + (mode === 'share' ? '' : 'none') + '"><select class="ai-sel" data-ai-share data-u="' + esc(u.u) + '"><option value="">选择老师</option>' + peerOptions + '</select></span>' +
+      '</div>';
+    }).join('');
+    return '<p class="auth-tip">AI 读卷调用硅基流动（SiliconFlow）接口：管理员可统一配置默认地址、模型与 Key；也可为每位老师单独接入 API，或选择与某位老师共用一个 Key。</p>' +
+    '<form class="auth-form ai-form" style="max-width:560px">' +
+      '<label><span>API 地址</span><input id="aiBaseUrl" value="' + esc(g.baseUrl) + '" placeholder="https://api.siliconflow.cn/v1/chat/completions"></label>' +
+      '<label><span>文本模型</span><input id="aiTextModel" value="' + esc(g.textModel) + '" placeholder="如 Qwen/Qwen2.5-7B-Instruct"></label>' +
+      '<label><span>识图模型</span><input id="aiVisionModel" value="' + esc(g.visionModel) + '" placeholder="如 Qwen/Qwen2.5-VL-72B-Instruct"></label>' +
+      '<label><span>管理员默认 Key</span><input id="aiDefaultKey" type="password" value="' + esc(g.defaultKey) + '" placeholder="sk-..."></label>' +
+      '<div class="auth-row"><button class="btn btn-primary" type="button" data-act="save-ai-global">保存全局配置</button>' +
+      '<button class="btn" type="button" data-act="test-ai">测试连接</button>' +
+      '<span class="auth-muted" id="aiTestMsg"></span></div>' +
+    '</form>' +
+    '<div class="ai-table"><div class="ai-tr ai-head"><span>教师</span><span>API 模式</span><span>独立 Key</span><span>共用对象</span></div>' + rows + '</div>' +
+    '<div class="auth-row"><button class="btn btn-primary" type="button" data-act="save-ai-teachers">保存教师 API 配置</button></div>' +
+    '<p class="auth-tip dim">「共用管理员 API」使用上面的默认 Key；「独立 API」填写该老师自己的 Key；「与某老师共用」选择一位已填独立 Key 的老师。</p>';
+  }
   function adminSecure() {
     return '<form id="adminPwdForm" class="auth-form">' +
       '<label><span>新密码</span><input id="apwNew" type="password" placeholder="至少 6 位"></label>' +
@@ -912,6 +1052,47 @@
           editTeacher = null;
           msg = null;
           return renderCard();
+        }
+        if (act === 'save-ai-global') {
+          const baseUrl = (el('aiBaseUrl') && el('aiBaseUrl').value.trim()) || '';
+          const textModel = (el('aiTextModel') && el('aiTextModel').value.trim()) || '';
+          const visionModel = (el('aiVisionModel') && el('aiVisionModel').value.trim()) || '';
+          const defaultKey = (el('aiDefaultKey') && el('aiDefaultKey').value.trim()) || '';
+          window.Auth.aiSaveGlobal({ baseUrl: baseUrl, textModel: textModel, visionModel: visionModel, defaultKey: defaultKey });
+          msg = { type: 'ok', text: 'AI 全局配置已保存。' };
+          return renderCard();
+        }
+        if (act === 'save-ai-teachers') {
+          const map = {};
+          Array.prototype.slice.call(card.querySelectorAll('[data-ai-mode]')).forEach(sel => {
+            const uu = sel.dataset.u;
+            const keyEl = card.querySelector('[data-ai-key][data-u="' + uu + '"]');
+            const shareEl = card.querySelector('[data-ai-share][data-u="' + uu + '"]');
+            map[uu] = {
+              mode: sel.value || 'default',
+              key: keyEl ? keyEl.value.trim() : '',
+              share: shareEl ? shareEl.value : ''
+            };
+          });
+          window.Auth.aiSaveTeachers(map);
+          msg = { type: 'ok', text: '教师 API 配置已保存。' };
+          return renderCard();
+        }
+        if (act === 'test-ai') {
+          const baseUrl = (el('aiBaseUrl') && el('aiBaseUrl').value.trim()) || '';
+          const model = (el('aiTextModel') && el('aiTextModel').value.trim()) || '';
+          const key = (el('aiDefaultKey') && el('aiDefaultKey').value.trim()) || '';
+          const box = el('aiTestMsg');
+          if (!baseUrl || !model || !key) { if (box) box.textContent = '请先填写地址、模型和 Key'; return; }
+          if (box) box.textContent = '正在测试…';
+          fetch(baseUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+            body: JSON.stringify({ model: model, messages: [{ role: 'user', content: '只回复 OK' }], max_tokens: 8, temperature: 0 })
+          }).then(r => r.text().then(t => ({ ok: r.ok, status: r.status, t: t }))).then(res => {
+            if (box) box.textContent = res.ok ? '连接成功' : ('连接失败：HTTP ' + res.status + ' ' + res.t.slice(0, 80));
+          }).catch(err => { if (box) box.textContent = '连接失败：' + (err && err.message ? err.message : err); });
+          return;
         }
         if (act === 'admin-tab') {
           const t = b.dataset.tab;
@@ -1005,6 +1186,19 @@
     const dbf = card.querySelector('#dbImportForm');
     if (dbf) dbf.addEventListener('submit', ev => { ev.preventDefault(); onImportDB(el('dbText').value); });
 
+    /* AI 配置：切换 API 模式时显隐独立 Key / 共用对象 */
+    card.querySelectorAll('[data-ai-mode]').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const row = sel.closest('.ai-tr');
+        if (!row) return;
+        const mode = sel.value;
+        const keyCell = row.querySelector('.ai-key-cell');
+        const shareCell = row.querySelector('.ai-share-cell');
+        if (keyCell) keyCell.style.display = mode === 'self' ? '' : 'none';
+        if (shareCell) shareCell.style.display = mode === 'share' ? '' : 'none';
+      });
+    });
+
     const lf = card.querySelector('#authLoginForm');
     if (lf) lf.addEventListener('submit', ev => { ev.preventDefault(); doLogin(); });
     const rf = card.querySelector('#authRegForm');
@@ -1037,6 +1231,13 @@
     if (u.status === 'pending') { msg = { type: 'warn', text: '账号正在等待审核员审核，通过后才能登录' }; return renderCard(); }
     if (u.status === 'disabled') { msg = { type: 'err', text: '账号已被停用，请联系审核员' }; return renderCard(); }
     if (u.pwd !== pp) { msg = { type: 'err', text: '密码错误' }; return renderCard(); }
+    /* 管理员统一在「成绩上传」页面登录；校区页独立打开时不受理管理员账号 */
+    if (u.role === 'admin' && !inIframe()) {
+      msg = { type: 'warn', text: '管理员请在「成绩上传」页面登录，正在跳转…' };
+      renderCard();
+      setTimeout(redirectToUpload, 900);
+      return;
+    }
     try { localStorage.setItem(LS_SESSION, u.u); } catch (e) {}
     if (window.__REP_MODE_SYNC) window.__REP_MODE_SYNC(u.mode || 'self');
     applyAll(true);
