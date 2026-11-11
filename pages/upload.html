@@ -84,11 +84,11 @@ body::before{
 .result-error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
 /* 左右两列：成绩文件 / 目标文件 —— 四行共用栅格，逐行对齐 */
 .upload-cols{
-  display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto 1fr auto;
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto 1fr auto;
   column-gap:20px;margin-top:8px;
 }
 .up-col{
-  grid-row:1 / 5;
+  grid-row:1 / 5;min-width:0;
   display:grid;grid-template-rows:subgrid;
   background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px 16px 18px;
 }
@@ -115,7 +115,7 @@ body::before{
 .tpl-item .tpl-icon svg{width:24px;height:24px}
 .tpl-text{display:flex;flex-direction:column;gap:3px;min-width:0}
 .tpl-item .tpl-name{font-size:.85rem;font-weight:700;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tpl-item .tpl-desc{font-size:.72rem;color:#94a3b8;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpl-item .tpl-desc{font-size:.72rem;color:#94a3b8;line-height:1.45;white-space:normal;overflow-wrap:anywhere}
 .back-link{display:inline-block;margin-top:16px;font-size:.8rem;color:var(--primary);text-decoration:none;font-weight:600}
 .back-link:hover{text-decoration:underline}
 .upload-action{background:#e0e7ff;color:#3730a3;border-radius:12px;padding:12px;width:100%}
@@ -445,6 +445,11 @@ function doLogout(){
   $('loginBtn').disabled = false;
 }
 
+/* 卡片状态缓存：提前声明，避免「恢复登录态」时在暂时性死区里被读取 */
+const fileMetaCache = {};
+let repoSizeMap = null;    /* 仓库路径 → 字节数，一次树接口拿全，卡片状态不用整份下载 */
+let repoTimeMap = null;    /* 仓库路径 → 'YYYY-MM-DD HH:mm'（最近一次提交时间） */
+
 async function showUploadPage(){
   $('loginPage').style.display = 'none';
   $('uploadPage').style.display = 'block';
@@ -459,6 +464,13 @@ async function showUploadPage(){
   resetTarget();
   /* 先拿一次仓库文件清单（只含路径与大小），卡片状态即时可见，避免逐个拉整份文件 */
   await loadRepoSizeMap();
+  refreshGradeCards();
+  refreshTargetCards();
+  /* 体积出来后先显示「查询中」，再补最近更新日期，避免整块等待 */
+  await loadRepoTimeMap([
+    ...gradeCampusList().map(c => 'data/' + c.file),
+    ...targetCampusList().map(c => c.targetFile)
+  ]);
   refreshGradeCards();
   refreshTargetCards();
 }
@@ -476,8 +488,6 @@ $('password').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); })
 $('username').addEventListener('keydown', e=>{ if(e.key==='Enter') $('password').focus(); });
 
 /* ==================== 下载：优先取仓库最新已存文件，缺失时回退空白模板 ==================== */
-const fileMetaCache = {};
-let repoSizeMap = null;   /* 仓库路径 → 字节数，一次树接口拿全，卡片状态不用整份下载 */
 
 async function loadRepoSizeMap(){
   try{
@@ -492,6 +502,63 @@ async function loadRepoSizeMap(){
     repoSizeMap = map;
     return map;
   }catch(e){ console.warn('读取仓库文件清单失败：', e); return null; }
+}
+
+/* ==================== 最近更新日期：取该文件最近一次提交时间（按北京时间显示） ==================== */
+
+function formatRepoTime(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return '';
+  const p2 = n => String(n).padStart(2,'0');
+  try{
+    const parts = new Intl.DateTimeFormat('zh-CN', {
+      timeZone:'Asia/Shanghai', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false
+    }).formatToParts(d);
+    const o = {}; parts.forEach(p => { o[p.type] = p.value; });
+    return `${o.year}-${o.month}-${o.day} ${o.hour}:${o.minute}`;
+  }catch(e){
+    const b = new Date(d.getTime() + 8 * 3600 * 1000);   /* 兜底：手工换算 UTC+8 */
+    return `${b.getUTCFullYear()}-${p2(b.getUTCMonth()+1)}-${p2(b.getUTCDate())} ${p2(b.getUTCHours())}:${p2(b.getUTCMinutes())}`;
+  }
+}
+
+/* 单个路径最近一次提交时间；无提交或无权限时返回空串（网络抖动重试一次） */
+async function fetchRepoTime(path){
+  for(let attempt = 0; attempt < 2; attempt++){
+    try{
+      const resp = await fetch(`${API_BASE}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits?path=${encodeRepoPath(path)}&per_page=1`, {
+        headers: {'Authorization':'token '+_dec(), 'Accept':'application/vnd.github.v3+json'}
+      });
+      if(!resp.ok){ if(resp.status >= 500 && attempt === 0){ continue; } return ''; }
+      const arr = await resp.json();
+      if(!Array.isArray(arr) || !arr.length) return '';
+      const c = arr[0].commit || {};
+      const iso = (c.committer && c.committer.date) || (c.author && c.author.date) || '';
+      return formatRepoTime(iso);
+    }catch(e){
+      if(attempt === 0){ await new Promise(r => setTimeout(r, 1200)); continue; }
+      console.warn('查询更新时间失败：', path, e);
+    }
+  }
+  return '';
+}
+
+async function loadRepoTimeMap(paths){
+  const uniq = Array.from(new Set(paths));
+  const times = await Promise.all(uniq.map(fetchRepoTime));
+  const map = {};
+  uniq.forEach((p, i) => { if(times[i]) map[p] = times[i]; });
+  repoTimeMap = map;
+  return map;
+}
+
+/* 卡片副标题：第一行体积，第二行最近一次更新时间 + 下载提示 */
+function buildCardDesc(meta){
+  if(!meta || !meta.exists) return '尚未上传 · 暂无更新日期<br>点击下载空白模板';
+  const line1 = '已上传 · ' + formatSize(meta.size);
+  const state = meta.time === undefined ? '更新日期查询中…' : (meta.time ? meta.time + ' 更新' : '更新日期未知');
+  return line1 + '<br>' + state + ' · 点击下载最新版';
 }
 
 /* 从 GitHub Contents API 拉取仓库内文件字节；不存在返回 null */
@@ -578,16 +645,17 @@ async function probeGradeCard(card){
     }catch(e){ console.warn('查询成绩文件失败：', e); }
   }
   if(size !== null){
-    fileMetaCache[path] = {exists:true, size};
+    const time = repoTimeMap ? (repoTimeMap[path] || '') : undefined;
+    fileMetaCache[path] = {exists:true, size, time};
     card.classList.add('has-data'); card.classList.remove('no-data');
     nameEl.textContent = card.dataset.name + '成绩表';
-    desc.textContent = '已上传 · ' + formatSize(size) + ' · 点击下载最新版';
+    desc.innerHTML = buildCardDesc(fileMetaCache[path]);
     return fileMetaCache[path];
   }
   fileMetaCache[path] = {exists:false};
   card.classList.add('no-data'); card.classList.remove('has-data');
   nameEl.textContent = card.dataset.name + '空白模板';
-  desc.textContent = '尚未上传 · 点击下载空白模板';
+  desc.innerHTML = buildCardDesc(fileMetaCache[path]);
   return fileMetaCache[path];
 }
 
@@ -815,6 +883,8 @@ async function doUpload(){
         `✅ 上传成功！<br>文件：<b>${targetFile}</b><br>GitHub Pages 将在 1-2 分钟内自动更新。<br>访问地址：<a href="https://${GITHUB_OWNER}.github.io/${GITHUB_REPO}/" target="_blank">https://${GITHUB_OWNER}.github.io/${GITHUB_REPO}/</a>`
       );
       if(repoSizeMap && selectedFile) repoSizeMap[targetPath] = selectedFile.size;
+      if(!repoTimeMap) repoTimeMap = {};
+      repoTimeMap[targetPath] = formatRepoTime(new Date().toISOString());
       resetUpload();
       refreshGradeCards();
     } else {
@@ -903,16 +973,17 @@ async function probeTargetCard(card){
     }catch(e){ console.warn('查询目标文件失败：', e); }
   }
   if(size !== null){
-    targetMetaCache[path] = {exists:true, size};
+    const time = repoTimeMap ? (repoTimeMap[path] || '') : undefined;
+    targetMetaCache[path] = {exists:true, size, time};
     card.classList.add('has-data'); card.classList.remove('no-data');
     nameEl.textContent = label + '目标表';
-    desc.textContent = '已上传 · ' + formatSize(size) + ' · 点击下载最新版';
+    desc.innerHTML = buildCardDesc(targetMetaCache[path]);
     return targetMetaCache[path];
   }
   targetMetaCache[path] = {exists:false};
   card.classList.add('no-data'); card.classList.remove('has-data');
   nameEl.textContent = label + '空白目标模板';
-  desc.textContent = '尚未上传 · 点击下载空白模板';
+  desc.innerHTML = buildCardDesc(targetMetaCache[path]);
   return targetMetaCache[path];
 }
 
@@ -1113,7 +1184,9 @@ async function doUploadTarget(){
       showTargetResult('success',
         `✅ 目标院校表上传成功！<br>文件：<b>${targetDest}</b><br>对应校区「学习目标」页刷新后即可看到最新目标，GitHub Pages 约 1-2 分钟生效。`
       );
-      if(repoSizeMap && selectedTargetFile) repoSizeMap[path] = selectedTargetFile.size;
+      if(repoSizeMap && selectedTargetFile) repoSizeMap[targetDest] = selectedTargetFile.size;
+      if(!repoTimeMap) repoTimeMap = {};
+      repoTimeMap[targetDest] = formatRepoTime(new Date().toISOString());
       resetTarget();
       refreshTargetCards();
     } else {
