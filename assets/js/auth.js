@@ -60,7 +60,8 @@
   let msg = null;
   let draft = {};
   let editUser = null;      /* 后台：正在编辑默认班级的账号 */
-  let editSubject = null;   /* 后台：当前选中的科目分组 */
+  let editSubject = null;   /* 后台：当前选中的科目分组（旧版按科目共用，保留兼容） */
+  let editTeacher = null;   /* 后台：当前正在分配默认班级的老师账号 */
   let selUsers = new Set(); /* 后台：账号表里勾选待批量删除的账号 */
   let adminTab = 'pending';
   let adminCampus = CAMPUS; /* 后台：账号表当前查看的校区 */
@@ -342,9 +343,11 @@
   }
   function effectiveClasses(u) {
     if (!u || u.role === 'admin') return [];
+    /* 管理员按「单个老师」指定过的，严格按该老师自己的清单（可以是空） */
+    if (u.clsSet === true && Array.isArray(u.classes)) return u.classes.slice();
     const sub = mapSubject(u.subject);
     const map = campusSubjectClasses(u.campus || '龙泉校区');
-    const conf = Array.isArray(map[sub]) ? map[sub] : [];   /* 后台若显式指定过，就用指定的 */
+    const conf = Array.isArray(map[sub]) ? map[sub] : [];   /* 旧版按科目组设过，沿用 */
     if (conf.length) return conf.slice();
     return subjectDataClasses(sub);       /* 否则默认本科目全部班级 */
   }
@@ -713,7 +716,7 @@
             const arr = effectiveClasses(u);
             if (!arr.length) return '<span class="auth-muted">全部（自动，暂无数据）</span>';
             return esc(arr.join('、')) + ' <span class="auth-muted">（' + esc(subjectKey(u)) + '组 · ' +
-              ((campusSubjectClasses(u.campus || '龙泉校区')[subjectKey(u)] || []).length ? '手动指定' : '自动全部') + '）</span>';
+              (u.clsSet === true ? '按本人设定' : '自动全部') + '）</span>';
           })()) + '</span>' +
         '<span class="auth-ops">' +
           (u.role === 'admin' ? '<span class="auth-muted">—</span>' :
@@ -777,42 +780,38 @@
         '<button class="btn" type="button" data-act="admin-campus" data-campus="' + esc(CAMPUS) + '">切回' + esc(CAMPUS) + '</button></div>';
     }
     const teachers = db.users.filter(u => u.role !== 'admin' && (u.campus || '龙泉校区') === adminCampus);
-    const cls = classList();
-    if (!cls.length) return '<p class="auth-empty">当前页面还没加载成绩数据，加载后点这里刷新即可分配班级。' +
+    if (!classList().length) return '<p class="auth-empty">当前页面还没加载成绩数据，加载后点这里刷新即可分配班级。' +
       '（默认班级是分校区设置的：要给「' + esc(adminCampus) + '」的老师分配，请在该校区页面里操作。）</p>' +
       '<button class="btn" type="button" data-act="admin-tab" data-tab="classes">刷新</button>';
-    /* 按科目分组：一个科目一组默认班级，同科目教师自动共享 */
-    const groups = [];
-    teachers.forEach(u => {
-      const k = subjectKey(u);
-      let g = groups.find(x => x.key === k);
-      if (!g) { g = { key: k, names: [] }; groups.push(g); }
-      g.names.push(u.name);
-    });
-    if (!groups.length) return '<p class="auth-empty">还没有教师账号。</p>';
-    const cur = groups.find(g => g.key === editSubject) || groups[0];
-    editSubject = cur.key;
-    const on = classesOfSubject(cur.key);
-    return '<p class="auth-tip">默认班级默认自动取「任课科目在成绩里出现过的全部班级」，同科目老师看到的是同一批班；' +
-      '只有在这里手动勾选后才会缩小范围（勾空则恢复自动全部）。</p>' +
+    if (!teachers.length) return '<p class="auth-empty">还没有教师账号。</p>';
+    const cur = teachers.find(u => u.u === editTeacher) || teachers[0];
+    editTeacher = cur.u;
+    /* 该老师本科目实际有成绩的班级（老师自己带的班），没有则退回页面全部班级 */
+    const sub = mapSubject(cur.subject);
+    const subCls = subjectDataClasses(sub);
+    const pool = subCls.length ? subCls : classList();
+    const on = effectiveClasses(cur);
+    return '<p class="auth-tip">按<b>单个老师</b>分配：左边选老师，右边只显示这个老师任教科目（' + esc(sub || '未设科目') +
+      '）实际有成绩的班级。保存后，这位老师登录就只看到、只导出这些班；没分配过的老师默认本科目全部班级。</p>' +
       '<div class="auth-subj-tabs">' +
-        groups.map(g => '<button class="' + (g.key === cur.key ? 'on' : '') + '" type="button" data-act="pick-subject" data-subject="' +
-          esc(g.key) + '">' + esc(g.key) + '<span class="n">' + g.names.length + '人</span></button>').join('') +
+        teachers.map(u => '<button class="' + (u.u === cur.u ? 'on' : '') + '" type="button" data-act="pick-teacher" data-u="' + esc(u.u) + '">' +
+          esc(u.name) + '<span class="n">' + esc(subjectKey(u)) + '</span></button>').join('') +
       '</div>' +
       '<div class="auth-subj-info">' +
-        '<span class="label">' + esc(cur.key) + '组</span>' +
-        '<span class="names">' + esc(cur.names.join('、')) + '</span>' +
-        '<span class="count">已设 ' + on.length + ' 个班级</span>' +
+        '<span class="label">' + esc(cur.name) + ' · ' + esc(cur.subject || '未设科目') + '</span>' +
+        '<span class="names">账号 ' + esc(cur.u) + ' ｜ 可分配班级 ' + pool.length + ' 个</span>' +
+        '<span class="count">' + (cur.clsSet === true ? '已按本人设 ' + on.length + ' 个班' : '默认全部 · 当前 ' + on.length + ' 个班') + '</span>' +
       '</div>' +
-      '<div class="auth-class-grid" id="clsBox" data-subject="' + esc(cur.key) + '">' +
-      cls.map(c => {
+      '<div class="auth-class-grid" id="clsBox" data-user="' + esc(cur.u) + '" data-subject="' + esc(sub) + '">' +
+      pool.map(c => {
         const sel = on.indexOf(c) >= 0;
         return '<label class="auth-check' + (sel ? ' on' : '') + '"><input type="checkbox" value="' + esc(c) + '"' +
           (sel ? ' checked' : '') + '><span>' + esc(c) + '</span></label>';
       }).join('') + '</div>' +
-      '<div class="auth-row"><button class="btn btn-primary" type="button" data-act="save-class">保存「' + esc(cur.key) + '组」默认班级</button>' +
+      '<div class="auth-row"><button class="btn btn-primary" type="button" data-act="save-class">保存 ' + esc(cur.name) + ' 的默认班级</button>' +
       '<button class="btn" type="button" data-act="select-all-class">全选</button>' +
-      '<button class="btn" type="button" data-act="clear-all-class">清空</button></div>';
+      '<button class="btn" type="button" data-act="clear-all-class">全不选</button>' +
+      '<button class="btn" type="button" data-act="reset-class">恢复本科目全部班级</button></div>';
   }
   function editingNewUser() { return view === 'admin-newuser'; }
   function adminNewUserForm() {
@@ -903,6 +902,7 @@
         if (act === 'admin-campus') {
           adminCampus = b.dataset.campus || '全部';
           editSubject = null;
+          editTeacher = null;
           msg = null;
           return renderCard();
         }
@@ -920,13 +920,16 @@
         if (act === 'edit-class') {
           const uu = findUser(b.dataset.u);
           editUser = b.dataset.u;
+          editTeacher = b.dataset.u;
           editSubject = uu ? subjectKey(uu) : editSubject;
           adminTab = 'classes';
           if (view === 'admin-newuser') view = 'admin';
           return renderCard();
         }
+        if (act === 'pick-teacher') { editTeacher = b.dataset.u || null; msg = null; return renderCard(); }
         if (act === 'pick-subject') return onPickSubject(b.dataset.subject);
         if (act === 'save-class') return onSaveClass();
+        if (act === 'reset-class') return onResetTeacherClass();
         if (act === 'select-all-class' || act === 'clear-all-class') {
           const on = act === 'select-all-class';
           card.querySelectorAll('#clsBox input[type=checkbox]').forEach(i => { i.checked = on; i.parentElement.classList.toggle('on', on); });
@@ -1124,16 +1127,29 @@
   }
   function onSaveClass() {
     const box = el('clsBox');
-    const key = box ? box.dataset.subject : editSubject;
-    if (!box || !key) { msg = { type: 'err', text: '请先选择科目分组' }; return renderCard(); }
+    const uu = box ? box.dataset.user : editTeacher;
+    const u = findUser(uu);
+    if (!box || !u) { msg = { type: 'err', text: '请先选择要分配的老师' }; return renderCard(); }
     const arr = Array.prototype.slice.call(box.querySelectorAll('input[type=checkbox]'))
       .filter(i => i.checked).map(i => i.value);
-    saveClassesOfSubject(key, arr);
-    logAct('设置「' + key + '组」默认班级：' + (arr.length ? arr.join('、') : '空'));
-    msg = { type: 'ok', text: '已保存「' + key + '组」默认班级：' + (arr.length ? arr.join('、') : '（空）') };
+    u.classes = arr;
+    u.clsSet = true;
+    saveDB();
+    logAct('设置 ' + u.name + ' 的默认班级：' + (arr.length ? arr.join('、') : '空'));
+    msg = { type: 'ok', text: '已保存 ' + u.name + '（' + (u.subject || '未设科目') + '）的默认班级：' + (arr.length ? arr.join('、') : '（空）') };
     window.__AUTH_LOCK_SIG = null;
-    const u = currentUser();
-    if (u && u.role === 'teacher') applyAll(true);
+    const me = currentUser();
+    if (me && me.role === 'teacher') applyAll(true);
+    renderCard();
+  }
+  function onResetTeacherClass() {
+    const u = findUser(editTeacher);
+    if (!u) { msg = { type: 'err', text: '请先选择要分配的老师' }; return renderCard(); }
+    delete u.clsSet;
+    delete u.classes;
+    saveDB();
+    logAct('恢复 ' + u.name + ' 为本科目全部班级');
+    msg = { type: 'ok', text: u.name + ' 已恢复「本科目全部班级」自动范围' };
     renderCard();
   }
 

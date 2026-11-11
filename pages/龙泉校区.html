@@ -2888,8 +2888,45 @@ function drawF6() {
           prevStdRate = ps.filter(s=>s>=prevStdLine).length / ps.length;
         }
       }
+      /* 分班进退步与缺考：本次 vs 上一次（同科目同班，分数已按对齐口径存放） */
+      const absentNames = [];
+      for (const name in students) {
+        const v = students[name] ? students[name][curExam] ? students[name][curExam][sub] : null : null;
+        if (typeof v !== 'number') absentNames.push(name);
+      }
+      let mvUp = 0, mvDown = 0, mvFlat = 0;
+      const upNames = [], downNames = [];
+      /* 总分/职测总分：按学生逐个核对两次考试的科目覆盖，覆盖不同的人不参与总分对比 */
+      const totalLike = sub === '总分' || sub === '职测总分';
+      const keySet = (rec) => {
+        if (!rec) return '';
+        const arr = [];
+        for (const s in rec) if (s !== '总分' && s !== '职测总分' && typeof rec[s] === 'number') arr.push(s);
+        return arr.sort().join('|');
+      };
+      let mvSkipStudent = 0;
+      if (prevExam) {
+        for (const name in students) {
+          const a = students[name] ? students[name][curExam] ? students[name][curExam][sub] : null : null;
+          const b = students[name] ? students[name][prevExam] ? students[name][prevExam][sub] : null : null;
+          if (typeof a !== 'number' || typeof b !== 'number') continue;
+          if (totalLike) {
+            const ka = keySet(students[name][curExam]), kb = keySet(students[name][prevExam]);
+            if (ka !== kb) { mvSkipStudent++; continue; }
+          }
+          const d = a - b;
+          if (Math.abs(d) < 0.05) mvFlat++;
+          else if (d > 0) { mvUp++; upNames.push({ name: name, d: d }); }
+          else { mvDown++; downNames.push({ name: name, d: d }); }
+        }
+      }
+      upNames.sort((x, y) => y.d - x.d);
+      downNames.sort((x, y) => x.d - y.d);
       rows.push({sub,cls,fullMark:curFm,rawMark:rawFmCur,minLine:minLineCur,stdLine:stdLineCur,total,minPass,stdPass,minPassList,stdPassList,
-        minRate:minPass/total,stdRate:stdPass/total,prevMinRate,prevStdRate,prevTotal,prevFullMark:prevFm});
+        minRate:minPass/total,stdRate:stdPass/total,prevMinRate,prevStdRate,prevTotal,prevFullMark:prevFm,
+        absent:absentNames.length,absentNames,roster:Object.keys(students).length,mvUp,mvDown,mvFlat,upNames,downNames,
+        mvSkip:totalLike && !!prevExam && (mvUp + mvDown + mvFlat) === 0 && mvSkipStudent > 0,
+        mvSkipStudent:mvSkipStudent});
     });
   });
   if (!rows.length) { wrap.innerHTML = '<div class="empty-hint">所选条件下暂无数据</div>'; return; }
@@ -2914,7 +2951,50 @@ function drawF6() {
   else paras.push('整体最低达标率偏低，建议加强基础教学。');
   const fmSet = new Set(rows.map(r=>r.fullMark));
   if (fmSet.size > 1) paras.push('所选范围存在多种科目满分，已按各班实际满分独立计算。');
-  summaryWrap.innerHTML = analysisPanel([{title:'达标率综合统计',items,paras}]);
+
+  /* 分班进退步与缺考（针对当前勾选的班级、本次考试） */
+  let mvUpAll = 0, mvDownAll = 0, mvFlatAll = 0, absentAll = 0, rosterAll = 0, mvSkipped = 0;
+  rows.forEach(r => {
+    if (r.mvSkip) { mvSkipped++; return; }
+    mvUpAll += r.mvUp; mvDownAll += r.mvDown; mvFlatAll += r.mvFlat;
+    absentAll += r.absent; rosterAll += r.roster;
+  });
+  const mvItems = [
+    {label:'本次考试',value:esc(curExam)},
+    {label:'对比考试',value:prevExam ? esc(prevExam) : '无（首次）'},
+    {label:'进步',value:prevExam ? mvUpAll+' 人次' : '-',cls:'font-up'},
+    {label:'退步',value:prevExam ? mvDownAll+' 人次' : '-',cls:'font-down'},
+    {label:'持平',value:prevExam ? mvFlatAll+' 人次' : '-',cls:'font-flat'},
+    {label:'缺考',value:absentAll+' 人（'+pct(rosterAll?absentAll/rosterAll:0)+'）',cls:absentAll?'font-down':''}
+  ];
+  const mvParas = [];
+  if (prevExam) {
+    mvParas.push('两次考试都有「' + subs.join('、') + '」成绩的共 ' + (mvUpAll+mvDownAll+mvFlatAll) + ' 人次：进步 ' + mvUpAll +
+      ' 人次、退步 ' + mvDownAll + ' 人次、持平 ' + mvFlatAll + ' 人次。');
+    const topUp = rows.filter(r=>r.upNames.length).map(r=>({cls:r.cls,sub:r.sub,n:r.upNames[0].name,d:r.upNames[0].d}))
+      .sort((a,b)=>b.d-a.d).slice(0,3);
+    const topDown = rows.filter(r=>r.downNames.length).map(r=>({cls:r.cls,sub:r.sub,n:r.downNames[0].name,d:r.downNames[0].d}))
+      .sort((a,b)=>a.d-b.d).slice(0,3);
+    if (topUp.length) mvParas.push('进步最大：' + topUp.map(x=>x.cls+'·'+x.n+'（+'+repFmt(x.d,1)+' 分）').join('；') + '。');
+    if (topDown.length) mvParas.push('退步最大：' + topDown.map(x=>x.cls+'·'+x.n+'（'+repFmt(x.d,1)+' 分）').join('；') + '。');
+  } else {
+    mvParas.push('本次是该科目第一次录入成绩，暂无可比的上一次考试，后续考试会自动统计进步与退步。');
+  }
+  const mvSkipStu = rows.reduce((s, r) => s + (r.mvSkipStudent || 0), 0);
+  if (mvSkipped) {
+    mvParas.push('「总分」两次考试的科目覆盖不一致，总分不可直接比较，已跳过总分的进退步统计，只按单科做进退步判断。');
+  } else if (mvSkipStu) {
+    mvParas.push('总分对比中，有 ' + mvSkipStu + ' 人次因两次考试录入的科目不一致（部分科目缺录）未参与比较，避免把缺科误算成退步。');
+  }
+  const zeroNames = (list) => list.length ? list.join('、') : '无';
+  if (absentAll) mvParas.push('本次缺考 ' + absentAll + ' 人（缺考率 ' + pct(rosterAll?absentAll/rosterAll:0) + '），名单：' +
+    zeroNames(rows.filter(r=>r.absentNames.length).map(r=>r.cls+'·'+r.sub+'：'+r.absentNames.join('、')))) ;
+  else mvParas.push('本次所选班级全部到考，无缺考。');
+
+  summaryWrap.innerHTML = analysisPanel([
+    {title:'达标率综合统计',items,paras},
+    {title:'分班进退步与缺考',items:mvItems,paras:mvParas}
+  ]);
   const rateCls = r => r>=0.8?'rate-good':r>=0.5?'rate-mid':'rate-low';
   const deltaHtml = (cur,prev) => {
     if (prev == null) return '<span class="rate-delta flat">—</span>';
@@ -3514,6 +3594,13 @@ function repEvalCard(st, cmp, rank, diff, comment) {
       (gap >= 0 ? '，高出 ' + repFmt(gap, 1) + ' 个百分点。' : '，低于 ' + repFmt(-gap, 1) + ' 个百分点。'));
   }
 
+  paras.push('本班缺考 ' + st.absent + ' 人（名册 ' + st.total + ' 人，参考率 ' + repPct(st.total ? st.ref / st.total : 0) +
+    '）：' + (st.absentNames.length ? st.absentNames.join('、') : '无') + '。');
+  if (cmp) {
+    paras.push('本班进退步（仅算两次都有「' + st.sub + '」成绩的学生）：进步 ' + cmp.moved.up + ' 人、退步 ' + cmp.moved.down +
+      ' 人、持平 ' + cmp.moved.flat + ' 人。');
+  }
+
   const up5 = repTopMoved(cmp, 'up', 5).map(x => x.name + ' ' + x.value + ' 分');
   const down5 = repTopMoved(cmp, 'down', 5).map(x => x.name + ' ' + x.value + ' 分');
   const brief = [
@@ -3522,7 +3609,12 @@ function repEvalCard(st, cmp, rank, diff, comment) {
     { label: '不及格率', value: repPct(st.failRate), cls: st.failRate >= 0.4 ? 'font-down' : '' },
     { label: '平均分变化', value: cmp ? (st.avg - cmp.prev.avg >= 0 ? '+' : '') + repFmt(st.avg - cmp.prev.avg, 1) : '-',
       cls: cmp && st.avg - cmp.prev.avg > 0 ? 'font-up' : cmp && st.avg - cmp.prev.avg < 0 ? 'font-down' : '' },
-    { label: '校区位次', value: rank && rank.rank ? '第 ' + rank.rank + ' / ' + rank.count : '-', cls: '' }
+    { label: '校区位次', value: rank && rank.rank ? '第 ' + rank.rank + ' / ' + rank.count : '-', cls: '' },
+    { label: '参考率', value: st.total ? repPct(st.ref / st.total) : '-', cls: st.total && st.ref / st.total >= 0.95 ? 'font-up' : '' },
+    { label: '缺考', value: st.absent + ' 人（' + repPct(st.total ? st.absent / st.total : 0) + '）', cls: st.absent ? 'font-down' : '' },
+    { label: '进步人数', value: cmp ? cmp.moved.up + ' 人' : '-', cls: cmp && cmp.moved.up ? 'font-up' : '' },
+    { label: '退步人数', value: cmp ? cmp.moved.down + ' 人' : '-', cls: cmp && cmp.moved.down ? 'font-down' : '' },
+    { label: '持平人数', value: cmp ? cmp.moved.flat + ' 人' : '-' }
   ];
 
   return '<div class="card rep-eval">' +
