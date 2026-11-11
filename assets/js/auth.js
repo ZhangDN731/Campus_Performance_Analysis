@@ -257,8 +257,11 @@
     const key = String(u).toLowerCase();
     return db.users.find(x => String(x.u).toLowerCase() === key) || null;
   }
-  /* 当前上下文该读哪个会话键：iframe 内嵌管理台读管理员共享会话；独立打开的校区页只读校区会话 */
-  function activeSessionKey() { return inIframe() ? LS_SESSION : LS_CAMPUS_SESSION; }
+  /* 当前上下文该读哪个会话键：上传页独立管理台 / iframe 内嵌管理台读管理员共享会话；独立打开的校区页只读校区会话 */
+  function activeSessionKey() {
+    if (window.__AUTH_HOST === 'admin') return LS_SESSION;
+    return inIframe() ? LS_SESSION : LS_CAMPUS_SESSION;
+  }
   function sessionName() {
     try { return localStorage.getItem(activeSessionKey()) || ''; } catch (e) { return ''; }
   }
@@ -594,7 +597,8 @@
     aiRaw: function () { const a = aiConfig(); return { global: a.global, teachers: a.teachers }; },
     aiSaveGlobal: aiSaveGlobal,
     aiSaveTeachers: aiSaveTeachers,
-    aiConfigFor: aiConfigFor
+    aiConfigFor: aiConfigFor,
+    closeAdmin: function () { close_(); }
   };
 
   /* ---------------- 顶部入口按钮 ---------------- */
@@ -1280,6 +1284,8 @@
     if (acts) acts.style.display = '';
     applyAll(true);
     close_();
+    /* 独立管理台宿主：登出后交由外层页面清理自身登录态 */
+    if (typeof window.__AUTH_LOGOUT_HOOK === 'function') { try { window.__AUTH_LOGOUT_HOOK(); } catch (e) {} }
   }
 
   function doRegister() {
@@ -1515,8 +1521,8 @@
   /* ---------------- 初始化 ---------------- */
   function init() {
     db = loadDB();
-    /* 独立打开的校区页：旧版与上传页共用的会话键不再采信；若是有效教师则迁移到校区会话，管理员/失效会话直接丢弃 */
-    if (!inIframe()) {
+    /* 独立打开的校区页：旧版与上传页共用的会话键不再采信；若是有效教师则迁移到校区会话，管理员/失效会话直接丢弃。上传页独立管理台不做此迁移 */
+    if (!inIframe() && window.__AUTH_HOST !== 'admin') {
       let old = '';
       try { old = localStorage.getItem(LS_SESSION) || ''; } catch (e) {}
       if (old) {
@@ -1531,7 +1537,7 @@
     if (n && !currentUser()) { clearSession(); }
 
     const mask = el('authMask');
-    if (mask) {
+    if (mask && window.__AUTH_HOST !== 'admin') {
       mask.addEventListener('click', ev => { if (ev.target === mask) close_(); });
       document.addEventListener('keydown', ev => { if (ev.key === 'Escape') close_(); });
     }

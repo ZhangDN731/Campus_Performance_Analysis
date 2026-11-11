@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../assets/css/auth.css">
 <title>成绩上传 - 校区成绩分析系统</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -201,7 +202,18 @@ body.role-admin .campus-pick{display:flex}
 }
 .admin-tabs button.on{background:#4f46e5;border-color:#4f46e5;color:#fff;}
 .teacher-panel{display:none;}
-.teacher-panel iframe{width:100%;height:calc(100vh - 190px);min-height:640px;border:0;border-radius:0;background:#fff;}
+/* 独立内嵌管理台：不再用 iframe 套校区页，管理台直接落在本页容器里 */
+.teacher-panel .admin-host#authMask{
+  position:static;display:block;background:transparent;padding:0;
+  -webkit-backdrop-filter:none;backdrop-filter:none;
+}
+.teacher-panel .admin-host#authMask .auth-card.admin-full{
+  width:100%;max-width:none;height:auto;max-height:calc(100vh - 150px);
+  border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;background:#fff;
+}
+.teacher-panel .admin-host .auth-body{overflow:auto}
+/* 外层头部已有「退出」，管理台卡片内的退出链接隐藏，避免重复 */
+.teacher-panel .admin-host .auth-link[data-act="logout"]{display:none}
 body.teacher-mode .upload-container{max-width:none;width:100%;padding-left:16px;padding-right:16px;}
 body.teacher-mode .upload-container .card{padding:14px 16px 16px;}
 </style>
@@ -367,7 +379,7 @@ body.teacher-mode .upload-container .card{padding:14px 16px 16px;}
     </div>
 
     <div class="teacher-panel" id="teacherPanel">
-      <iframe id="teacherFrame" title="教师管理（三校区）" src="about:blank"></iframe>
+      <div class="auth-mask admin-host" id="authMask" aria-hidden="true"><div class="auth-card" id="authCard"></div></div>
     </div>
 
     <a href="../index.html" class="back-link">← 返回首页</a>
@@ -449,14 +461,12 @@ function switchAdminTab(mode){
   if(mode === 'teacher'){
     cols.style.display = 'none'; panel.style.display = 'block';
     upBtn.classList.remove('on'); tBtn.classList.add('on');
-    const f = $('teacherFrame');
-    if(f && f.dataset.loaded !== '1'){
-      f.src = '龙泉校区.html?admin=1';
-      f.dataset.loaded = '1';
-    }
+    /* 直接在本页容器里打开管理台，不再内嵌校区页 iframe */
+    if (window.__openAdmin) window.__openAdmin('users');
   }else{
     panel.style.display = 'none'; cols.style.display = '';
     tBtn.classList.remove('on'); upBtn.classList.add('on');
+    if (window.Auth && typeof window.Auth.closeAdmin === 'function') window.Auth.closeAdmin();
   }
 }
 
@@ -502,8 +512,7 @@ function doLogout(){
     try{ localStorage.removeItem('pw_lq_session_v1'); }catch(e){}
   }
   currentAccount = null;
-  const tf = $('teacherFrame');
-  if(tf){ tf.src = 'about:blank'; delete tf.dataset.loaded; }
+  if (window.Auth && typeof window.Auth.closeAdmin === 'function') window.Auth.closeAdmin();
   switchAdminTab('upload');
   document.body.classList.remove('role-admin','role-campus');
   $('uploadPage').style.display = 'none';
@@ -1287,5 +1296,8 @@ async function doUploadTarget(){
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>if(!window.XLSX){document.write('<script src="https://fastly.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');}</script>
+<script>window.__AUTH_HOST = 'admin';</script>
+<script src="../assets/js/auth.js"></script>
+<script>window.__AUTH_LOGOUT_HOOK = doLogout;</script>
 </body>
 </html>
