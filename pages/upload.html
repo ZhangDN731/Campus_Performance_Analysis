@@ -83,16 +83,14 @@ body::before{
 .result-box{padding:14px;border-radius:10px;margin-bottom:16px;font-size:.84rem;line-height:1.6}
 .result-success{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
 .result-error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
-/* 左右两列：成绩文件 / 目标文件 —— 四行共用栅格，逐行对齐 */
-/* 高度交由外层卡片 flex 分配，与教师管理台同高；内容在区内滚动 */
+/* 左右两列：成绩文件 / 目标文件 —— 横向两列，列内纵向自然堆叠，内容在区内整体滚动 */
 .upload-cols{
-  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto 1fr auto;
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
   column-gap:20px;margin-top:8px;
   min-height:0;overflow:auto;
 }
 .up-col{
-  grid-row:1 / 5;min-width:0;
-  display:grid;grid-template-rows:subgrid;
+  min-width:0;display:flex;flex-direction:column;
   background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px 16px 18px;
 }
 .target-col{background:#fffdf7}
@@ -148,13 +146,6 @@ body.role-admin .campus-pick{display:flex}
 .tpl-item.downloading{opacity:.6;pointer-events:none}
 .muted-note{font-size:.72rem;color:var(--text-muted);margin-top:8px;line-height:1.6}
 .up-col .preview-grid{grid-template-columns:repeat(2,1fr)}
-/* 旧内核不支持 subgrid 时的退路：靠固定高度近似对齐 */
-@supports not (grid-template-rows: subgrid){
-  .up-col{display:flex;flex-direction:column}
-  .btn-block{margin-top:auto}
-  body.role-admin .dl-block{min-height:206px}
-  .ul-block{min-height:172px}
-}
 /* 文件预览卡片 */
 .preview-card{
   background:linear-gradient(135deg,#fff 0%,var(--primary-light) 100%);
