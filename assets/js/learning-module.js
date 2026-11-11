@@ -938,6 +938,13 @@
     /* ==================== 目标文件自动拉取（只读，不上传） ==================== */
     function loadTarget(isReload) {
       if (!inst.targetPath) return Promise.resolve();
+      /* 本地双击打开（file://）时无法 fetch，直接按「未上传」处理，避免控制台报错 */
+      if (location.protocol === 'file:') {
+        inst.targetData = null;
+        renderDataStatus();
+        if (isReload) renderOverview();
+        return Promise.resolve();
+      }
       return GitHubUpload.fetchRawBytes(inst.targetPath).then(function (buf) {
         if (!buf) {
           inst.targetData = null;
