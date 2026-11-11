@@ -880,6 +880,22 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
 .seat-batch-stat { font-size: 12px; color: #64748b; }
 .seat-batch-stat b { color: #1d4ed8; }
 .seat-batch-err { font-size: 12px; color: #b91c1c; line-height: 1.6; }
+/* 综合分析新表格 / 顶部选择提示 */
+.focus-sum-wrap { width: 100%; overflow-x: auto; }
+.focus-sum-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.focus-sum-table th, .focus-sum-table td { border-bottom: 1px solid #eef2f7; padding: 8px 10px; text-align: left; white-space: nowrap; }
+.focus-sum-table th { background: #f8fafc; color: #475569; font-weight: 600; position: sticky; top: 0; }
+.focus-sum-table td.num { font-variant-numeric: tabular-nums; }
+.focus-sum-table .rate-good { color: #15803d; font-weight: 700; }
+.focus-sum-table .rate-mid { color: #b45309; font-weight: 700; }
+.focus-sum-table .rate-low { color: #b91c1c; font-weight: 700; }
+.metric-note { display: block; font-size: 12px; line-height: 1.5; font-weight: 400; color: #64748b; margin-top: 3px; white-space: normal; }
+.selection-guide { position: fixed; top: 82px; left: 50%; transform: translate(-50%, -10px); z-index: 3000; background: rgba(30, 41, 59, .94); color: #fff; border-radius: 10px; padding: 10px 18px; box-shadow: 0 12px 32px rgba(15, 23, 42, .22); text-align: center; opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; max-width: calc(100vw - 32px); }
+.selection-guide.show { opacity: 1; transform: translate(-50%, 0); }
+.selection-guide b { display: block; font-size: 15px; margin-bottom: 3px; }
+.selection-guide span { font-size: 12px; color: #cbd5e1; }
+@media (max-width: 720px) { .selection-guide { top: 72px; width: calc(100vw - 32px); } }
+
 .seat-batch-empty { font-size: 13px; color: #64748b; padding: 8px 0; }
 
 @media print{
@@ -1051,7 +1067,6 @@ const TOP_TABS = [
       { id: 'f6',  label: '达标率' },
       { id: 'f7',  label: '四线达标率' },
       { id: 'f5',  label: '数据明细表' },
-      { id: 'f4b', label: '分数段分布' },
       { id: 'f3a', label: '全班成绩' },
       { id: 'f1a', label: '个人趋势' },
       { id: 'f8', label: '单科分析报告' },
@@ -1139,6 +1154,7 @@ const normalizeSubjectKey = orig => {
   return base || s;
 };
 const isTotal = s => { const c = normalizeSubjectKey(s); return c === '总分' || c === '总 分' || c === '总成绩'; };
+const isAggregate = s => isTotal(s) || normalizeSubjectKey(s) === '职测总分';
 const modeLabel = m => ({ avg:'平均分', max:'最高分', min:'最低分' }[m] || m);
 
 const subjectFullMarks = new Map();
@@ -1740,6 +1756,29 @@ function subjectLabel(baseKey) {
   /* 不显示括号内的满分，满分由独立列（如"本次满分"）展示 */
   return baseKey;
 }
+/* 全班成绩 / 个人趋势：进入页面先清空班级和科目，提示用户按班级重新选择 */
+let selectionGuideTimer = 0;
+function showSelectionGuide() {
+  const old = document.getElementById('selectionGuide');
+  if (old) old.remove();
+  const el = document.createElement('div');
+  el.id = 'selectionGuide';
+  el.className = 'selection-guide';
+  el.innerHTML = '<b>请选择班级和科目</b><span>已清空之前的勾选，请先选班级，再选科目</span>';
+  document.body.appendChild(el);
+  requestAnimationFrame(function () { el.classList.add('show'); });
+  clearTimeout(selectionGuideTimer);
+  selectionGuideTimer = setTimeout(function () {
+    el.classList.remove('show');
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 300);
+  }, 5000);
+}
+function resetSelectionForFocus() {
+  if (typeof setCheckboxSelection !== 'function') return;
+  setCheckboxSelection('globalClassWrap', []);
+  setCheckboxSelection('globalSubjectWrap', []);
+  showSelectionGuide();
+}
 function renderAbsentBlock(info) {
   if (!info) return '';
   if (!info.neverTested.length && !info.multiAbsent.length) return '';
@@ -2277,7 +2316,7 @@ function renderF3a(root) {
       '<div class="filter-row">' +
         '<div class="filter-group"><label>科目</label><select id="clsSub">' +
           '<option value="">请选择科目</option>' +
-          classSubs.map(s=>'<option value="'+esc(s)+'"'+((( __ts && s === __ts) || (!__ts && isTotal(s)))?' selected':'')+'>'+esc(subjectLabel(s))+'</option>').join('') +
+          classSubs.map(s=>'<option value="'+esc(s)+'"'+(classSubs.length === 1 ? ' selected' : '')+'>'+esc(subjectLabel(s))+'</option>').join('') +
         '</select></div>' +
         '<span class="info-text">当前班级：' + esc(cls) + '；点击考试列表头可排序</span>' +
       '</div>' +
@@ -2765,31 +2804,56 @@ function drawF5() {
   });
   if (!rows.length) { wrap.innerHTML = '<div class="empty-hint">所选条件下暂无数据</div>'; return; }
   const last = exams[exams.length-1];
-  const prev = exams.length >= 2 ? exams[exams.length-2] : null;
-  const cells = [];
-  subs.forEach(sub => classes.forEach(cls => {
-    const lv = getStat(cls, last, sub, mode);
-    if (lv == null) return;
-    const pv = prev ? getStat(cls, prev, sub, mode) : null;
-    cells.push({sub,cls,last:lv,delta:(lv!=null&&pv!=null)?Math.round((lv-pv)*10)/10:null});
-  }));
-  const withDelta = cells.filter(c=>c.delta!=null);
-  const upCells = withDelta.filter(c=>c.delta>0);
-  const downCells = withDelta.filter(c=>c.delta<0);
-  const topCell = [...cells].sort((a,b)=>b.last-a.last)[0];
-  const bottomCell = [...cells].sort((a,b)=>a.last-b.last)[0];
-  const items = [
-    {label:'统计维度',value:modeLabel(mode)},
-    {label:'统计组合',value:cells.length+' 项'},
-    {label:'进步项',value:upCells.length+' 项',cls:upCells.length?'font-up':''},
-    {label:'退步项',value:downCells.length+' 项',cls:downCells.length?'font-down':''}
-  ];
-  if (topCell) items.push({label:'最高项',value:esc(topCell.cls)+' · '+esc(topCell.sub),cls:'font-up'});
-  if (bottomCell) items.push({label:'最低项',value:esc(bottomCell.cls)+' · '+esc(bottomCell.sub),cls:'font-down'});
-  const paras = [];
-  if (topCell) paras.push('最高「' + modeLabel(mode) + '」为 <b class="hl">' + esc(topCell.cls) + ' · ' + esc(topCell.sub) + '</b>（' + topCell.last + ' 分）。');
-  if (bottomCell) paras.push('最低项为 <b class="hl">' + esc(bottomCell.cls) + ' · ' + esc(bottomCell.sub) + '</b>（' + bottomCell.last + ' 分）。');
-  summaryWrap.innerHTML = analysisPanel([{title:'明细数据综合对比',items,paras}]);
+  /* 综合分析改成两张“最低/最高”矩阵：按班级看各科，按科目看各班 */
+  const sumSubs = subs.filter(s => !isAggregate(s)).length ? subs.filter(s => !isAggregate(s)) : subs.slice();
+  const sumClasses = classes.slice().sort((a, b) => a.localeCompare(b, 'zh', { numeric: true }));
+  const sumFmt = v => Math.round(v * 10) / 10;
+  const rangeOf = (cls, sub) => {
+    const students = state.classes[cls] && state.classes[cls].students ? state.classes[cls].students : {};
+    let min = null, max = null;
+    for (const name in students) {
+      const v = students[name] && students[name][last] ? students[name][last][sub] : null;
+      if (typeof v === 'number') {
+        if (min == null || v < min) min = v;
+        if (max == null || v > max) max = v;
+      }
+    }
+    return min == null ? null : { min: min, max: max };
+  };
+  if (!sumSubs.length || !sumClasses.length) {
+    summaryWrap.innerHTML = '';
+  } else {
+    let byClsHead = '<tr><th>班级</th>' + sumSubs.map(s => '<th>' + esc(subjectLabel(s)) + '</th>').join('') + '</tr>';
+    let byClsRows = '';
+    sumClasses.forEach(cls => {
+      byClsRows += '<tr><td><b>' + esc(cls) + '</b></td>';
+      sumSubs.forEach(sub => {
+        const r = rangeOf(cls, sub);
+        byClsRows += '<td class="num">' + (r ? sumFmt(r.min) + ' ~ ' + sumFmt(r.max) : '—') + '</td>';
+      });
+      byClsRows += '</tr>';
+    });
+    const byClsTable = '<div class="focus-sum-wrap"><table class="focus-sum-table"><thead>' + byClsHead +
+      '</thead><tbody>' + byClsRows + '</tbody></table></div>';
+
+    let bySubHead = '<tr><th>科目</th>' + sumClasses.map(c => '<th>' + esc(c) + '</th>').join('') + '</tr>';
+    let bySubRows = '';
+    sumSubs.forEach(sub => {
+      bySubRows += '<tr><td><b>' + esc(subjectLabel(sub)) + '</b></td>';
+      sumClasses.forEach(cls => {
+        const r = rangeOf(cls, sub);
+        bySubRows += '<td class="num">' + (r ? sumFmt(r.max) + ' / ' + sumFmt(r.min) : '—') + '</td>';
+      });
+      bySubRows += '</tr>';
+    });
+    const bySubTable = '<div class="focus-sum-wrap"><table class="focus-sum-table"><thead>' + bySubHead +
+      '</thead><tbody>' + bySubRows + '</tbody></table></div>';
+
+    summaryWrap.innerHTML = analysisPanel([
+      { title: '按班级：各科目最低 ~ 最高（' + esc(last) + '）', extra: byClsTable },
+      { title: '按科目：各班最高 / 最低（' + esc(last) + '）', extra: bySubTable }
+    ]);
+  }
   rows.forEach(r => { r._streaks = computeStreaks(r.scores); });
   const rankValsByCol = exams.map((_, i) => rows.map(rr => rr.scores[i]).filter(v => v != null).sort((a,b)=>b-a));
   const cols = [
@@ -2942,6 +3006,7 @@ function drawF6() {
     });
   });
   if (!rows.length) { wrap.innerHTML = '<div class="empty-hint">所选条件下暂无数据</div>'; return; }
+  /* 顶部只保留本次达标率总览 */
   let totalRef = 0, totalMinPass = 0, totalStdPass = 0;
   const allMinPass = [], allStdPass = [];
   rows.forEach(r => {
@@ -2964,49 +3029,50 @@ function drawF6() {
   const fmSet = new Set(rows.map(r=>r.fullMark));
   if (fmSet.size > 1) paras.push('所选范围存在多种科目满分，已按各班实际满分独立计算。');
 
-  /* 分班进退步与缺考（针对当前勾选的班级、本次考试） */
-  let mvUpAll = 0, mvDownAll = 0, mvFlatAll = 0, absentAll = 0, rosterAll = 0, mvSkipped = 0;
-  rows.forEach(r => {
-    if (r.mvSkip) { mvSkipped++; return; }
-    mvUpAll += r.mvUp; mvDownAll += r.mvDown; mvFlatAll += r.mvFlat;
-    absentAll += r.absent; rosterAll += r.roster;
-  });
-  const mvItems = [
-    {label:'本次考试',value:esc(curExam)},
-    {label:'对比考试',value:prevExam ? esc(prevExam) : '无（首次）'},
-    {label:'进步',value:prevExam ? mvUpAll+' 人次' : '-',cls:'font-up'},
-    {label:'退步',value:prevExam ? mvDownAll+' 人次' : '-',cls:'font-down'},
-    {label:'持平',value:prevExam ? mvFlatAll+' 人次' : '-',cls:'font-flat'},
-    {label:'缺考',value:absentAll+' 人（'+pct(rosterAll?absentAll/rosterAll:0)+'）',cls:absentAll?'font-down':''}
-  ];
-  const mvParas = [];
-  if (prevExam) {
-    mvParas.push('两次考试都有「' + subs.join('、') + '」成绩的共 ' + (mvUpAll+mvDownAll+mvFlatAll) + ' 人次：进步 ' + mvUpAll +
-      ' 人次、退步 ' + mvDownAll + ' 人次、持平 ' + mvFlatAll + ' 人次。');
-    const topUp = rows.filter(r=>r.upNames.length).map(r=>({cls:r.cls,sub:r.sub,n:r.upNames[0].name,d:r.upNames[0].d}))
-      .sort((a,b)=>b.d-a.d).slice(0,3);
-    const topDown = rows.filter(r=>r.downNames.length).map(r=>({cls:r.cls,sub:r.sub,n:r.downNames[0].name,d:r.downNames[0].d}))
-      .sort((a,b)=>a.d-b.d).slice(0,3);
-    if (topUp.length) mvParas.push('进步最大：' + topUp.map(x=>x.cls+'·'+x.n+'（+'+repFmt(x.d,1)+' 分）').join('；') + '。');
-    if (topDown.length) mvParas.push('退步最大：' + topDown.map(x=>x.cls+'·'+x.n+'（'+repFmt(x.d,1)+' 分）').join('；') + '。');
-  } else {
-    mvParas.push('本次是该科目第一次录入成绩，暂无可比的上一次考试，后续考试会自动统计进步与退步。');
-  }
-  const mvSkipStu = rows.reduce((s, r) => s + (r.mvSkipStudent || 0), 0);
-  if (mvSkipped) {
-    mvParas.push('「总分」两次考试的科目覆盖不一致，总分不可直接比较，已跳过总分的进退步统计，只按单科做进退步判断。');
-  } else if (mvSkipStu) {
-    mvParas.push('总分对比中，有 ' + mvSkipStu + ' 人次因两次考试录入的科目不一致（部分科目缺录）未参与比较，避免把缺科误算成退步。');
-  }
-  const zeroNames = (list) => list.length ? list.join('、') : '无';
-  if (absentAll) mvParas.push('本次缺考 ' + absentAll + ' 人（缺考率 ' + pct(rosterAll?absentAll/rosterAll:0) + '），名单：' +
-    zeroNames(rows.filter(r=>r.absentNames.length).map(r=>r.cls+'·'+r.sub+'：'+r.absentNames.join('、')))) ;
-  else mvParas.push('本次所选班级全部到考，无缺考。');
+  /* 单班 / 单科时的达标率极值与变化 */
+  const rateNote = (name, val) => '<b>' + esc(name) + '</b><div class="metric-note">' + val + '</div>';
+  const deltaText = (d, name) => {
+    const v = d * 100;
+    return (v > 0 ? '+' : '') + v.toFixed(1) + 'pp<div class="metric-note">' + esc(name) + '</div>';
+  };
+  const extremaSection = (title, list, nameOf, rateKey, prevKey, unitName) => {
+    const valid = list.filter(r => r[rateKey] != null);
+    if (!valid.length) return null;
+    const hi = valid.reduce((a, b) => a[rateKey] > b[rateKey] ? a : b);
+    const lo = valid.reduce((a, b) => a[rateKey] < b[rateKey] ? a : b);
+    const deltaOf = r => (r[prevKey] == null ? null : r[rateKey] - r[prevKey]);
+    const withDelta = list.filter(r => deltaOf(r) != null);
+    const up = withDelta.filter(r => deltaOf(r) > 0).sort((a, b) => deltaOf(b) - deltaOf(a))[0];
+    const down = withDelta.filter(r => deltaOf(r) < 0).sort((a, b) => deltaOf(a) - deltaOf(b))[0];
+    const items = [
+      {label:'最高' + unitName, value:rateNote(nameOf(hi), pct(hi[rateKey])), cls:'font-up'},
+      {label:'最低' + unitName, value:rateNote(nameOf(lo), pct(lo[rateKey])), cls:'font-down'}
+    ];
+    if (!withDelta.length) {
+      items.push({label:'较上次', value:'暂无可比考试'});
+    } else {
+      items.push({label:'提升最多', value:up ? deltaText(deltaOf(up), nameOf(up)) : '无提升', cls:'font-up'});
+      items.push({label:'下降最多', value:down ? deltaText(deltaOf(down), nameOf(down)) : '无下降', cls:'font-down'});
+    }
+    return {title:title, items:items};
+  };
 
-  summaryWrap.innerHTML = analysisPanel([
-    {title:'达标率综合统计',items,paras},
-    {title:'分班进退步与缺考',items:mvItems,paras:mvParas}
-  ]);
+  const extraSections = [];
+  if (classes.length === 1) {
+    const scope = rows.filter(r => r.cls === classes[0]);
+    const base = scope.filter(r => !isAggregate(r.sub)).length ? scope.filter(r => !isAggregate(r.sub)) : scope;
+    const oneMin = extremaSection('单班 · 最低达标率（按科目）', base, r => subjectLabel(r.sub), 'minRate', 'prevMinRate', '科目');
+    const oneStd = extremaSection('单班 · 标准达标率（按科目）', base, r => subjectLabel(r.sub), 'stdRate', 'prevStdRate', '科目');
+    if (oneMin) extraSections.push(oneMin);
+    if (oneStd) extraSections.push(oneStd);
+  } else if (subs.length === 1) {
+    const scope = rows.filter(r => r.sub === subs[0]);
+    const oneMin = extremaSection('单科 · 最低达标率（按班级）', scope, r => r.cls, 'minRate', 'prevMinRate', '班级');
+    const oneStd = extremaSection('单科 · 标准达标率（按班级）', scope, r => r.cls, 'stdRate', 'prevStdRate', '班级');
+    if (oneMin) extraSections.push(oneMin);
+    if (oneStd) extraSections.push(oneStd);
+  }
+  summaryWrap.innerHTML = analysisPanel([{title:'达标率综合统计',items,paras}].concat(extraSections));
   const rateCls = r => r>=0.8?'rate-good':r>=0.5?'rate-mid':'rate-low';
   const deltaHtml = (cur,prev) => {
     if (prev == null) return '<span class="rate-delta flat">—</span>';
@@ -3121,49 +3187,41 @@ function drawF7() {
   });
   if (!rows.length) { clearAll('所选班级未匹配到考试大类（CLASS_LINE_MAP 中无对应配置）'); return; }
 
-  /* 全班级加权汇总 */
-  let allTotal = 0;
-  const aggPass = {}, aggPass50 = {};
-  F7_LINE_DEFS.forEach(d => { aggPass[d.key] = 0; aggPass50[d.key] = 0; });
+  /* 摘要面板：按大类汇总四线达标率（只显示大类，不再展示整体/基础信息） */
+  const typeAgg = {};
   rows.forEach(r => {
-    allTotal += r.total;
+    const a = typeAgg[r.type] || (typeAgg[r.type] = { type: r.type, classes: 0, students: 0, pass: {}, den: {} });
+    a.classes++;
+    a.students += r.total;
     F7_LINE_DEFS.forEach(d => {
-      if (r[d.key + 'Pass'] != null) aggPass[d.key] += r[d.key + 'Pass'];
-      if (r[d.key + 'Pass50'] != null) aggPass50[d.key] += r[d.key + 'Pass50'];
+      if (r[d.key + 'Pass'] != null) {
+        a.pass[d.key] = (a.pass[d.key] || 0) + r[d.key + 'Pass'];
+        a.den[d.key] = (a.den[d.key] || 0) + r.total;
+      }
     });
   });
-  const typeSet = new Set(rows.map(r => r.type));
-
-  /* 摘要面板：分三个小区，避免 11 个指标挤成一团 */
-  const baseItems = F7_LINE_DEFS.map(d => ({
-    label: d.label, value: pct(allTotal ? aggPass[d.key] / allTotal : 0)
-  }));
-  const plusItems = F7_LINE_DEFS.map(d => ({
-    label: d.label + '+50', value: pct(allTotal ? aggPass50[d.key] / allTotal : 0)
-  }));
-  const paras = [];
-  const withPublic = rows.filter(r => r.publicRate != null);
-  if (withPublic.length) {
-    const lowest = withPublic.reduce((a, b) => a.publicRate < b.publicRate ? a : b);
-    paras.push('公办线达标率最低的班级：<b>' + esc(classLabel(lowest.cls)) + '</b>（' + pct(lowest.publicRate) + '），建议重点关注。');
-  }
-  const withCtrl = rows.filter(r => r.controlRate != null);
-  if (withCtrl.length) {
-    const belowHalf = withCtrl.filter(r => r.controlRate < 0.5);
-    if (belowHalf.length) paras.push('控制线达标率低于 50% 的班级：' + belowHalf.map(r => esc(classLabel(r.cls))).join('、') + '。');
-  }
+  const typeList = Object.keys(typeAgg).map(k => typeAgg[k]).sort((a, b) => {
+    const ta = parseInt(a.type, 10), tb = parseInt(b.type, 10);
+    if (!Number.isNaN(ta) && !Number.isNaN(tb) && ta !== tb) return ta - tb;
+    return a.type.localeCompare(b.type, 'zh');
+  });
+  const rateClsType = v => v >= 0.8 ? 'rate-good' : v >= 0.5 ? 'rate-mid' : 'rate-low';
+  let typeRowsHtml = '';
+  typeList.forEach(a => {
+    typeRowsHtml += '<tr><td><b>' + esc(a.type) + '</b></td><td class="num">' + a.classes + '</td><td class="num">' + a.students + '</td>';
+    F7_LINE_DEFS.forEach(d => {
+      const v = a.den[d.key] ? a.pass[d.key] / a.den[d.key] : null;
+      typeRowsHtml += '<td class="num ' + (v == null ? '' : rateClsType(v)) + '">' + (v == null ? '-' : pct(v)) + '</td>';
+    });
+    typeRowsHtml += '</tr>';
+  });
+  const typeTable = '<div class="focus-sum-wrap"><table class="focus-sum-table"><thead><tr>' +
+    '<th>大类</th><th>班级数</th><th>参考人数</th>' +
+    F7_LINE_DEFS.map(d => '<th>' + d.label + '</th>').join('') +
+    '</tr></thead><tbody>' + typeRowsHtml + '</tbody></table></div>';
   if (summaryWrap) summaryWrap.innerHTML = analysisPanel([
-    { title: '基础信息', items: [
-      { label: '统计考试', value: esc(curExam) },
-      { label: '覆盖班级', value: rows.length + ' 个' },
-      { label: '覆盖大类', value: typeSet.size + ' 类' },
-      { label: '参考人数', value: String(allTotal) }
-    ]},
-    { title: '四线达标率（整体）', items: baseItems },
-    { title: '四线+50达标率（整体）', items: plusItems, paras: paras }
+    { title: '各大类四线达标率', extra: typeTable }
   ]);
-
-  /* 表格列构造 */
   const rateCls = r => r >= 0.8 ? 'rate-good' : r >= 0.5 ? 'rate-mid' : 'rate-low';
   const buildLineCols = plus => F7_LINE_DEFS.map(d => {
     const passKey = d.key + (plus ? 'Pass50' : 'Pass');
@@ -5427,6 +5485,7 @@ function renderTabs() {
   subTabsEl.querySelectorAll('.sub-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       state.currentPage = btn.dataset.page;
+      if (btn.dataset.page === 'f3a' || btn.dataset.page === 'f1a') resetSelectionForFocus();
       renderTabs();
       renderCurrentPage();
     });

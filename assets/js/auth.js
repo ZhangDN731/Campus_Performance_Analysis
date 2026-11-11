@@ -51,7 +51,7 @@
   const SELF_REG = CAMPUS !== '龙泉校区';
 
   /* 各角色可见的核心页签 */
-  const PAGES_BASE = ['f6', 'f7', 'f5', 'f4b', 'f3a', 'f1a'];
+  const PAGES_BASE = ['f6', 'f7', 'f5', 'f3a', 'f1a'];
   const PAGES_ADMIN = PAGES_BASE.concat(['f8', 'f9']);
   const PAGES_TEACHER = PAGES_BASE.concat(['f8', 'f9', 'f10']);
 
