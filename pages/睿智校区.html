@@ -4769,7 +4769,7 @@ function seatSmallRPr(rPr, doc) {
   color.setAttributeNS(SEAT_W, 'w:val', '404040');
   rPr.appendChild(color);
   const sz = doc.createElementNS(SEAT_W, 'w:sz');
-  sz.setAttributeNS(SEAT_W, 'w:val', String(seatState.detail === 'full' ? 16 : 20));   /* 简洁 10pt+排名9pt / 完整 8pt */
+  sz.setAttributeNS(SEAT_W, 'w:val', String(seatState.detail === 'full' ? 16 : 18));   /* 简洁 10pt+排名9pt / 完整 8pt */
   const szCs = doc.createElementNS(SEAT_W, 'w:szCs');
   szCs.setAttributeNS(SEAT_W, 'w:val', String(seatState.detail === 'full' ? 16 : 20));
   rPr.appendChild(sz);
@@ -4781,7 +4781,7 @@ function seatTightSpacing(pPr, doc) {
   const sp = doc.createElementNS(SEAT_W, 'w:spacing');
   sp.setAttributeNS(SEAT_W, 'w:before', '0');
   sp.setAttributeNS(SEAT_W, 'w:after', '0');
-  sp.setAttributeNS(SEAT_W, 'w:line', seatState.detail === 'full' ? '190' : '200');
+  sp.setAttributeNS(SEAT_W, 'w:line', seatState.detail === 'full' ? '190' : '170');
   sp.setAttributeNS(SEAT_W, 'w:lineRule', 'exact');
   const after = ['jc', 'textDirection', 'textAlignment', 'textboxTightWrap', 'outlineLvl', 'divId', 'cnfStyle', 'rPr', 'sectPr', 'pPrChange'];
   let anchor = null;
@@ -4825,12 +4825,34 @@ function seatMakeLine(doc, srcP, text, chgText, up, rankTxt) {
     p.appendChild(r);
   };
   mkRun(text, '');
-  if (rankTxt && seatState.detail !== 'full') mkRun('(' + rankTxt + ')', '808080', 18);
-  if (chgText) mkRun((seatState.detail === 'full' ? '' : ' ') + chgText, up ? 'C0392B' : '1E7D4F');
+  const compact = seatState.detail !== 'full';
+  if (rankTxt && compact) mkRun('(' + rankTxt + ')', '808080', 16);
+  if (chgText) mkRun(chgText, up ? 'C0392B' : '1E7D4F', compact ? 16 : null);
   return p;
+}
+/* 收紧表格单元格左右边距，给「本次(排名)↑变化」腾出宽度，避免折行把行高撑高 */
+function seatShrinkCellMar(root, doc) {
+  const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const tables = root.getElementsByTagNameNS ? root.getElementsByTagNameNS(W, 'tbl') : [];
+  for (let i = 0; i < tables.length; i++) {
+    const tblPr = tables[i].getElementsByTagNameNS(W, 'tblPr')[0];
+    if (!tblPr) continue;
+    let mar = tblPr.getElementsByTagNameNS(W, 'tblCellMar')[0];
+    if (!mar) {
+      mar = doc.createElementNS(W, 'w:tblCellMar');
+      tblPr.appendChild(mar);
+    }
+    ['left', 'right'].forEach(function (side) {
+      let el = mar.getElementsByTagNameNS(W, side)[0];
+      if (!el) { el = doc.createElementNS(W, 'w:' + side); mar.appendChild(el); }
+      el.setAttributeNS(W, 'w:w', '0');
+      el.setAttributeNS(W, 'w:type', 'dxa');
+    });
+  }
 }
 function seatWrite(root, cls, sub, exam, manual) {
   const doc = root.nodeType === 9 ? root : root.ownerDocument;
+  seatShrinkCellMar(root, doc);
   const scan = seatScan(root, cls);
   const plan = scan.entries.concat(seatManualEntries(scan.unmatched, manual));
   let written = 0, absent = 0;
