@@ -11,7 +11,8 @@
   /* 账号 / 审核 / 默认班级统一存进一个数据库对象，只占一个 localStorage 键 */
   const LS_DB = 'pw_lq_db_v2';
   const LS_DB_OLD = 'pw_lq_accounts_v1';   /* v1 旧键，读取时自动迁移并删除 */
-  const LS_SESSION = 'pw_lq_session_v1';    /* 只放"当前登录的是谁"，不算账号数据 */
+  const LS_SESSION = 'pw_lq_session_v1';    /* 管理台会话：仅上传页 iframe 内嵌管理台使用 */
+  const LS_CAMPUS_SESSION = 'pw_lq_campus_session_v1'; /* 校区分析页登录会话（教师等），与上传页管理员互不串号 */
   const DB_VERSION = 3;
 
   /* 姓名 → 拼音（预置教师，注册时可自动生成账号） */
@@ -253,8 +254,13 @@
     const key = String(u).toLowerCase();
     return db.users.find(x => String(x.u).toLowerCase() === key) || null;
   }
+  /* 当前上下文该读哪个会话键：iframe 内嵌管理台读管理员共享会话；独立打开的校区页只读校区会话 */
+  function activeSessionKey() { return inIframe() ? LS_SESSION : LS_CAMPUS_SESSION; }
   function sessionName() {
-    try { return localStorage.getItem(LS_SESSION) || ''; } catch (e) { return ''; }
+    try { return localStorage.getItem(activeSessionKey()) || ''; } catch (e) { return ''; }
+  }
+  function clearSession() {
+    try { localStorage.removeItem(activeSessionKey()); } catch (e) {}
   }
   function currentUser() {
     const n = sessionName();
@@ -1238,7 +1244,7 @@
       setTimeout(redirectToUpload, 900);
       return;
     }
-    try { localStorage.setItem(LS_SESSION, u.u); } catch (e) {}
+    try { localStorage.setItem(activeSessionKey(), u.u); } catch (e) {}
     if (window.__REP_MODE_SYNC) window.__REP_MODE_SYNC(u.mode || 'self');
     applyAll(true);
     msg = null;
@@ -1257,7 +1263,7 @@
   }
 
   function doLogout() {
-    try { localStorage.removeItem(LS_SESSION); } catch (e) {}
+    clearSession();
     window.__AUTH_LOCK_SIG = null;
     window.__AUTH_SUBJ_SIG = null;
     view = 'login'; msg = null;
@@ -1433,7 +1439,7 @@
     if (!window.confirm('确定删除以下 ' + targets.length + ' 个账号？此操作不可撤销。\n' + names)) return;
     db.users = db.users.filter(u => !(u.role !== 'admin' && selUsers.has(u.u)));
     const cur = sessionName();
-    if (cur && !findUser(cur)) { try { localStorage.removeItem(LS_SESSION); } catch (e) {} }
+    if (cur && !findUser(cur)) { clearSession(); }
     selUsers.clear();
     saveDB();
     logAct('批量删除账号 ' + targets.length + ' 个：' + targets.map(u => u.name).join('、'));
@@ -1468,14 +1474,14 @@
     logAct('导入数据库，共 ' + o.users.length + ' 个账号');
     msg = { type: 'ok', text: '数据库已导入：' + o.users.length + ' 个账号（三校区）' };
     const cur = sessionName();
-    if (cur && !findUser(cur)) { try { localStorage.removeItem(LS_SESSION); } catch (e) {} close_(); }
+    if (cur && !findUser(cur)) { clearSession(); close_(); }
     applyAll(true);
     renderCard();
   }
   function onResetDB() {
     if (!window.confirm('恢复出厂会清空所有账号、审核记录和默认班级，只保留预置的 17 位教师和审核员。确定继续？')) return;
     saveDB(emptyDB());
-    try { localStorage.removeItem(LS_SESSION); } catch (e) {}
+    clearSession();
     selUsers.clear();
     close_();
     applyAll(true);
@@ -1504,9 +1510,20 @@
   /* ---------------- 初始化 ---------------- */
   function init() {
     db = loadDB();
+    /* 独立打开的校区页：旧版与上传页共用的会话键不再采信；若是有效教师则迁移到校区会话，管理员/失效会话直接丢弃 */
+    if (!inIframe()) {
+      let old = '';
+      try { old = localStorage.getItem(LS_SESSION) || ''; } catch (e) {}
+      if (old) {
+        const ou = findUser(old);
+        const keep = ou && ou.status === 'active' && ou.role === 'teacher' && (!ou.campus || ou.campus === CAMPUS);
+        if (keep) { try { localStorage.setItem(LS_CAMPUS_SESSION, old); } catch (e) {} }
+        try { localStorage.removeItem(LS_SESSION); } catch (e) {}
+      }
+    }
     /* 会话账号可能已被删除/停用 */
     const n = sessionName();
-    if (n && !currentUser()) { try { localStorage.removeItem(LS_SESSION); } catch (e) {} }
+    if (n && !currentUser()) { clearSession(); }
 
     const mask = el('authMask');
     if (mask) {
