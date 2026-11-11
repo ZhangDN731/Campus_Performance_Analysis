@@ -358,15 +358,13 @@
     if (typeof renderTabs === 'function') renderTabs();
   }
 
-  /* 未登录：默认勾选全部班级、全部科目，开箱即可看全量数据 */
+  /* 未登录：默认勾选全部班级；科目保留页面默认（仅总分），不强制全选科目 */
   function applyGuestDefaults() {
     if (currentUser()) return;
     let changed = false;
-    [['globalClassWrap'], ['globalSubjectWrap']].forEach(pair => {
-      const box = el(pair[0]);
-      if (!box) return;
-      const items = Array.prototype.slice.call(box.querySelectorAll('.checkbox-item'));
-      if (!items.length) return;
+    const cw = el('globalClassWrap');
+    if (cw) {
+      const items = Array.prototype.slice.call(cw.querySelectorAll('.checkbox-item'));
       items.forEach(it => {
         const inp = it.querySelector('input');
         if (!inp) return;
@@ -374,7 +372,12 @@
         it.style.display = '';
         it.classList.add('checked');
       });
-    });
+    }
+    /* 科目只保证可见，勾选状态沿用页面默认（总分），访客不自动全选科目 */
+    const sw = el('globalSubjectWrap');
+    if (sw) {
+      sw.querySelectorAll('.checkbox-item').forEach(it => { it.style.display = ''; });
+    }
     if (changed) {
       try { autoSetScoreLines && autoSetScoreLines(); } catch (e) {}
     }
