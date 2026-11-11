@@ -64,7 +64,7 @@
   let editTeacher = null;   /* 后台：当前正在分配默认班级的老师账号 */
   let selUsers = new Set(); /* 后台：账号表里勾选待批量删除的账号 */
   let adminTab = 'pending';
-  let adminCampus = CAMPUS; /* 后台：账号表当前查看的校区 */
+  let adminCampus = '全部'; /* 后台：账号表默认看全部三校区，可用小胶囊切换 */
 
   /* ---------------- 基础工具 ---------------- */
   function nowStr() {
@@ -271,43 +271,16 @@
     if (extra && hideExtra && !extra.pages.length) extra.pages = [];
   }
 
-  /* 审核员专用：页面主体直接变成管理控制台 */
+  /* 审核员专用：登录后直接进入整页管理台（教师管理为主界面，不再有控制台卡片） */
   function renderAdminConsole() {
-    const area = el('contentArea') || document.querySelector('.content-area');
-    if (!area) return;
-    if (area.dataset.adminConsole === '1') return;
-    const pending = db.users.filter(u => u.status === 'pending').length;
-    const teachers = db.users.filter(u => u.role !== 'admin');
-    area.dataset.adminConsole = '1';
-    const campusCards = CAMPUSES.map(c => {
-      const all = teachers.filter(t => (t.campus || '龙泉校区') === c);
-      return '<div class="auth-console-card"><span>' + esc(c) + '</span><b>' + all.length + ' 位教师</b>' +
-        '<a class="btn" href="' + esc(c) + '.html" target="_self">进入' + esc(c.replace('校区', '')) + '页面</a></div>';
-    }).join('');
-    area.innerHTML =
-      '<div class="card">' +
-        '<div class="page-title">管理控制台（三校区）</div>' +
-        '<div class="auth-console">' +
-          '<div class="auth-console-card"><span>待审核申请</span><b>' + pending + '</b>' +
-            '<button class="btn btn-primary" type="button" data-console="pending">去审核</button></div>' +
-          '<div class="auth-console-card"><span>教师账号</span><b>' + teachers.length + '</b>' +
-            '<button class="btn" type="button" data-console="users">账号管理</button></div>' +
-          '<div class="auth-console-card"><span>已分配默认班级</span><b>' +
-            teachers.filter(t => effectiveClasses(t).length).length + ' / ' + teachers.length + '</b>' +
-            '<button class="btn" type="button" data-console="classes">默认班级</button></div>' +
-          '<div class="auth-console-card"><span>账号数据库</span><b>' + db.users.length + ' 个账号</b>' +
-            '<button class="btn" type="button" data-console="data">数据备份</button></div>' +
-          '<div class="auth-console-card"><span>审核员密码</span><b>可在后台修改</b>' +
-            '<button class="btn" type="button" data-console="secure">安全设置</button></div>' +
-        '</div>' +
-        '<div class="page-title" style="margin:18px 0 10px;font-size:15px">三个校区</div>' +
-        '<div class="auth-console">' + campusCards + '</div>' +
-        '<p class="auth-tip">三个校区共用一份账号数据库（' + esc(db.updatedAt || '-') + ' 更新）：在这里建的账号可以指定校区，' +
-          '教师登录时只看得到自己校区的班级与成绩。点上面的按钮可直接进入对应校区页面，用同一个 admin 继续管理。</p>' +
-      '</div>';
-    area.querySelectorAll('[data-console]').forEach(b => {
-      b.addEventListener('click', () => { openAdmin(b.dataset.console); });
-    });
+    const mask = el('authMask');
+    if (view === 'admin' && mask && mask.classList.contains('show')) return;
+    adminTab = 'users';
+    openAdmin('users');
+    /* 页面成绩数据是异步载入的，稍后补刷一次，保证「默认班级」列不是暂无数据 */
+    setTimeout(function () {
+      try { if (view === 'admin' && isAdmin()) renderCard(); } catch (e) {}
+    }, 1200);
   }
 
   /* 默认班级按「任课科目」划分：同一校区的同科目教师共享同一组默认班级 */
@@ -512,6 +485,7 @@
     const mask = el('authMask');
     if (!mask) return;
     mask.classList.remove('show');
+    mask.classList.remove('admin-mode');
     mask.setAttribute('aria-hidden', 'true');
   }
   /* 管理台卡片入口：直接打开后台对应页签 */
@@ -647,9 +621,11 @@
 
   /* ---------------- 后台 ---------------- */
   function adminView() {
+    /* 「默认班级」必须落在某个真实校区上，从「全部」进来自动落到当前页面校区 */
+    if (adminTab === 'classes' && adminCampus === '全部') adminCampus = CAMPUS;
     const tabs = [
+      { id: 'users', label: '教师管理' },
       { id: 'pending', label: '待审核' },
-      { id: 'users', label: '账号管理' },
       { id: 'classes', label: '默认班级' },
       { id: 'data', label: '数据备份' },
       { id: 'secure', label: '安全设置' }
@@ -664,7 +640,8 @@
     else if (adminTab === 'data') body = adminData();
     else if (adminTab === 'import') body = adminImport();
     else body = adminSecure();
-    return head('后台管理', '<button class="auth-link" type="button" data-act="profile">返回个人界面</button>' +
+    const cur = tabs.filter(x => x.id === adminTab || (x.id === 'users' && adminTab === 'import'))[0] || tabs[0];
+    return head('管理台 · ' + cur.label,
       '<button class="auth-link" type="button" data-act="logout">退出登录</button>') +
       tabHtml + '<div class="auth-body">' + msgHtml() + body + '</div>';
   }
@@ -688,18 +665,19 @@
     const list = all.filter(u => adminCampus === '全部' || (u.campus || '龙泉校区') === adminCampus)
       .sort((a, b) => (a.campus || '').localeCompare(b.campus || '') || a.name.localeCompare(b.name, 'zh'));
     const selCount = selUsers.size;
-    const campusTabs = '<div class="auth-tabs">' +
+    /* 校区切换收成小按钮，放在工具条右侧，不再占一整行 */
+    const campusTabs = '<div class="auth-campus-mini">' +
       ['全部'].concat(CAMPUSES).map(c => {
         const n = c === '全部' ? all.length : all.filter(u => (u.campus || '龙泉校区') === c).length;
         return '<button class="' + (adminCampus === c ? 'on' : '') + '" type="button" data-act="admin-campus" data-campus="' +
-          esc(c) + '">' + esc(c) + '（' + n + '）</button>';
+          esc(c) + '">' + esc(c.replace('校区', '')) + ' <b>' + n + '</b></button>';
       }).join('') + '</div>';
-    return campusTabs +
-      '<div class="auth-toolbar">' +
+    return '<div class="auth-toolbar">' +
       '<button class="btn btn-primary" type="button" data-act="new-user">+ 新增教师账号</button>' +
       '<button class="btn" type="button" data-act="import-users">导入账号</button>' +
       '<button class="btn btn-danger" type="button" data-act="bulk-delete"' + (selCount ? '' : ' disabled') +
         '>批量删除' + (selCount ? '（' + selCount + '）' : '') + '</button>' +
+      campusTabs +
       '<span class="auth-muted">当前 ' + esc(adminCampus) + '：' + list.length + ' 个账号 / 全库 ' + all.length + ' 个</span></div>' +
       '<div class="auth-table wide">' +
       '<div class="auth-tr head"><span><input id="chkAll" type="checkbox" title="全选本页教师账号"></span>' +
@@ -849,15 +827,11 @@
     else if (view === 'profile') html = profileView();
     else if (view === 'admin' || view === 'admin-newuser') html = adminView();
     else html = loginView();
-    card.className = 'auth-card' + (view === 'admin' || view === 'admin-newuser' ? ' wide' : '');
+    card.className = 'auth-card' + (view === 'admin' || view === 'admin-newuser' ? ' wide admin-full' : '');
     card.innerHTML = html;
+    const maskEl = el('authMask');
+    if (maskEl) maskEl.classList.toggle('admin-mode', view === 'admin' || view === 'admin-newuser');
     bindCard();
-    /* 审核员每次操作后台后，同步刷新页面主体上的管理台统计 */
-    if (isAdmin()) {
-      const area = el('contentArea');
-      if (area) area.dataset.adminConsole = '0';
-      renderAdminConsole();
-    }
   }
 
   /* ---------------- 事件绑定 ---------------- */
@@ -872,7 +846,7 @@
         if (act === 'tab-register') { view = 'register'; msg = null; return renderCard(); }
         if (act === 'profile') { view = currentUser() ? 'profile' : 'login'; msg = null; return renderCard(); }
         if (act === 'change-pwd') { view = 'change-pwd'; msg = null; return renderCard(); }
-        if (act === 'admin') { view = 'admin'; adminTab = 'pending'; msg = null; return renderCard(); }
+        if (act === 'admin') { view = 'admin'; adminTab = 'users'; msg = null; return renderCard(); }
         if (act === 'mode-self' || act === 'mode-leader') {
           const u = currentUser();
           if (u && u.isLeader) {
@@ -1035,7 +1009,13 @@
     applyAll(true);
     msg = null;
     /* 审核员：登录后不进成绩分析，直接留在管理台 */
-    if (u.role === 'admin') { close_(); return; }
+    if (u.role === 'admin') {
+      /* 管理员：直接进入全屏「教师管理」，不弹小窗 */
+      adminTab = 'users';
+      view = 'admin';
+      open_('admin');
+      return;
+    }
     if (u.pwd === DEFAULT_PWD || u.defaultPwd) { u.defaultPwd = true; saveDB(); view = 'change-pwd'; renderCard(); return; }
     view = 'profile';
     renderCard();

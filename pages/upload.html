@@ -192,6 +192,18 @@ body.role-admin .campus-pick{display:flex}
   .preview-item .pi-num{font-size:1.15rem}
   .form-group input{font-size:16px}
 }
+
+/* ===== 教师管理页签：与三校区管理台共用同一个 admin ===== */
+.admin-tabs{display:none;gap:6px;margin:0 0 18px;}
+.admin-tabs button{
+  padding:8px 18px;border:1px solid var(--stroke-soft,#e2e8f0);border-radius:999px;
+  background:#fff;color:#64748b;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.admin-tabs button.on{background:#4f46e5;border-color:#4f46e5;color:#fff;}
+.teacher-panel{display:none;}
+.teacher-panel iframe{width:100%;height:calc(100vh - 190px);min-height:640px;border:0;border-radius:0;background:#fff;}
+body.teacher-mode .upload-container{max-width:none;width:100%;padding-left:16px;padding-right:16px;}
+body.teacher-mode .upload-container .card{padding:14px 16px 16px;}
 </style>
 </head>
 <body>
@@ -230,7 +242,12 @@ body.role-admin .campus-pick{display:flex}
       <div class="user-info">当前用户：<b id="currentUser"></b> <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:.75rem;margin-left:8px" onclick="doLogout()">退出</button></div>
     </div>
 
-    <div class="upload-cols">
+    <div class="admin-tabs" id="adminTabs">
+      <button type="button" class="on" id="tabUploadBtn" onclick="switchAdminTab('upload')">成绩上传</button>
+      <button type="button" id="tabTeacherBtn" onclick="switchAdminTab('teacher')">教师管理</button>
+    </div>
+
+    <div class="upload-cols" id="uploadCols">
       <!-- 左列：成绩文件上传 / 下载 -->
       <section class="up-col">
         <div class="col-header"><span class="ch-dot"></span>成绩文件上传</div>
@@ -349,6 +366,10 @@ body.role-admin .campus-pick{display:flex}
       </section>
     </div>
 
+    <div class="teacher-panel" id="teacherPanel">
+      <iframe id="teacherFrame" title="教师管理（三校区）" src="about:blank"></iframe>
+    </div>
+
     <a href="../index.html" class="back-link">← 返回首页</a>
   </div>
 </div>
@@ -405,6 +426,40 @@ function formatSize(bytes){
   return (bytes/1048576).toFixed(2)+' MB';
 }
 
+/* ==================== 三校区共享 admin ==================== */
+function sharedDB(){
+  try{
+    const raw = localStorage.getItem('pw_lq_db_v2');
+    const d = raw ? JSON.parse(raw) : null;
+    return (d && Array.isArray(d.users)) ? d : null;
+  }catch(e){ return null; }
+}
+function sharedAdminAccount(user, pass){
+  const d = sharedDB();
+  if(!d) return null;
+  const u = d.users.find(x => x.role === 'admin' && x.u === user && x.pwd === pass);
+  if(!u) return null;
+  try{ localStorage.setItem('pw_lq_session_v1', u.u); }catch(e){}
+  return {user: u.u, role: 'admin', label: '管理员', name: u.name || '审核员', shared: true};
+}
+function switchAdminTab(mode){
+  const panel = $('teacherPanel'), cols = $('uploadCols');
+  const upBtn = $('tabUploadBtn'), tBtn = $('tabTeacherBtn');
+  document.body.classList.toggle('teacher-mode', mode === 'teacher');
+  if(mode === 'teacher'){
+    cols.style.display = 'none'; panel.style.display = 'block';
+    upBtn.classList.remove('on'); tBtn.classList.add('on');
+    const f = $('teacherFrame');
+    if(f && f.dataset.loaded !== '1'){
+      f.src = '龙泉校区.html?admin=1';
+      f.dataset.loaded = '1';
+    }
+  }else{
+    panel.style.display = 'none'; cols.style.display = '';
+    tBtn.classList.remove('on'); upBtn.classList.add('on');
+  }
+}
+
 /* ==================== 登录 ==================== */
 let currentAccount = null;
 /* 上传与下载状态（必须在恢复登录 IIFE 之前完成初始化，避免 TDZ） */
@@ -422,9 +477,17 @@ async function doLogin(){
   $('loginBtn').disabled = true;
   err.textContent = '';
   const hash = await sha256(pass);
+  /* 先认三校区管理台里的同一个 admin 账号（同源共享 pw_lq_db_v2 / pw_lq_session_v1） */
+  const shared = sharedAdminAccount(user, pass);
   const acc = ACCOUNTS[user];
-  if(acc && acc.hash === hash){
+  if(shared){
+    currentAccount = shared;
+    sessionStorage.setItem('upload_user', JSON.stringify(currentAccount));
+    showUploadPage();
+  } else if(acc && acc.hash === hash){
     currentAccount = {user, ...acc};
+    /* 三校区库还没建立时也能进整页教师管理：写入共享会话，校区页会初始化同一个 admin */
+    if(acc.role === 'admin'){ try{ localStorage.setItem('pw_lq_session_v1', user); }catch(e){} }
     sessionStorage.setItem('upload_user', JSON.stringify(currentAccount));
     showUploadPage();
   } else {
@@ -435,7 +498,13 @@ async function doLogin(){
 
 function doLogout(){
   sessionStorage.removeItem('upload_user');
+  if(currentAccount && currentAccount.role === 'admin'){
+    try{ localStorage.removeItem('pw_lq_session_v1'); }catch(e){}
+  }
   currentAccount = null;
+  const tf = $('teacherFrame');
+  if(tf){ tf.src = 'about:blank'; delete tf.dataset.loaded; }
+  switchAdminTab('upload');
   document.body.classList.remove('role-admin','role-campus');
   $('uploadPage').style.display = 'none';
   $('loginPage').style.display = 'block';
@@ -456,6 +525,8 @@ async function showUploadPage(){
   document.body.classList.remove('role-admin','role-campus');
   document.body.classList.add(currentAccount.role === 'admin' ? 'role-admin' : 'role-campus');
   $('currentUser').textContent = currentAccount.label + '（' + currentAccount.user + '）';
+  $('adminTabs').style.display = currentAccount.role === 'admin' ? 'flex' : 'none';
+  if(currentAccount.role !== 'admin') switchAdminTab('upload');
   renderTemplates();
   initGradeDest();
   renderTargetCards();
@@ -480,6 +551,19 @@ async function showUploadPage(){
   const saved = sessionStorage.getItem('upload_user');
   if(saved){
     try{ currentAccount = JSON.parse(saved); showUploadPage(); }catch(e){ console.error('恢复登录态失败：', e); }
+    return;
+  }
+  /* 同源下三校区管理台已登录 admin：上传页不再要求第二次登录 */
+  const d = sharedDB();
+  let sess = '';
+  try{ sess = localStorage.getItem('pw_lq_session_v1') || ''; }catch(e){}
+  if(d && sess){
+    const u = d.users.find(x => x.u === sess && x.role === 'admin');
+    if(u){
+      currentAccount = {user: u.u, role: 'admin', label: '管理员', name: u.name || '审核员', shared: true};
+      sessionStorage.setItem('upload_user', JSON.stringify(currentAccount));
+      showUploadPage();
+    }
   }
 })();
 
