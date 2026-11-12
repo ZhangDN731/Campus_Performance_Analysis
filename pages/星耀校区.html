@@ -3920,13 +3920,18 @@ function qrPoolGroups(sub, exam) {
 function qrAutoModules(sub, exam, prev, samePaper) {
   const groups = qrPoolGroups(sub, exam);
   const kept = (samePaper && prev && prev.length) ? prev : [];
+  /* 已分配班级：有分配就默认只选这些；未分配班级仍显示在池子里，但默认不勾选 */
+  let mine = [];
+  try { mine = (window.Auth && Auth.myClasses) ? Auth.myClasses() : []; } catch (e) { mine = []; }
+  const pool = qrPool(sub);
+  const mineSet = (mine && mine.length) ? mine.filter(c => pool.indexOf(c) >= 0) : null;
   if (!groups.length) {
     return [{ classes: [], fm: '', teacher: qrDefaultTeacher(), point: '', lose: '' }];
   }
   return groups.map((g, idx) => {
     const old = kept.filter(m => String(m.fm) === String(g.fm))[0] || (groups.length === kept.length ? kept[idx] : null) || {};
     return {
-      classes: g.classes.slice(),
+      classes: mineSet ? g.classes.filter(c => mineSet.indexOf(c) >= 0) : g.classes.slice(),
       fm: g.fm == null ? '' : String(g.fm),
       teacher: old.teacher || qrDefaultTeacherFor(g.classes),
       point: old.point || '',

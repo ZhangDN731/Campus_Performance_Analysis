@@ -94,6 +94,9 @@ body::before{
   background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px 12px;
 }
 .target-col{background:#fffdf7}
+/* 教师单校区视图：成绩块、目标块左右并排一行，各自保留自己的状态/预览/进度格；管理端仍上下两段 */
+body.role-campus .upload-cols{grid-template-columns:1fr 1fr;column-gap:10px}
+body.role-campus .campus-grid{grid-template-columns:1fr 1fr}
 .col-header{
   display:flex;align-items:center;gap:8px;font-size:.92rem;font-weight:800;color:#1e293b;
   padding-bottom:6px;border-bottom:1px solid #e5e7eb;
@@ -696,6 +699,8 @@ function gradeCampusList(){
 function renderTemplates(){
   const grid = $('gradeGrid');
   const list = gradeCampusList();
+  /* 重登 / 重复进入时先清掉旧列，避免成绩列重复叠加 */
+  grid.querySelectorAll('.campus-col').forEach(n => n.remove());
   list.forEach(c=>{
     const col = document.createElement('div');
     col.className = 'campus-col';
@@ -1032,6 +1037,8 @@ function targetCampusList(){
 function renderTargetCards(){
   const grid = $('targetGrid');
   const list = targetCampusList();
+  /* 重登 / 重复进入时先清掉旧列，避免目标列重复叠加 */
+  grid.querySelectorAll('.campus-col').forEach(n => n.remove());
   const targetSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>';
   list.forEach(c=>{
     const col = document.createElement('div');

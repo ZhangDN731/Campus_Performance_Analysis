@@ -241,13 +241,16 @@
     g.visionModel = g.visionModel || c.visionModel || '';
     g.defaultKey = g.defaultKey || c.defaultKey || '';
     const u = currentUser();
-    if (!u || u.role !== 'admin' && u.role !== 'teacher') return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: g.defaultKey || '' };
+    const cfgTeachers = c.teachers || {};
+    const cfgTeacherKey = u ? (cfgTeachers[u.name] || cfgTeachers[u.u] || '') : '';
+    const fallbackKey = cfgTeacherKey || g.defaultKey || '';
+    if (!u || u.role !== 'admin' && u.role !== 'teacher') return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: fallbackKey };
     const t = (a.teachers || {})[u.u] || null;
     if (t && t.mode === 'disabled') {
       return { disabled: true, baseUrl: '', textModel: '', visionModel: '', key: '' };
     }
     if (u.role === 'admin' || !t || t.mode === 'default') {
-      return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: g.defaultKey || '' };
+      return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: u.role === 'admin' ? (g.defaultKey || '') : fallbackKey };
     }
     if (t.mode === 'self' && t.key) {
       return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: t.key };
@@ -256,7 +259,7 @@
       const peer = (a.teachers || {})[t.share];
       if (peer && peer.key) return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: peer.key };
     }
-    return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: g.defaultKey || '' };
+    return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: fallbackKey };
   }
   function findUser(u) {
     if (!u) return null;
