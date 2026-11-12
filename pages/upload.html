@@ -104,10 +104,19 @@ body::before{
 .dl-block{display:flex;flex-direction:column;padding-top:0}
 .dl-block .block-title{display:none}
 .ul-block .block-title{display:none}
-.action-row{display:flex;gap:12px;align-items:stretch}
-.ul-block{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;padding-top:0}
-.btn-block{flex:0 0 150px;display:flex;flex-direction:column;justify-content:stretch;padding-top:0}
-.btn-block .muted-note{display:none}
+/* 图1：每校区一列（上下载卡、下独立拖拽区）+ 右侧状态/文件列 */
+.campus-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:stretch}
+.campus-col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.status-col{
+  display:flex;flex-direction:column;gap:8px;min-width:0;
+  padding:10px 12px;border:1px dashed #e2e8f0;border-radius:12px;background:#fff;
+}
+.status-col .block-title{margin-bottom:0}
+.campus-col .tpl-item{min-height:54px}
+.campus-col .upload-zone{flex:1;min-height:74px;margin-bottom:0;padding:14px 10px}
+.status-col .upload-action{height:auto;min-height:44px;margin-top:auto;width:100%}
+.upload-zone.active{border-color:#6366f1;background:#eef2ff}
+.target-col .upload-zone.active{border-color:#f59e0b;background:#fef3c7}
 
 .tpl-list{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .tpl-item{
@@ -179,13 +188,14 @@ body.role-admin .campus-pick{display:flex}
   .upload-cols{grid-template-columns:1fr;grid-template-rows:none;row-gap:16px}
   .up-col{grid-row:auto;display:flex;flex-direction:column}
   .tpl-list{grid-template-columns:1fr}
-  .ul-block .upload-zone{min-height:80px}
+  .campus-grid{grid-template-columns:1fr}
+  .campus-col .upload-zone{min-height:80px}
   .campus-chips{gap:6px}
 }
 @media (max-width:480px){
   .card{padding:24px 18px}
   .upload-header{flex-direction:column;align-items:flex-start;gap:8px}
-  .ul-block .upload-zone{min-height:80px}
+  .campus-col .upload-zone{min-height:80px}
   .chip{font-size:14px;padding:8px 4px}
   .preview-grid{grid-template-columns:repeat(2,1fr)}
   .preview-item .pi-num{font-size:1.15rem}
@@ -268,121 +278,89 @@ body.teacher-mode .teacher-panel{flex:1 1 auto;min-height:0;height:auto;}
       <section class="up-col">
         <div class="col-header"><span class="ch-dot"></span>成绩文件上传</div>
 
-        <div class="dl-block">
-          <div class="block-title">下载当前文件</div>
-          <div class="tpl-list" id="tplList"></div>
-        </div>
+        <div class="campus-grid" id="gradeGrid">
+          <!-- 各校区列（下载卡 + 独立拖拽区）由 JS 注入，状态列固定在最右 -->
+          <div class="status-col">
+            <div class="block-title">上传是否成功 / 上传文件</div>
 
-        <div class="action-row">
-        <div class="ul-block">
-          <div class="block-title">上传成绩文件</div>
-          <div class="campus-pick">
-            <span class="pick-label">目标校区</span>
-            <div class="campus-chips" id="gradeCampusChips" role="group" aria-label="成绩上传目标校区"></div>
-          </div>
-          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-            <div class="icon">📁</div>
-            <div class="title">点击选择或拖拽文件到此处</div>
-            <div class="desc" id="gradeZoneDesc">支持 .xlsx 格式，文件名将自动规范化</div>
-          </div>
-          <input type="file" id="fileInput" accept=".xlsx" style="display:none">
-
-          <div id="fileInfo" style="display:none" class="file-info">
-            <span class="name" id="fileName"></span>
-            <span class="size" id="fileSize"></span>
-          </div>
-
-          <!-- 文件预览：上传前快速解析基本信息 -->
-          <div id="previewCard" style="display:none" class="preview-card">
-            <div class="preview-header">
-              <div class="ph-icon">✓</div>
-              <div class="ph-title">文件预览</div>
-              <div class="ph-sub" id="previewFileName"></div>
+            <div id="fileInfo" style="display:none" class="file-info">
+              <span class="name" id="fileName"></span>
+              <span class="size" id="fileSize"></span>
             </div>
-            <div id="previewGrid" class="preview-grid">
-              <div class="preview-item"><div class="pi-num" id="pvClass">—</div><div class="pi-label">班级</div></div>
-              <div class="preview-item"><div class="pi-num" id="pvExam">—</div><div class="pi-label">考试</div></div>
-              <div class="preview-item"><div class="pi-num" id="pvStudent">—</div><div class="pi-label">学生</div></div>
-              <div class="preview-item"><div class="pi-num" id="pvSubject">—</div><div class="pi-label">科目</div></div>
+
+            <!-- 文件预览：上传前快速解析基本信息 -->
+            <div id="previewCard" style="display:none" class="preview-card">
+              <div class="preview-header">
+                <div class="ph-icon">✓</div>
+                <div class="ph-title">文件预览</div>
+                <div class="ph-sub" id="previewFileName"></div>
+              </div>
+              <div id="previewGrid" class="preview-grid">
+                <div class="preview-item"><div class="pi-num" id="pvClass">—</div><div class="pi-label">班级</div></div>
+                <div class="preview-item"><div class="pi-num" id="pvExam">—</div><div class="pi-label">考试</div></div>
+                <div class="preview-item"><div class="pi-num" id="pvStudent">—</div><div class="pi-label">学生</div></div>
+                <div class="preview-item"><div class="pi-num" id="pvSubject">—</div><div class="pi-label">科目</div></div>
+              </div>
+              <div id="previewLoading" style="display:none" class="preview-loading">
+                <div class="spin"></div><span>正在解析文件…</span>
+              </div>
             </div>
-            <div id="previewLoading" style="display:none" class="preview-loading">
-              <div class="spin"></div><span>正在解析文件…</span>
+            <div id="previewError" style="display:none" class="preview-error"></div>
+
+            <div id="progressWrap" style="display:none" class="progress-wrap">
+              <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+              <div class="progress-text" id="progressText">准备上传…</div>
             </div>
+
+            <div id="resultBox" style="display:none"></div>
+
+            <button class="btn upload-action" id="uploadBtn" onclick="doUpload()" disabled>上传成绩文件</button>
           </div>
-          <div id="previewError" style="display:none" class="preview-error"></div>
-
-          <div id="progressWrap" style="display:none" class="progress-wrap">
-            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-            <div class="progress-text" id="progressText">准备上传…</div>
-          </div>
-
-          <div id="resultBox" style="display:none"></div>
         </div>
-
-        <div class="btn-block">
-          <button class="btn upload-action" id="uploadBtn" onclick="doUpload()" disabled>上传成绩文件</button>
-          <div class="muted-note">支持 .xlsx 格式；上传后 1–2 分钟自动生效。</div>
-        </div>
-        </div>
+        <input type="file" id="fileInput" accept=".xlsx" style="display:none">
       </section>
 
       <!-- 右列：目标文件上传 / 下载（学习目标） -->
       <section class="up-col target-col">
         <div class="col-header"><span class="ch-dot"></span>目标文件上传</div>
 
-        <div class="dl-block">
-          <div class="block-title">下载当前文件</div>
-          <div class="tpl-list" id="targetCardList"></div>
-        </div>
+        <div class="campus-grid" id="targetGrid">
+          <!-- 各校区列（下载卡 + 独立拖拽区）由 JS 注入，状态列固定在最右 -->
+          <div class="status-col">
+            <div class="block-title">上传是否成功 / 上传文件</div>
 
-        <div class="action-row">
-        <div class="ul-block">
-          <div class="block-title">上传目标文件</div>
-          <div class="campus-pick">
-            <span class="pick-label">目标校区</span>
-            <div class="campus-chips" id="targetCampusChips" role="group" aria-label="目标上传目标校区"></div>
-          </div>
-          <div class="upload-zone target-zone" id="targetZone" onclick="document.getElementById('targetFileInput').click()">
-            <div class="icon">🎯</div>
-            <div class="title">点击选择或拖拽目标院校表到此处</div>
-            <div class="desc" id="targetZoneDesc">仅更新当前校区目标表，校区分析页自动拉取</div>
-          </div>
-          <input type="file" id="targetFileInput" accept=".xlsx" style="display:none">
-
-          <div id="targetFileInfo" style="display:none" class="file-info">
-            <span class="name" id="targetFileName"></span>
-            <span class="size" id="targetFileSize"></span>
-          </div>
-
-          <div id="targetPreviewCard" style="display:none" class="preview-card">
-            <div class="preview-header">
-              <div class="ph-icon">✓</div>
-              <div class="ph-title">目标文件预览</div>
-              <div class="ph-sub" id="targetPreviewFileName"></div>
+            <div id="targetFileInfo" style="display:none" class="file-info">
+              <span class="name" id="targetFileName"></span>
+              <span class="size" id="targetFileSize"></span>
             </div>
-            <div id="targetPreviewGrid" class="preview-grid">
-              <div class="preview-item"><div class="pi-num" id="tpvClass">—</div><div class="pi-label">班级表</div></div>
-              <div class="preview-item"><div class="pi-num" id="tpvFilled">—</div><div class="pi-label">已填目标</div></div>
+
+            <div id="targetPreviewCard" style="display:none" class="preview-card">
+              <div class="preview-header">
+                <div class="ph-icon">✓</div>
+                <div class="ph-title">目标文件预览</div>
+                <div class="ph-sub" id="targetPreviewFileName"></div>
+              </div>
+              <div id="targetPreviewGrid" class="preview-grid">
+                <div class="preview-item"><div class="pi-num" id="tpvClass">—</div><div class="pi-label">班级表</div></div>
+                <div class="preview-item"><div class="pi-num" id="tpvFilled">—</div><div class="pi-label">已填目标</div></div>
+              </div>
+              <div id="targetPreviewLoading" style="display:none" class="preview-loading">
+                <div class="spin"></div><span>正在解析文件…</span>
+              </div>
             </div>
-            <div id="targetPreviewLoading" style="display:none" class="preview-loading">
-              <div class="spin"></div><span>正在解析文件…</span>
+            <div id="targetPreviewError" style="display:none" class="preview-error"></div>
+
+            <div id="targetProgressWrap" style="display:none" class="progress-wrap">
+              <div class="progress-bar"><div class="progress-fill" id="targetProgressFill"></div></div>
+              <div class="progress-text" id="targetProgressText">准备上传…</div>
             </div>
+
+            <div id="targetResultBox" style="display:none"></div>
+
+            <button class="btn upload-action" id="targetUploadBtn" onclick="doUploadTarget()" disabled>上传目标文件</button>
           </div>
-          <div id="targetPreviewError" style="display:none" class="preview-error"></div>
-
-          <div id="targetProgressWrap" style="display:none" class="progress-wrap">
-            <div class="progress-bar"><div class="progress-fill" id="targetProgressFill"></div></div>
-            <div class="progress-text" id="targetProgressText">准备上传…</div>
-          </div>
-
-          <div id="targetResultBox" style="display:none"></div>
         </div>
-
-        <div class="btn-block">
-          <button class="btn upload-action" id="targetUploadBtn" onclick="doUploadTarget()" disabled>上传目标文件</button>
-          <div class="muted-note">目标表按「班级工作表 → 姓名 + 目标院校」填写；上传后各校区学习目标页自动读取。</div>
-        </div>
-        </div>
+        <input type="file" id="targetFileInput" accept=".xlsx" style="display:none">
       </section>
     </div>
 
@@ -716,18 +694,37 @@ function gradeCampusList(){
 }
 
 function renderTemplates(){
-  const list = $('tplList');
-  list.innerHTML = gradeCampusList().map(c=>`
-    <div class="tpl-item" data-path="data/${c.file}" data-file="${c.file}" data-name="${c.name}">
-      <div class="tpl-icon">${DOC_SVG}</div>
-      <div class="tpl-text">
-        <div class="tpl-name">${c.name}成绩表</div>
-        <div class="tpl-desc">正在查询最新文件…</div>
+  const grid = $('gradeGrid');
+  const list = gradeCampusList();
+  list.forEach(c=>{
+    const col = document.createElement('div');
+    col.className = 'campus-col';
+    col.dataset.file = c.file; col.dataset.name = c.name;
+    col.innerHTML = `
+      <div class="tpl-item" data-path="data/${c.file}" data-file="${c.file}" data-name="${c.name}">
+        <div class="tpl-icon">${DOC_SVG}</div>
+        <div class="tpl-text">
+          <div class="tpl-name">${c.name}成绩表</div>
+          <div class="tpl-desc">正在查询最新文件…</div>
+        </div>
       </div>
-    </div>
-  `).join('');
-  list.querySelectorAll('.tpl-item').forEach(card=>{
+      <div class="upload-zone grade-zone" data-file="${c.file}" data-name="${c.name}">
+        <div class="icon">📁</div>
+        <div class="title">拖拽上传${c.name}</div>
+        <div class="desc">点击选择或拖拽 .xlsx 到此处</div>
+      </div>`;
+    grid.insertBefore(col, grid.querySelector('.status-col'));
+    const card = col.querySelector('.tpl-item');
     card.addEventListener('click', ()=>onGradeCardClick(card));
+    const zoneEl = col.querySelector('.grade-zone');
+    zoneEl.addEventListener('click', ()=>{ selectGradeCampus(c.file, c.name, zoneEl); $('fileInput').click(); });
+    zoneEl.addEventListener('dragover', e=>{e.preventDefault();zoneEl.classList.add('dragover');});
+    zoneEl.addEventListener('dragleave', ()=>zoneEl.classList.remove('dragover'));
+    zoneEl.addEventListener('drop', e=>{
+      e.preventDefault();zoneEl.classList.remove('dragover');
+      selectGradeCampus(c.file, c.name, zoneEl);
+      if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
     if(repoSizeMap) probeGradeCard(card);
   });
 }
@@ -782,17 +779,15 @@ async function onGradeCardClick(card){
 
 /* 上传成功后刷新卡片状态（刚上传的文件立即显示为最新版） */
 function refreshGradeCards(){
-  document.querySelectorAll('#tplList .tpl-item').forEach(probeGradeCard);
+  document.querySelectorAll('#gradeGrid .tpl-item').forEach(probeGradeCard);
 }
 
 /* ==================== 文件上传 ==================== */
-const zone = $('uploadZone');
-zone.addEventListener('dragover', e=>{e.preventDefault();zone.classList.add('dragover');});
-zone.addEventListener('dragleave', ()=>zone.classList.remove('dragover'));
-zone.addEventListener('drop', e=>{
-  e.preventDefault();zone.classList.remove('dragover');
-  if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-});
+/* 选中某个校区的上传目标（该校区拖拽区高亮） */
+function selectGradeCampus(file, name, zoneEl){
+  gradeDest = 'data/' + file;
+  document.querySelectorAll('#gradeGrid .grade-zone').forEach(z=>z.classList.toggle('active', z===zoneEl));
+}
 $('fileInput').addEventListener('change', e=>{ if(e.target.files.length) handleFile(e.target.files[0]); });
 
 function handleFile(file){
@@ -1013,23 +1008,13 @@ function encodeRepoPath(path){
 /* 管理员的成绩上传目标校区选择（展开式按钮组） */
 function initGradeDest(){
   const list = gradeCampusList();
-  const chips = $('gradeCampusChips');
+  const firstZone = document.querySelector('#gradeGrid .grade-zone');
   if(currentAccount.role === 'admin'){
-    chips.innerHTML = list.map((c, i) =>
-      `<button type="button" class="chip${i === 0 ? ' active' : ''}" data-file="${c.file}" data-name="${c.name}">${c.name}</button>`
-    ).join('');
-    chips.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
-      gradeDest = 'data/' + b.dataset.file;
-      chips.querySelectorAll('.chip').forEach(x => x.classList.toggle('active', x === b));
-      updateGradeDestHint(b.dataset.name);
-    }));
     gradeDest = 'data/' + list[0].file;
-    updateGradeDestHint(list[0].name);
   } else {
-    chips.innerHTML = '';
     gradeDest = 'data/' + currentAccount.file;
-    updateGradeDestHint(currentAccount.campus);
   }
+  if(firstZone) firstZone.classList.add('active');
 }
 
 function updateGradeDestHint(name){
@@ -1045,18 +1030,38 @@ function targetCampusList(){
 }
 
 function renderTargetCards(){
-  const list = $('targetCardList');
-  list.innerHTML = targetCampusList().map(c => `
-    <div class="tpl-item" data-path="${c.targetFile}" data-label="${c.label}">
-      <div class="tpl-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg></div>
-      <div class="tpl-text">
-        <div class="tpl-name">${c.label}目标表</div>
-        <div class="tpl-desc">正在查询最新文件…</div>
+  const grid = $('targetGrid');
+  const list = targetCampusList();
+  const targetSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>';
+  list.forEach(c=>{
+    const col = document.createElement('div');
+    col.className = 'campus-col';
+    col.dataset.file = c.targetFile; col.dataset.label = c.label;
+    col.innerHTML = `
+      <div class="tpl-item" data-path="${c.targetFile}" data-label="${c.label}">
+        <div class="tpl-icon">${targetSvg}</div>
+        <div class="tpl-text">
+          <div class="tpl-name">${c.label}目标表</div>
+          <div class="tpl-desc">正在查询最新文件…</div>
+        </div>
       </div>
-    </div>
-  `).join('');
-  list.querySelectorAll('.tpl-item').forEach(card => {
+      <div class="upload-zone target-zone" data-file="${c.targetFile}" data-label="${c.label}">
+        <div class="icon">🎯</div>
+        <div class="title">拖拽上传${c.label}</div>
+        <div class="desc">点击选择或拖拽目标院校表 .xlsx</div>
+      </div>`;
+    grid.insertBefore(col, grid.querySelector('.status-col'));
+    const card = col.querySelector('.tpl-item');
     card.addEventListener('click', () => onTargetCardClick(card));
+    const zoneEl = col.querySelector('.target-zone');
+    zoneEl.addEventListener('click', ()=>{ selectTargetCampus(c.targetFile, c.label, zoneEl); $('targetFileInput').click(); });
+    zoneEl.addEventListener('dragover', e=>{e.preventDefault();zoneEl.classList.add('dragover');});
+    zoneEl.addEventListener('dragleave', ()=>zoneEl.classList.remove('dragover'));
+    zoneEl.addEventListener('drop', e=>{
+      e.preventDefault();zoneEl.classList.remove('dragover');
+      selectTargetCampus(c.targetFile, c.label, zoneEl);
+      if(e.dataTransfer.files.length) handleTargetFile(e.dataTransfer.files[0]);
+    });
     if(repoSizeMap) probeTargetCard(card);
   });
 }
@@ -1115,44 +1120,27 @@ async function onTargetCardClick(card){
 }
 
 function refreshTargetCards(){
-  document.querySelectorAll('#targetCardList .tpl-item').forEach(probeTargetCard);
+  document.querySelectorAll('#targetGrid .tpl-item').forEach(probeTargetCard);
 }
 
-/* 管理员的目标上传目标校区选择（展开式按钮组） */
+/* 选中某个校区的目标表上传目标（该校区拖拽区高亮） */
+function selectTargetCampus(file, label, zoneEl){
+  targetDest = file;
+  document.querySelectorAll('#targetGrid .target-zone').forEach(z=>z.classList.toggle('active', z===zoneEl));
+  resetTarget();
+}
+
 function initTargetDest(){
   const list = targetCampusList();
-  const chips = $('targetCampusChips');
+  const firstZone = document.querySelector('#targetGrid .target-zone');
   if(currentAccount.role === 'admin'){
-    chips.innerHTML = list.map((c, i) =>
-      `<button type="button" class="chip${i === 0 ? ' active' : ''}" data-file="${c.targetFile}" data-label="${c.label}">${c.label}</button>`
-    ).join('');
-    chips.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
-      targetDest = b.dataset.file;
-      chips.querySelectorAll('.chip').forEach(x => x.classList.toggle('active', x === b));
-      updateTargetDestHint(b.dataset.label);
-      resetTarget();
-    }));
     targetDest = list[0].targetFile;
-    updateTargetDestHint(list[0].label);
   } else {
-    chips.innerHTML = '';
     targetDest = currentAccount.targetFile;
-    updateTargetDestHint(currentAccount.campus);
   }
+  if(firstZone) firstZone.classList.add('active');
 }
 
-function updateTargetDestHint(label){
-  const d = $('targetZoneDesc');
-  if(d) d.textContent = '仅更新【' + label + '】目标表';
-}
-
-const targetZone = $('targetZone');
-targetZone.addEventListener('dragover', e=>{e.preventDefault();targetZone.classList.add('dragover');});
-targetZone.addEventListener('dragleave', ()=>targetZone.classList.remove('dragover'));
-targetZone.addEventListener('drop', e=>{
-  e.preventDefault();targetZone.classList.remove('dragover');
-  if(e.dataTransfer.files.length) handleTargetFile(e.dataTransfer.files[0]);
-});
 $('targetFileInput').addEventListener('change', e=>{ if(e.target.files.length) handleTargetFile(e.target.files[0]); });
 
 function handleTargetFile(file){
