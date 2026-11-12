@@ -47,12 +47,13 @@
 
   /* AI（硅基流动）配置：global 为管理员统一配置；teachers 为每位老师的 API 模式 */
   function aiDefaults() {
+    const c = (typeof window !== 'undefined' && window.AI_CONFIG) || {};
     return {
       global: {
-        baseUrl: 'https://api.siliconflow.cn/v1/chat/completions',
-        textModel: 'Qwen/Qwen2.5-7B-Instruct',
-        visionModel: 'Qwen/Qwen2.5-VL-72B-Instruct',
-        defaultKey: ''
+        baseUrl: c.baseUrl || 'https://api.siliconflow.cn/v1/chat/completions',
+        textModel: c.textModel || 'Qwen/Qwen2.5-7B-Instruct',
+        visionModel: c.visionModel || 'Qwen/Qwen2.5-VL-72B-Instruct',
+        defaultKey: c.defaultKey || ''
       },
       teachers: {}
     };
@@ -120,12 +121,13 @@
     };
   }
   function loadDB() {
-    /* 1) 新库 */
+    /* 1) 新库：只要 localStorage 里是一个合法数据库对象就保留，
+       不因 users 暂时为空就整库重写（避免把已存的 AI 配置一并抹掉） */
     try {
       const raw = localStorage.getItem(LS_DB);
       if (raw) {
         const o = JSON.parse(raw);
-        if (o && Array.isArray(o.users) && o.users.length) { migrate(o); return o; }
+        if (o && typeof o === 'object') { migrate(o); return o; }
       }
     } catch (e) { console.warn('数据库读取失败', e); }
     /* 2) 旧键自动迁移（只迁一次，迁完删掉旧键） */
@@ -231,7 +233,13 @@
   /* 解析当前登录教师实际使用的 AI 配置：共用管理员 / 独立 Key / 与某老师共用 */
   function aiConfigFor() {
     const a = aiConfig();
-    const g = a.global || {};
+    const c = (typeof window !== 'undefined' && window.AI_CONFIG) || {};
+    const g = Object.assign({}, aiDefaults().global, a.global || {});
+    /* 本地保存为空时回退到独立配置文件里的默认值，避免清缓存/新设备后显示未配置 */
+    g.baseUrl = g.baseUrl || c.baseUrl || '';
+    g.textModel = g.textModel || c.textModel || '';
+    g.visionModel = g.visionModel || c.visionModel || '';
+    g.defaultKey = g.defaultKey || c.defaultKey || '';
     const u = currentUser();
     if (!u || u.role !== 'admin' && u.role !== 'teacher') return { baseUrl: g.baseUrl, textModel: g.textModel, visionModel: g.visionModel, key: g.defaultKey || '' };
     const t = (a.teachers || {})[u.u] || null;
