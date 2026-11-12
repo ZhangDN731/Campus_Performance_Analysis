@@ -973,12 +973,23 @@
   }
   function adminAi() {
     const a = aiConfig();
+    const cfg = (typeof window !== 'undefined' && window.AI_CONFIG) || {};
     const g = Object.assign({}, aiDefaults().global, a.global || {});
+    /* 本地保存为空时回退配置文件默认值，避免输入框显示空白 */
+    g.baseUrl = g.baseUrl || cfg.baseUrl || '';
+    g.textModel = g.textModel || cfg.textModel || '';
+    g.visionModel = g.visionModel || cfg.visionModel || '';
+    g.defaultKey = g.defaultKey || cfg.defaultKey || '';
+    const cfgTeachers = cfg.teachers || {};
     const teachers = db.users.filter(u => u.role !== 'admin');
     const rows = teachers.map(u => {
-      const t = (a.teachers || {})[u.u] || { mode: 'default', key: '', share: '' };
-      const mode = t.mode || 'default';
-      const key = t.key || '';
+      const t = (a.teachers || {})[u.u] || {};
+      const cfgKey = cfgTeachers[u.name] || cfgTeachers[u.u] || '';
+      /* 本地未设置时：配置文件里有 Key 的老师默认「独立 API」并带出该 Key；本地已保存的模式/Key 优先 */
+      let mode = t.mode || '';
+      let key = t.key || '';
+      if (!mode) mode = cfgKey ? 'self' : 'default';
+      if (!key) key = cfgKey;
       const share = t.share || '';
       const peerOptions = teachers.filter(p => p.u !== u.u)
         .map(p => '<option value="' + esc(p.u) + '"' + (p.u === share ? ' selected' : '') + '>' + esc(p.name) + '（' + esc(p.subject || '-') + '）</option>').join('');
