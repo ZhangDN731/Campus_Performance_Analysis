@@ -249,6 +249,34 @@
       "isLeader": true,
       "mode": "self",
       "createdAt": "预置账号"
+    },
+    {
+      "u": "zhouhong",
+      "name": "周红",
+      "role": "teacher",
+      "subject": "数学",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "2026-11-18 17:50"
+    },
+    {
+      "u": "caoguanghan",
+      "name": "曹广汉",
+      "role": "teacher",
+      "subject": "物理",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "2026-11-18 17:50"
     }
   ],
   "ai": {
@@ -326,6 +354,14 @@
       "dingran": {
         "mode": "self",
         "key": "sk-keijnslgrdiubpxkeyfibqoomgdnfguzfhgpkejsmwpprgbu"
+      },
+      "zhouhong": {
+        "mode": "self",
+        "key": "sk-kezvlsmsxemfpcivoxtuxycslcsgklujnbwhvbuqltafgzre"
+      },
+      "caoguanghan": {
+        "mode": "self",
+        "key": "sk-avlwdqqkftdynkgakhlsonuworfmsimhranxnkhklxrfmdlo"
       }
     }
   }
