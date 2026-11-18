@@ -22,7 +22,8 @@
     '王玄烨': 'wangxuanye', '杜得京': 'dudejing', '徐静娜': 'xujingna',
     '尹雅蕾': 'yinyalei', '贾晓迈': 'jiaxiaomai', '王敏婕': 'wangminjie',
     '李欣茹': 'lixinru', '张洁': 'zhangjie', '杜佳雯': 'dujiawen',
-    '赵晓亚': 'zhaoxiaoya', '丁然': 'dingran'
+    '赵晓亚': 'zhaoxiaoya', '丁然': 'dingran',
+    '周红': 'zhouhong', '曹广汉': 'caoguanghan'
   };
 
   /* 预置教师（科目名与成绩表一致：信息技术） */
@@ -37,7 +38,8 @@
     { name: '贾晓迈', subject: '化学' }, { name: '王敏婕', subject: '地理' },
     { name: '李欣茹', subject: '美术' }, { name: '张洁', subject: '生物' },
     { name: '杜佳雯', subject: '语文' }, { name: '赵晓亚', subject: '语文' },
-    { name: '丁然', subject: '数学' }
+    { name: '丁然', subject: '数学' }, { name: '周红', subject: '数学' },
+    { name: '曹广汉', subject: '物理' }
   ];
 
   /* 旧数据里写过「计算机」，读入时统一换成「信息技术」 */
@@ -199,10 +201,13 @@
     if (!o.ai.global) o.ai.global = aiDefaults().global;
     if (!o.ai.teachers || typeof o.ai.teachers !== 'object') o.ai.teachers = {};
   }
-  function saveDB(o) {
-    db = o || db;
+  function persistDB() {
     db.updatedAt = nowStr();
     try { localStorage.setItem(LS_DB, JSON.stringify(db)); } catch (e) { console.warn('数据库保存失败', e); }
+  }
+  function saveDB(o) {
+    db = o || db;
+    persistDB();
     scheduleSync();
   }
 
@@ -268,9 +273,36 @@
     clearTimeout(syncTimer);
     syncTimer = setTimeout(doPushRemote, 1200);
   }
+  let pushing = false;
   async function doPushRemote() {
-    try { await globalThis.RemoteSync.push(serializeRemote(), 'sync: 账号 / AI 配置更新'); }
-    catch (e) { console.warn('[remote-sync] 自动推送失败', e); }
+    if (pushing) return;
+    pushing = true;
+    try {
+      /* 推送前先拉取远端，把远端有、本地缺的账号 / Key 并入本地并集，
+         避免本机旧数据整库覆盖时把别人新增的账号冲掉；本地已有记录以本机为准 */
+      let remote = null;
+      try { remote = await globalThis.RemoteSync.pull(); } catch (e) { }
+      if (remote) {
+        if (Array.isArray(remote.users)) {
+          remote.users.forEach(ru => {
+            if (ru && ru.u && !findUser(ru.u)) db.users.push(cleanUser(ru));
+          });
+        }
+        if (remote.ai && typeof remote.ai === 'object') {
+          const a = aiConfig();
+          if (remote.ai.global && typeof remote.ai.global === 'object') Object.assign(a.global, remote.ai.global);
+          if (remote.ai.teachers && typeof remote.ai.teachers === 'object') {
+            Object.keys(remote.ai.teachers).forEach(k => {
+              if (!a.teachers[k]) a.teachers[k] = remote.ai.teachers[k];
+            });
+          }
+        }
+        migrate(db);
+        persistDB();
+      }
+      await globalThis.RemoteSync.push(serializeRemote(), 'sync: 账号 / AI 配置更新');
+    } catch (e) { console.warn('[remote-sync] 自动推送失败', e); }
+    finally { pushing = false; }
   }
   /* 启动时拉取远程共享库并合并；完成后再允许本地变更回推 */
   function pullRemote() {
@@ -1361,7 +1393,12 @@
     draft.u = uu;
     if (!uu || !pp) { msg = { type: 'err', text: '请输入账号和密码' }; return renderCard(); }
     const u = findUser(uu);
-    if (!u) { msg = { type: 'err', text: '账号不存在，请先注册或联系审核员添加' }; return renderCard(); }
+    if (!u) {
+      msg = SELF_REG
+        ? { type: 'err', text: '账号不存在，请先注册或联系审核员添加' }
+        : { type: 'err', text: '账号不存在，本校区由管理员统一建号，请联系管理员添加' };
+      return renderCard();
+    }
     if (u.role !== 'admin' && u.campus && u.campus !== CAMPUS) {
       msg = { type: 'err', text: '这个账号属于「' + u.campus + '」，请到对应的校区页面登录' };
       return renderCard();

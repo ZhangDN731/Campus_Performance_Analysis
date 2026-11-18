@@ -18,6 +18,7 @@ window.AI_CONFIG = {
   defaultKey: 'sk-vurvtuogykryurxlqtjrudlprrxfzgiygnxzqkdotooaltba',
   /* 各教师独立 Key（按姓名匹配；未在此列出的教师回退到管理员默认 Key） */
   teachers: {
+    '曹广汉': 'sk-avlwdqqkftdynkgakhlsonuworfmsimhranxnkhklxrfmdlo',
     '陈莹哲': 'sk-oytokbugzvqcozzdiafhrztquxvspdytbhpwcwpcvynmhkwk',
     '丁然': 'sk-keijnslgrdiubpxkeyfibqoomgdnfguzfhgpkejsmwpprgbu',
     '杜翠花': 'sk-itiaabkvanernjveknntbbukatnlddontsuadrtbzvhbnxrp',
@@ -34,6 +35,7 @@ window.AI_CONFIG = {
     '张迪楠': 'sk-escbustmaypsmjwsqbyycypeimzimgnblhfpxtxywghwwprg',
     '张洁': 'sk-gzvvtgyeqvqcczlsonhtpljamboqmchnbigcgiecuklynutn',
     '赵晓亚': 'sk-qcwfzyxhldxcsocrdjxffyvcdysdtybnyduoogtoolvzqjbp',
-    '周景辉': 'sk-ejgbfrnzozqljizeyrbkxnocvylgcnsvwurgfpitwxfhbqpc'
+    '周景辉': 'sk-ejgbfrnzozqljizeyrbkxnocvylgcnsvwurgfpitwxfhbqpc',
+    '周红': 'sk-kezvlsmsxemfpcivoxtuxycslcsgklujnbwhvbuqltafgzre'
   }
 };
