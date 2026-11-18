@@ -1,0 +1,332 @@
+{
+  "users": [
+    {
+      "u": "admin",
+      "name": "审核员",
+      "role": "admin",
+      "subject": "",
+      "campus": "全部",
+      "pwd": "admin",
+      "defaultPwd": false,
+      "status": "active",
+      "classes": [],
+      "createdAt": "系统内置"
+    },
+    {
+      "u": "zhoujinghui",
+      "name": "周景辉",
+      "role": "teacher",
+      "subject": "物理",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "yanliying",
+      "name": "颜立营",
+      "role": "teacher",
+      "subject": "历史",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "wuenle",
+      "name": "吴恩乐",
+      "role": "teacher",
+      "subject": "政治",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "chenyingzhe",
+      "name": "陈莹哲",
+      "role": "teacher",
+      "subject": "英语",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "ducuihua",
+      "name": "杜翠花",
+      "role": "teacher",
+      "subject": "信息技术",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "zhangdinan",
+      "name": "张迪楠",
+      "role": "teacher",
+      "subject": "信息技术",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "wangxuanye",
+      "name": "王玄烨",
+      "role": "teacher",
+      "subject": "数学",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "dudejing",
+      "name": "杜得京",
+      "role": "teacher",
+      "subject": "数学",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "xujingna",
+      "name": "徐静娜",
+      "role": "teacher",
+      "subject": "语文",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "yinyalei",
+      "name": "尹雅蕾",
+      "role": "teacher",
+      "subject": "语文",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "jiaxiaomai",
+      "name": "贾晓迈",
+      "role": "teacher",
+      "subject": "化学",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "wangminjie",
+      "name": "王敏婕",
+      "role": "teacher",
+      "subject": "地理",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "lixinru",
+      "name": "李欣茹",
+      "role": "teacher",
+      "subject": "美术",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "zhangjie",
+      "name": "张洁",
+      "role": "teacher",
+      "subject": "生物",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "dujiawen",
+      "name": "杜佳雯",
+      "role": "teacher",
+      "subject": "语文",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "zhaoxiaoya",
+      "name": "赵晓亚",
+      "role": "teacher",
+      "subject": "语文",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": true,
+      "mode": "self",
+      "createdAt": "预置账号"
+    },
+    {
+      "u": "dingran",
+      "name": "丁然",
+      "role": "teacher",
+      "subject": "数学",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": true,
+      "mode": "self",
+      "createdAt": "预置账号"
+    }
+  ],
+  "ai": {
+    "global": {
+      "baseUrl": "https://api.siliconflow.cn/v1/chat/completions",
+      "textModel": "Qwen/Qwen2.5-7B-Instruct",
+      "visionModel": "Qwen/Qwen2.5-VL-72B-Instruct",
+      "defaultKey": "sk-vurvtuogykryurxlqtjrudlprrxfzgiygnxzqkdotooaltba"
+    },
+    "teachers": {
+      "zhoujinghui": {
+        "mode": "self",
+        "key": "sk-ejgbfrnzozqljizeyrbkxnocvylgcnsvwurgfpitwxfhbqpc"
+      },
+      "yanliying": {
+        "mode": "self",
+        "key": "sk-kskxgizfmjghldmiapdelqocunrhcissbtbshjsjkosusjbc"
+      },
+      "wuenle": {
+        "mode": "self",
+        "key": "sk-wftfqgkuivuadcxowxbqpryuwhwdlgkkslvexgomlwczlvyg"
+      },
+      "chenyingzhe": {
+        "mode": "self",
+        "key": "sk-oytokbugzvqcozzdiafhrztquxvspdytbhpwcwpcvynmhkwk"
+      },
+      "ducuihua": {
+        "mode": "self",
+        "key": "sk-itiaabkvanernjveknntbbukatnlddontsuadrtbzvhbnxrp"
+      },
+      "zhangdinan": {
+        "mode": "self",
+        "key": "sk-escbustmaypsmjwsqbyycypeimzimgnblhfpxtxywghwwprg"
+      },
+      "wangxuanye": {
+        "mode": "self",
+        "key": "sk-rhxbeeomnxqebbqezqvbjcvbwczakanbvvwfhgeyyeioowhm"
+      },
+      "dudejing": {
+        "mode": "self",
+        "key": "sk-gvacydisvsaculszqdgeyfsqtyjjnzksszhpbzexjyblynvh"
+      },
+      "xujingna": {
+        "mode": "self",
+        "key": "sk-rqgjttkzdmxveqdiybnjkjrjwzuyaoebodmxhikdbabokujf"
+      },
+      "yinyalei": {
+        "mode": "self",
+        "key": "sk-ilxoouwobhdshqtshgbrmqwoqcecefoqmsbynsuqsonmygqx"
+      },
+      "jiaxiaomai": {
+        "mode": "self",
+        "key": "sk-bpzxgoekpthvkereibqohndngpjkhmmdurgzoihcqulhvfke"
+      },
+      "wangminjie": {
+        "mode": "self",
+        "key": "sk-chfpxaoslrkitriignaisjklyxnnmoqtasgdvgmnauqigsrj"
+      },
+      "lixinru": {
+        "mode": "self",
+        "key": "sk-btfklyhfqntzdygryvreqovojgddpkmsovgnogmbtoviqyuv"
+      },
+      "zhangjie": {
+        "mode": "self",
+        "key": "sk-gzvvtgyeqvqcczlsonhtpljamboqmchnbigcgiecuklynutn"
+      },
+      "dujiawen": {
+        "mode": "self",
+        "key": "sk-hltcortfuhaamszaqdcxematobxxadbgfwzrlrspgutqddvl"
+      },
+      "zhaoxiaoya": {
+        "mode": "self",
+        "key": "sk-qcwfzyxhldxcsocrdjxffyvcdysdtybnyduoogtoolvzqjbp"
+      },
+      "dingran": {
+        "mode": "self",
+        "key": "sk-keijnslgrdiubpxkeyfibqoomgdnfguzfhgpkejsmwpprgbu"
+      }
+    }
+  }
+}
