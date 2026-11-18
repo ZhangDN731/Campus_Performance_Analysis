@@ -203,6 +203,84 @@
     db = o || db;
     db.updatedAt = nowStr();
     try { localStorage.setItem(LS_DB, JSON.stringify(db)); } catch (e) { console.warn('数据库保存失败', e); }
+    scheduleSync();
+  }
+
+  /* ---------------- 仓库共享同步（账号 + AI 配置） ---------------- */
+  const SYNC_USER_FIELDS = ['u', 'name', 'role', 'subject', 'campus', 'pwd', 'defaultPwd', 'status', 'classes', 'isLeader', 'mode', 'createdAt'];
+  let syncReady = false;        /* 初始拉取完成前不回推，避免启动时把空库推上去 */
+  let syncTimer = null;
+
+  function cleanUser(u) {
+    const c = {};
+    SYNC_USER_FIELDS.forEach(k => {
+      if (k === 'classes') c[k] = Array.isArray(u[k]) ? u[k].slice() : [];
+      else if (k in u) c[k] = u[k];
+    });
+    return c;
+  }
+  /* 序列化当前库为远程共享文件内容（不含日志等本机临时数据） */
+  function serializeRemote() {
+    const a = aiConfig();
+    const cfg = (typeof globalThis.AI_CONFIG === 'object' && globalThis.AI_CONFIG) || {};
+    const global = Object.assign({}, a.global);
+    if (!global.defaultKey) global.defaultKey = cfg.defaultKey || '';
+    const teachers = Object.assign({}, a.teachers);
+    (db.users || []).forEach(u => {
+      if (u.role !== 'teacher') return;
+      const t = Object.assign({}, teachers[u.u]);
+      if (!t.key) {
+        const k = cfg.teachers && (cfg.teachers[u.name] || '');
+        if (k) { t.mode = t.mode || 'self'; t.key = k; }
+      }
+      if (t.key) teachers[u.u] = t;
+    });
+    return {
+      users: (db.users || []).map(cleanUser),
+      ai: { global: global, teachers: teachers }
+    };
+  }
+  /* 把远程共享数据合并进本地库：按账号 upsert，本地独有账号保留 */
+  function mergeRemote(data) {
+    if (!data || typeof data !== 'object') return;
+    if (Array.isArray(data.users)) {
+      data.users.forEach(ru => {
+        if (!ru || !ru.u) return;
+        const clean = cleanUser(ru);
+        const lu = findUser(clean.u);
+        if (lu) Object.assign(lu, clean);
+        else db.users.push(clean);
+      });
+    }
+    if (data.ai && typeof data.ai === 'object') {
+      const a = aiConfig();
+      if (data.ai.global && typeof data.ai.global === 'object') Object.assign(a.global, data.ai.global);
+      if (data.ai.teachers && typeof data.ai.teachers === 'object') {
+        Object.keys(data.ai.teachers).forEach(k => {
+          a.teachers[k] = Object.assign({}, a.teachers[k], data.ai.teachers[k]);
+        });
+      }
+    }
+    migrate(db);
+  }
+  function scheduleSync() {
+    if (!syncReady || typeof globalThis.RemoteSync === 'undefined' || !globalThis.RemoteSync) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(doPushRemote, 1200);
+  }
+  async function doPushRemote() {
+    try { await globalThis.RemoteSync.push(serializeRemote(), 'sync: 账号 / AI 配置更新'); }
+    catch (e) { console.warn('[remote-sync] 自动推送失败', e); }
+  }
+  /* 启动时拉取远程共享库并合并；完成后再允许本地变更回推 */
+  function pullRemote() {
+    if (typeof globalThis.RemoteSync === 'undefined' || !globalThis.RemoteSync) { syncReady = true; return; }
+    globalThis.RemoteSync.pull().then(data => {
+      if (data) { mergeRemote(data); saveDB(); }
+      syncReady = true;
+      applyAll(true);
+      renderCard();
+    }).catch(() => { syncReady = true; });
   }
   function logAct(text) {
     if (!db) return;
@@ -815,7 +893,8 @@
       '<button class="' + ((adminTab === t.id || (t.id === 'users' && adminTab === 'import')) ? 'on' : '') + '" data-act="admin-tab" data-tab="' + t.id + '" type="button">' +
       t.label + (t.id === 'pending' ? pendingBadge() : '') + '</button>').join('') + '</div>';
     let body = '';
-    if (adminTab === 'pending') body = adminPending();
+    if (editingNewUser()) body = adminNewUserForm();
+    else if (adminTab === 'pending') body = adminPending();
     else if (adminTab === 'users') body = adminUsers();
     else if (adminTab === 'classes') body = adminClasses();
     else if (adminTab === 'ai') body = adminAi();
@@ -1593,6 +1672,8 @@
     });
     renderEntry();
     applyAll(false);
+    /* 拉取仓库共享的账号 / AI 配置并合并到本地，完成后自动重渲染 */
+    pullRemote();
     /* 数据可能在本模块加载前就已解析完毕（双击打开走内嵌数据） */
     setTimeout(function () {
       if (typeof state !== 'undefined' && state.classList && state.classList.length) {
