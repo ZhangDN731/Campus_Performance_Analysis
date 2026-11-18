@@ -1300,8 +1300,48 @@ async function doUploadTarget(){
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>if(!window.XLSX){document.write('<script src="https://fastly.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');}</script>
 <script>window.__AUTH_HOST = 'admin';</script>
+<script src="../assets/js/roster.js?v=1"></script>
 <script src="../assets/config/ai-config.js?v=2"></script>
-<script src="../assets/js/auth.js?v=3"></script>
+<script src="../assets/js/auth.js?v=4"></script>
 <script>window.__AUTH_LOGOUT_HOOK = doLogout;</script>
+<script>
+/* 管理台默认班级：在本页直接解析成绩表，生成班级名单与班级-科目映射（无需内嵌校区页） */
+window.__CLASS_ROSTER__ = {};
+window.__ROSTER_PENDING = {};
+window.__AUTH_ENSURE_ROSTER__ = async function (campus) {
+  if (!window.Roster) return;
+  campus = campus || '龙泉校区';
+  if (window.__CLASS_ROSTER__[campus]) return window.__CLASS_ROSTER__[campus];
+  if (window.__ROSTER_PENDING[campus]) return window.__ROSTER_PENDING[campus];
+  var file = null;
+  Object.keys(ACCOUNTS).forEach(function (k) {
+    var a = ACCOUNTS[k];
+    if (a && a.role === 'campus' && a.campus === campus) file = a.file;
+  });
+  var job = (async function () {
+    var roster = null;
+    /* 1) 优先仓库内最新成绩表 */
+    if (file) {
+      try { var f = await fetchRepoFile('data/' + file); if (f && f.bytes) roster = Roster.rosterFromBytes(f.bytes); } catch (e) { /* 回退内嵌 */ }
+    }
+    /* 2) 回退内嵌 base64 成绩表 */
+    if (!roster) {
+      var short = String(campus).replace(/校区$/, '');
+      try {
+        var resp = await fetch('../assets/data/grade-embed-' + short + '.js');
+        if (resp.ok) {
+          var txt = await resp.text();
+          var m = txt.match(/"([A-Za-z0-9+/=\s]+)"\s*;?\s*$/m);
+          if (m) roster = Roster.rosterFromB64(m[1].replace(/\s+/g, ''));
+        }
+      } catch (e) { /* 忽略 */ }
+    }
+    window.__CLASS_ROSTER__[campus] = roster || { classes: [], map: {} };
+    return window.__CLASS_ROSTER__[campus];
+  })();
+  window.__ROSTER_PENDING[campus] = job;
+  return job;
+};
+</script>
 </body>
 </html>

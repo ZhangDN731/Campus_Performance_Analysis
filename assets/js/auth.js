@@ -312,8 +312,20 @@
     if (u.status === 'disabled') return '已停用';
     return '正常';
   }
+  /* 独立管理宿主（上传页）没有成绩解析状态，读取由 roster.js 装配好的本地名单缓存 */
+  function hostRoster(campus) {
+    try {
+      const R = window.__CLASS_ROSTER__;
+      return (R && R[campus]) || null;
+    } catch (e) { return null; }
+  }
   function classList() {
-    try { return (typeof state !== 'undefined' && state.classList) ? state.classList.slice() : []; } catch (e) { return []; }
+    try {
+      if (typeof state !== 'undefined' && state.classList) return state.classList.slice();
+      const r = hostRoster(classCampus());
+      if (r && Array.isArray(r.classes)) return r.classes.slice();
+    } catch (e) { /* 落到空 */ }
+    return [];
   }
 
   /* ---------------- 布局应用：页签 + 班级锁定 + 管理台 ---------------- */
@@ -432,9 +444,14 @@
   /* 任课科目在成绩数据里出现过的全部班级（登录后默认就是这个范围） */
   function subjectDataClasses(sub) {
     try {
-      if (!sub || typeof state === 'undefined' || !state.classList) return [];
-      if (typeof getClassSubjects !== 'function') return [];
-      return state.classList.filter(c => getClassSubjects(c).indexOf(sub) >= 0);
+      if (!sub) return [];
+      if (typeof state !== 'undefined' && state.classList) {
+        if (typeof getClassSubjects !== 'function') return [];
+        return state.classList.filter(c => getClassSubjects(c).indexOf(sub) >= 0);
+      }
+      const r = hostRoster(classCampus());
+      if (r && r.map) return r.classes.filter(c => (r.map[c] || []).indexOf(sub) >= 0);
+      return [];
     } catch (e) { return []; }
   }
   function effectiveClasses(u) {
@@ -916,15 +933,8 @@
       '</div>';
   }
   function adminClasses() {
-    if (adminCampus !== CAMPUS) {
-      return '<p class="auth-empty">默认班级要按校区、按该校区真实的班级列表来设。请先进入「' + esc(adminCampus) + '」页面，' +
-        '在那里打开管理台设置（账号是共用的，不需要重新登录）。</p>' +
-        '<div class="auth-row"><a class="btn btn-primary" href="' + esc(adminCampus) + '.html">进入' + esc(adminCampus) + '</a>' +
-        '<button class="btn" type="button" data-act="admin-campus" data-campus="' + esc(CAMPUS) + '">切回' + esc(CAMPUS) + '</button></div>';
-    }
     const teachers = db.users.filter(u => u.role !== 'admin' && (u.campus || '龙泉校区') === adminCampus);
-    if (!classList().length) return '<p class="auth-empty">当前页面还没加载成绩数据，加载后点这里刷新即可分配班级。' +
-      '（默认班级是分校区设置的：要给「' + esc(adminCampus) + '」的老师分配，请在该校区页面里操作。）</p>' +
+    if (!classList().length) return '<p class="auth-empty">暂未读取到「' + esc(adminCampus) + '」的班级名单：请先在「成绩上传」页上传该校区成绩表，再点刷新重试。</p>' +
       '<button class="btn" type="button" data-act="admin-tab" data-tab="classes">刷新</button>';
     if (!teachers.length) return '<p class="auth-empty">还没有教师账号。</p>';
     const cur = teachers.find(u => u.u === editTeacher) || teachers[0];
@@ -1137,8 +1147,17 @@
         if (act === 'admin-tab') {
           const t = b.dataset.tab;
           msg = null;
-          if (t === 'classes' && !classList().length) { msg = { type: 'warn', text: '成绩数据尚未加载，加载后再分配默认班级。' }; }
           adminTab = t; if (t !== 'classes') view = 'admin';
+          if (t === 'classes' && typeof window.__AUTH_ENSURE_ROSTER__ === 'function' && !classList().length) {
+            const rc = (adminCampus === '全部' ? CAMPUS : adminCampus);
+            msg = { type: 'warn', text: '正在读取班级名单…' };
+            renderCard();
+            Promise.resolve(window.__AUTH_ENSURE_ROSTER__(rc)).then(() => {
+              try { if (view === 'admin' && adminTab === 'classes') { msg = null; renderCard(); } } catch (e) {}
+            });
+            return;
+          }
+          if (t === 'classes' && !classList().length) { msg = { type: 'warn', text: '暂未读取到班级名单，请先上传该校区成绩表后刷新。' }; }
           return renderCard();
         }
         if (act === 'approve' || act === 'reject') return onApprove(b.dataset.u, act === 'approve');
