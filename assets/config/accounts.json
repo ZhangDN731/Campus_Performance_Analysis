@@ -249,18 +249,6 @@
       "isLeader": true,
       "mode": "self",
       "createdAt": "预置账号"
-    },
-    {
-      "u": "testsync",
-      "name": "测试同步",
-      "role": "teacher",
-      "subject": "语文",
-      "campus": "龙泉校区",
-      "pwd": "123456",
-      "defaultPwd": true,
-      "status": "active",
-      "classes": [],
-      "createdAt": "2026-11-18 17:29"
     }
   ],
   "ai": {
