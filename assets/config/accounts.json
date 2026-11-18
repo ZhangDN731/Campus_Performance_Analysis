@@ -249,6 +249,34 @@
       "isLeader": true,
       "mode": "self",
       "createdAt": "预置账号"
+    },
+    {
+      "u": "zhouhong",
+      "name": "周红",
+      "role": "teacher",
+      "subject": "数学",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "2026-11-18 17:50"
+    },
+    {
+      "u": "caoguanghan",
+      "name": "曹广汉",
+      "role": "teacher",
+      "subject": "物理",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "2026-11-18 17:50"
     }
   ],
   "ai": {
@@ -261,88 +289,79 @@
     "teachers": {
       "zhoujinghui": {
         "mode": "self",
-        "key": "sk-ejgbfrnzozqljizeyrbkxnocvylgcnsvwurgfpitwxfhbqpc",
-        "share": ""
+        "key": "sk-ejgbfrnzozqljizeyrbkxnocvylgcnsvwurgfpitwxfhbqpc"
       },
       "yanliying": {
         "mode": "self",
-        "key": "sk-kskxgizfmjghldmiapdelqocunrhcissbtbshjsjkosusjbc",
-        "share": ""
+        "key": "sk-kskxgizfmjghldmiapdelqocunrhcissbtbshjsjkosusjbc"
       },
       "wuenle": {
         "mode": "self",
-        "key": "sk-wftfqgkuivuadcxowxbqpryuwhwdlgkkslvexgomlwczlvyg",
-        "share": ""
+        "key": "sk-wftfqgkuivuadcxowxbqpryuwhwdlgkkslvexgomlwczlvyg"
       },
       "chenyingzhe": {
         "mode": "self",
-        "key": "sk-oytokbugzvqcozzdiafhrztquxvspdytbhpwcwpcvynmhkwk",
-        "share": ""
+        "key": "sk-oytokbugzvqcozzdiafhrztquxvspdytbhpwcwpcvynmhkwk"
       },
       "ducuihua": {
         "mode": "self",
-        "key": "sk-itiaabkvanernjveknntbbukatnlddontsuadrtbzvhbnxrp",
-        "share": ""
+        "key": "sk-itiaabkvanernjveknntbbukatnlddontsuadrtbzvhbnxrp"
       },
       "zhangdinan": {
         "mode": "self",
-        "key": "sk-escbustmaypsmjwsqbyycypeimzimgnblhfpxtxywghwwprg",
-        "share": ""
+        "key": "sk-escbustmaypsmjwsqbyycypeimzimgnblhfpxtxywghwwprg"
       },
       "wangxuanye": {
         "mode": "self",
-        "key": "sk-rhxbeeomnxqebbqezqvbjcvbwczakanbvvwfhgeyyeioowhm",
-        "share": ""
+        "key": "sk-rhxbeeomnxqebbqezqvbjcvbwczakanbvvwfhgeyyeioowhm"
       },
       "dudejing": {
         "mode": "self",
-        "key": "sk-gvacydisvsaculszqdgeyfsqtyjjnzksszhpbzexjyblynvh",
-        "share": ""
+        "key": "sk-gvacydisvsaculszqdgeyfsqtyjjnzksszhpbzexjyblynvh"
       },
       "xujingna": {
         "mode": "self",
-        "key": "sk-rqgjttkzdmxveqdiybnjkjrjwzuyaoebodmxhikdbabokujf",
-        "share": ""
+        "key": "sk-rqgjttkzdmxveqdiybnjkjrjwzuyaoebodmxhikdbabokujf"
       },
       "yinyalei": {
         "mode": "self",
-        "key": "sk-ilxoouwobhdshqtshgbrmqwoqcecefoqmsbynsuqsonmygqx",
-        "share": ""
+        "key": "sk-ilxoouwobhdshqtshgbrmqwoqcecefoqmsbynsuqsonmygqx"
       },
       "jiaxiaomai": {
         "mode": "self",
-        "key": "sk-bpzxgoekpthvkereibqohndngpjkhmmdurgzoihcqulhvfke",
-        "share": ""
+        "key": "sk-bpzxgoekpthvkereibqohndngpjkhmmdurgzoihcqulhvfke"
       },
       "wangminjie": {
         "mode": "self",
-        "key": "sk-chfpxaoslrkitriignaisjklyxnnmoqtasgdvgmnauqigsrj",
-        "share": ""
+        "key": "sk-chfpxaoslrkitriignaisjklyxnnmoqtasgdvgmnauqigsrj"
       },
       "lixinru": {
         "mode": "self",
-        "key": "sk-btfklyhfqntzdygryvreqovojgddpkmsovgnogmbtoviqyuv",
-        "share": ""
+        "key": "sk-btfklyhfqntzdygryvreqovojgddpkmsovgnogmbtoviqyuv"
       },
       "zhangjie": {
         "mode": "self",
-        "key": "sk-gzvvtgyeqvqcczlsonhtpljamboqmchnbigcgiecuklynutn",
-        "share": ""
+        "key": "sk-gzvvtgyeqvqcczlsonhtpljamboqmchnbigcgiecuklynutn"
       },
       "dujiawen": {
         "mode": "self",
-        "key": "sk-hltcortfuhaamszaqdcxematobxxadbgfwzrlrspgutqddvl",
-        "share": ""
+        "key": "sk-hltcortfuhaamszaqdcxematobxxadbgfwzrlrspgutqddvl"
       },
       "zhaoxiaoya": {
         "mode": "self",
-        "key": "sk-qcwfzyxhldxcsocrdjxffyvcdysdtybnyduoogtoolvzqjbp",
-        "share": ""
+        "key": "sk-qcwfzyxhldxcsocrdjxffyvcdysdtybnyduoogtoolvzqjbp"
       },
       "dingran": {
         "mode": "self",
-        "key": "sk-keijnslgrdiubpxkeyfibqoomgdnfguzfhgpkejsmwpprgbu",
-        "share": ""
+        "key": "sk-keijnslgrdiubpxkeyfibqoomgdnfguzfhgpkejsmwpprgbu"
+      },
+      "zhouhong": {
+        "mode": "self",
+        "key": "sk-kezvlsmsxemfpcivoxtuxycslcsgklujnbwhvbuqltafgzre"
+      },
+      "caoguanghan": {
+        "mode": "self",
+        "key": "sk-avlwdqqkftdynkgakhlsonuworfmsimhranxnkhklxrfmdlo"
       }
     }
   }
