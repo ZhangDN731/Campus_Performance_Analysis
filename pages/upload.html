@@ -1319,12 +1319,10 @@ window.__AUTH_ENSURE_ROSTER__ = async function (campus) {
     if (a && a.role === 'campus' && a.campus === campus) file = a.file;
   });
   var job = (async function () {
-    var roster = null;
-    /* 1) 优先仓库内最新成绩表 */
+    var roster = null, dbg = { src: '', n: -1 };
     if (file) {
-      try { var f = await fetchRepoFile('data/' + file); if (f && f.bytes) roster = Roster.rosterFromBytes(f.bytes); } catch (e) { /* 回退内嵌 */ }
+      try { var f = await fetchRepoFile('data/' + file); if (f && f.bytes) { roster = Roster.rosterFromBytes(f.bytes); dbg.src = roster ? 'repo' : 'repo-empty'; } else dbg.src = 'repo-null'; } catch (e) { dbg.src = 'repo-err:' + (e && e.message); }
     }
-    /* 2) 回退内嵌 base64 成绩表 */
     if (!roster) {
       var short = String(campus).replace(/校区$/, '');
       try {
@@ -1332,12 +1330,16 @@ window.__AUTH_ENSURE_ROSTER__ = async function (campus) {
         if (resp.ok) {
           var txt = await resp.text();
           var m = txt.match(/"([A-Za-z0-9+/=\s]+)"\s*;?\s*$/m);
-          if (m) roster = Roster.rosterFromB64(m[1].replace(/\s+/g, ''));
-        }
-      } catch (e) { /* 忽略 */ }
+          if (m) { roster = Roster.rosterFromB64(m[1].replace(/\s+/g, '')); dbg.src = roster ? 'embed' : 'embed-empty'; }
+          else dbg.src = 'embed-nomatch';
+        } else dbg.src = 'embed-http' + resp.status;
+      } catch (e) { dbg.src = 'embed-err:' + (e && e.message); }
     }
-    window.__CLASS_ROSTER__[campus] = roster || { classes: [], map: {} };
-    return window.__CLASS_ROSTER__[campus];
+    roster = roster || { classes: [], map: {} };
+    dbg.n = roster.classes.length;
+    window.__CLASS_ROSTER__[campus] = roster;
+    try { document.body.dataset.rosterDebug = JSON.stringify(dbg); } catch (e) {}
+    return roster;
   })();
   window.__ROSTER_PENDING[campus] = job;
   return job;
