@@ -697,6 +697,7 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
 .rep-kicker{font-size:.73rem;letter-spacing:.14em;font-weight:700;opacity:.86;text-transform:uppercase}
 .rep-title{font-size:1.32rem;font-weight:800;letter-spacing:-.3px;margin-top:5px;line-height:1.36}
 .rep-sub{font-size:.79rem;opacity:.92;margin-top:6px;font-weight:600;line-height:1.6}
+.rep-head .info-text{color:rgba(255,255,255,.92);white-space:normal;line-height:1.6}
 .rep-stamp{
   flex:0 0 auto;text-align:center;padding:8px 16px 7px;border-radius:12px;
   background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.34);
@@ -5570,8 +5571,8 @@ function renderF11(root) {
   root.innerHTML =
     '<div class="card">' +
       '<div class="rep-head">' +
-        '<div><h3 class="rep-title">不及格名单导出 · ' + esc(subjectLabel(sub)) + '</h3>' +
-        '<p class="info-text">以最近一次考试（' + esc(exams[exams.length - 1]) + '）为准，按登录老师所带班级导出本次不及格学生；连续三次标红、连续两次标紫、本次标黑。</p></div>' +
+        '<div><div class="rep-title">不及格名单导出 · ' + esc(subjectLabel(sub)) + '</div>' +
+        '<p class="info-text rep-sub">以最近一次考试（' + esc(exams[exams.length - 1]) + '）为准，按登录老师所带班级导出本次不及格学生；连续三次标红、连续两次标紫、本次标黑。</p></div>' +
       '</div>' +
       '<div class="setting-fields" style="margin:12px 0">' +
         '<div class="setting-group"><span class="setting-group-title">不及格口径</span><div class="setting-fields">' + modeHtml + '</div></div>' +
@@ -5870,15 +5871,11 @@ function renderCurrentPage() {
   if (!state.currentPage) { area.innerHTML = ''; return; }
   if (state.currentPage === 'goals') { renderGoals(); return; }
   if (!hasData()) { area.innerHTML = emptyTip('请先上传成绩文件'); return; }
-  /* 依赖顶部班级/科目勾选的功能页：未勾选时弹窗提醒，再渲染空态；同一次初始化内不重复堆叠 */
+  /* 依赖顶部班级/科目勾选的功能页：未勾选时弹出深色引导弹窗（复用图1样式），再渲染空态 */
   const INTERNAL_PAGES = ['f8', 'f9', 'f10', 'f11'];
   if (INTERNAL_PAGES.indexOf(state.currentPage) < 0) {
     if (!getGlobalClasses().length || !getGlobalSubjects().length) {
-      const now = Date.now();
-      if (!renderCurrentPage._lastEmptyToast || now - renderCurrentPage._lastEmptyToast > 2000) {
-        renderCurrentPage._lastEmptyToast = now;
-        showToast('请先选择', '请先在顶部勾选班级和科目，再查看分析结果', 'error');
-      }
+      showSelectionGuide();
     }
   }
   area.innerHTML = '<div id="pageRoot"></div>';
