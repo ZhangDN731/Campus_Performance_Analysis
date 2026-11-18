@@ -64,13 +64,13 @@
   /* ---------- 三校区共用一套数据库：账号带校区，班级分组按校区隔离 ---------- */
   const CAMPUSES = ['龙泉校区', '星耀校区', '睿智校区'];
   const CAMPUS = (typeof CAMPUS_CONFIG !== 'undefined' && CAMPUS_CONFIG.name) || '龙泉校区';
-  /* 龙泉校区人员由管理员统一维护，不开放自助注册；星耀 / 睿智 可老师自己注册，也可由 admin 建号 */
-  const SELF_REG = CAMPUS !== '龙泉校区';
+  /* 三校区均开放自助注册：老师自行提交申请，状态为「待审核」，管理员在后台通过后才能登录；也可由 admin 直接建号 */
+  const SELF_REG = true;
 
   /* 各角色可见的核心页签 */
   const PAGES_BASE = ['f6', 'f7', 'f5', 'f3a', 'f1a'];
-  const PAGES_ADMIN = PAGES_BASE.concat(['f8', 'f9']);
-  const PAGES_TEACHER = PAGES_BASE.concat(['goals', 'f8', 'f9', 'f10']);
+  const PAGES_ADMIN = PAGES_BASE.concat(['f8', 'f9', 'f11']);
+  const PAGES_TEACHER = PAGES_BASE.concat(['goals', 'f8', 'f9', 'f10', 'f11']);
 
   let db = null;
   let view = 'login';
@@ -470,7 +470,7 @@
 
     /* 两层结构：核心分析 / 报表处理组 / 拓展分析；登录前只露出核心分析 */
     const report = TOP_TABS.find(g => g.id === 'report');
-    if (report) report.pages = ids.filter(id => ['goals', 'f8', 'f9', 'f10'].indexOf(id) >= 0).map(id => reg[id]).filter(Boolean);
+    if (report) report.pages = ids.filter(id => ['goals', 'f8', 'f9', 'f10', 'f11'].indexOf(id) >= 0).map(id => reg[id]).filter(Boolean);
     const extra = TOP_TABS.find(g => g.id === 'extra');
     const visible = {
       core: true,
@@ -491,28 +491,16 @@
     if (typeof renderTabs === 'function') renderTabs();
   }
 
-  /* 未登录：默认勾选全部班级；科目保留页面默认（仅总分），不强制全选科目 */
+  /* 未登录：默认不勾选任何班级/科目，仅保证全部可见，由用户按需勾选 */
   function applyGuestDefaults() {
     if (currentUser()) return;
-    let changed = false;
     const cw = el('globalClassWrap');
     if (cw) {
-      const items = Array.prototype.slice.call(cw.querySelectorAll('.checkbox-item'));
-      items.forEach(it => {
-        const inp = it.querySelector('input');
-        if (!inp) return;
-        if (!inp.checked) { inp.checked = true; changed = true; }
-        it.style.display = '';
-        it.classList.add('checked');
-      });
+      cw.querySelectorAll('.checkbox-item').forEach(it => { it.style.display = ''; });
     }
-    /* 科目只保证可见，勾选状态沿用页面默认（总分），访客不自动全选科目 */
     const sw = el('globalSubjectWrap');
     if (sw) {
       sw.querySelectorAll('.checkbox-item').forEach(it => { it.style.display = ''; });
-    }
-    if (changed) {
-      try { autoSetScoreLines && autoSetScoreLines(); } catch (e) {}
     }
   }
 
@@ -588,7 +576,7 @@
     if (!box) return;
     const lock = lockedClasses();
     if (!lock) {
-      /* 从「个人」切到「组长」：把被隐藏的班级全部放出来 */
+      /* 从「个人」切到「组长」：把被隐藏的班级全部放出来（不自动勾选） */
       if (window.__AUTH_LOCK_SIG !== '') {
         restoreAllClasses();
         const acts0 = box.parentElement && box.parentElement.querySelector('.group-actions');
@@ -602,23 +590,15 @@
     const sig = lock.join('|');
     const items = Array.prototype.slice.call(box.querySelectorAll('.checkbox-item'));
     if (!items.length) return;
-    /* 自我校正：只要实际勾选/隐藏状态与锁定不一致就重设，防止页面重建勾选框后失效 */
-    const okNow = items.every(it => {
-      const inp = it.querySelector('input');
-      if (!inp) return true;
-      const inLock = lock.indexOf(inp.value) >= 0;
-      return inLock ? (inp.checked && it.style.display !== 'none') : (!inp.checked && it.style.display === 'none');
-    });
-    if (okNow && !reRender) { window.__AUTH_LOCK_SIG = sig; return; }
+    /* 只控制可见性：本人班级可见、非本人隐藏；勾选状态保持默认（不预勾），由用户自行选择 */
     window.__AUTH_LOCK_SIG = sig;
-    let changed = !okNow;
+    let changed = false;
     items.forEach(it => {
       const inp = it.querySelector('input');
       if (!inp) return;
       const inLock = lock.indexOf(inp.value) >= 0;
-      it.style.display = inLock ? '' : 'none';
-      if (inp.checked !== inLock) { inp.checked = inLock; changed = true; }
-      it.classList.toggle('checked', inp.checked);
+      const show = inLock ? '' : 'none';
+      if (it.style.display !== show) { it.style.display = show; changed = true; }
       inp.disabled = false;
     });
     /* 班级行的全选/清空按钮保持可见；锁定状态下只对可见（本人）班级生效 */
@@ -631,7 +611,7 @@
     }
   }
 
-  /* 退出登录后班级勾选恢复成原版「全选」的样子 */
+  /* 退出登录 / 解锁后：班级全部放出，并清空勾选（默认不选） */
   function restoreAllClasses() {
     const box = el('globalClassWrap');
     if (!box) return false;
@@ -640,41 +620,15 @@
       const inp = it.querySelector('input');
       if (!inp) return;
       if (it.style.display === 'none') { it.style.display = ''; changed = true; }
-      if (!inp.checked) { inp.checked = true; changed = true; }
-      it.classList.toggle('checked', true);
+      if (inp.checked) { inp.checked = false; changed = true; }
+      it.classList.remove('checked');
     });
     return changed;
   }
 
-  /* 教师登录后科目勾选默认落到本人任课科目；只做一次，之后用户手动改不再覆盖 */
+  /* 教师登录后科目默认不勾选，由用户在顶部自行选择；本人学科可在「不及格名单导出」中自动带出 */
   function applySubjectDefault() {
-    const u = currentUser();
-    if (!u || u.role !== 'teacher' || u.mode === 'leader') return;
-    const sub = mapSubject(u.subject);
-    if (!sub) return;
-    const box = el('globalSubjectWrap');
-    if (!box) return;
-    const items = Array.prototype.slice.call(box.querySelectorAll('.checkbox-item'));
-    if (!items.length) return;
-    const has = items.some(it => {
-      const inp = it.querySelector('input');
-      return inp && inp.value === sub;
-    });
-    if (!has) return;
-    const sig = u.u + '|' + sub + '|' + items.length;
-    if (window.__AUTH_SUBJ_SIG === sig) return;
-    window.__AUTH_SUBJ_SIG = sig;
-    let changed = false;
-    items.forEach(it => {
-      const inp = it.querySelector('input');
-      if (!inp) return;
-      const on = inp.value === sub;
-      if (inp.checked !== on) { inp.checked = on; changed = true; }
-      it.classList.toggle('checked', on);
-    });
-    if (changed) {
-      try { autoSetScoreLines && autoSetScoreLines(); } catch (e) {}
-    }
+    return;
   }
 
   function applyAll(reRender) {

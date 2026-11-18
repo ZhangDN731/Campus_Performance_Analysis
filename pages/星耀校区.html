@@ -232,6 +232,11 @@ body::before{
   background:linear-gradient(135deg,#6366f1,#4338ca);color:#fff;border-color:transparent;
   box-shadow:0 6px 18px rgba(79,70,229,.30);
 }
+/* ===== F11 不及格名单：分班卡片网格 ===== */
+.f11-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.f11-class-card{padding:16px;margin-bottom:0}
+.f11-class-title{font-size:.95rem;font-weight:800;color:var(--primary-darker);margin-bottom:10px}
+.f11-class-card .data-table{font-size:.84rem}
 .merged-hint{
   margin-left:auto;font-size:.78rem;color:var(--text-muted);font-weight:600;
   align-self:center;white-space:nowrap;
@@ -1103,8 +1108,8 @@ table.data-table td.grid-empty{height:110px;color:var(--text-muted);font-size:.9
 /* ============ 统一校区配置（唯一随校区变化的字段，改这里即可） ============ */
 const CAMPUS_CONFIG = {
   name: '星耀校区',
-  dataFile: '../data/27届星耀周测成绩.xlsx',
-  dataCandidates: ['../data/27届星耀周测成绩.xlsx','../data/27届星耀周测成绩.xls'],
+  dataFile: "../data/27届星耀周测成绩.xlsx",
+  dataCandidates: ["../data/27届星耀周测成绩.xlsx","../data/27届星耀周测成绩.xls"],
   /* 学习目标：目标院校表由 GitHub 托管，仅 admin 可上传到该路径 */
   targetPath: 'data/targets/星耀校区目标.xlsx'
 };
@@ -1130,7 +1135,8 @@ const TOP_TABS = [
       { id: 'goals', label: '预估学习目标' },
       { id: 'f8', label: '单科分析报告' },
       { id: 'f9', label: '多班级批量成绩分析报告' },
-      { id: 'f10', label: '座位表写成绩' }
+      { id: 'f10', label: '座位表写成绩' },
+      { id: 'f11', label: '不及格名单导出' }
     ]
   },
   {
@@ -1153,7 +1159,7 @@ const PAGE_NAMES = {
   f2a: '班级整体趋势', f2b: '多班三分对比',
   f3a: '全班单科成绩汇总', f3b: '单科进退步榜',
   f4a: '全班成绩图',
-  f5: '历次平均分汇总', f6: '周测达标率', f7: '总分四线达标率', f8: '单科分析报告', f9: '多班级批量成绩分析报告', f10: '座位表写成绩',
+  f5: '历次平均分汇总', f6: '周测达标率', f7: '总分四线达标率', f8: '单科分析报告', f9: '多班级批量成绩分析报告', f10: '座位表写成绩', f11: '不及格名单导出',
   goals: '预估学习目标'
 };
 
@@ -5463,6 +5469,306 @@ async function exportBatch(pageId, mode, labelPrefix) {
 function exportRateBatch(mode) { exportBatch('f6', mode, '达标率'); }
 function exportDetailBatch(mode) { exportBatch('f5', mode, '数据明细表'); }
 
+/* ==========================================================================
+ * F11 不及格名单导出：按登录老师学科，分班导出本次不及格学生
+ *   · 口径：默认最低达标率；可切标准达标率；可自定义绝对分数线
+ *   · 颜色：连续三次不及格 红，连续两次 紫，本次不及格 黑
+ *   · 导出单个 Excel，每班两列：人名、分数
+ * ========================================================================== */
+const f11State = { mode: 'min', custom: '' };
+
+/* 导出学科：优先登录老师本人学科；未绑定（负责人/管理员）时回退顶部勾选的第一个科目 */
+function f11Subject() {
+  let ts = '';
+  try { ts = (window.Auth && Auth.teacherSubject) ? Auth.teacherSubject() : ''; } catch (e) {}
+  if (ts && state.subjectList.indexOf(ts) >= 0) return ts;
+  const gs = getGlobalSubjects();
+  return gs[0] || '';
+}
+/* 导出班级：普通老师锁定本人所带班级；负责人/管理员取全部已加载班级 */
+function f11ClassPool(sub) {
+  let mine = [];
+  try { mine = (window.Auth && Auth.myClasses) ? Auth.myClasses() : []; } catch (e) { mine = []; }
+  let pool = (mine && mine.length) ? mine.slice() : state.classList.slice();
+  if (sub) pool = pool.filter(c => getClassSubjects(c).indexOf(sub) >= 0);
+  return pool;
+}
+/* 某班某次考试本科目的不及格线 */
+function f11Line(cls, exam, sub) {
+  if (f11State.mode === 'custom') {
+    const v = parseFloat(f11State.custom);
+    return Number.isNaN(v) ? null : v;
+  }
+  const fm = repFullMark(cls, exam, sub).value;
+  if (fm == null || Number.isNaN(Number(fm))) return null;
+  const pct = f11State.mode === 'std' ? getRateStd() : getRateMin();
+  return Math.round(Number(fm) * pct * 10) / 10;
+}
+function f11IsFail(score, line) {
+  return line != null && typeof score === 'number' && !Number.isNaN(score) && score < line;
+}
+/* 计算不及格名单：以最近一次考试为「本次」，向前回溯最多两次统计连续次数 */
+function f11Compute() {
+  const sub = f11Subject();
+  const exams = state.examList.slice();
+  const last = exams[exams.length - 1];
+  const prev1 = exams.length >= 2 ? exams[exams.length - 2] : null;
+  const prev2 = exams.length >= 3 ? exams[exams.length - 3] : null;
+  const result = [];
+  f11ClassPool(sub).forEach(cls => {
+    const students = state.classes[cls]?.students || {};
+    const lineLast = sub ? f11Line(cls, last, sub) : null;
+    const items = [];
+    for (const name in students) {
+      const vLast = students[name]?.[last]?.[sub];
+      if (!f11IsFail(vLast, lineLast)) continue;
+      let streak = 1;
+      if (prev1) {
+        const v1 = students[name]?.[prev1]?.[sub];
+        if (f11IsFail(v1, f11Line(cls, prev1, sub))) {
+          streak++;
+          if (prev2) {
+            const v2 = students[name]?.[prev2]?.[sub];
+            if (f11IsFail(v2, f11Line(cls, prev2, sub))) streak++;
+          }
+        }
+      }
+      const tone = streak >= 3 ? 'red' : (streak === 2 ? 'purple' : 'black');
+      items.push({ name: name, score: Math.round(Number(vLast) * 10) / 10, tone: tone, streak: streak });
+    }
+    if (items.length) result.push({ cls: cls, items: items });
+  });
+  return { sub: sub, exam: last, classes: result };
+}
+function f11ToneLabel(tone) {
+  return tone === 'red' ? '连续三次不及格' : (tone === 'purple' ? '连续两次不及格' : '本次不及格');
+}
+
+function renderF11(root) {
+  if (!hasData()) { root.innerHTML = emptyTip('请先上传成绩文件'); return; }
+  const sub = f11Subject();
+  const exams = state.examList;
+  if (!sub) {
+    root.innerHTML = emptyTip('当前账号未绑定科目，请先在顶部勾选要导出的科目');
+    showToast('请先选择科目', '请先在顶部勾选科目（或由管理员为账号绑定任课科目）', 'error');
+    return;
+  }
+  if (!exams.length) { root.innerHTML = emptyTip('暂无可分析的考试'); return; }
+
+  const mode = f11State.mode;
+  const modeOpts = [
+    { id: 'min',  label: '最低达标率' },
+    { id: 'std',  label: '标准达标率' },
+    { id: 'custom', label: '自定义分数' }
+  ];
+  const modeHtml = modeOpts.map(o =>
+    '<label class="checkbox-item' + (mode === o.id ? ' checked' : '') + '">' +
+      '<input type="radio" name="f11Mode" value="' + o.id + '"' + (mode === o.id ? ' checked' : '') + '>' +
+      '<span>' + esc(o.label) + '</span></label>'
+  ).join('');
+
+  root.innerHTML =
+    '<div class="card">' +
+      '<div class="rep-head">' +
+        '<div><h3 class="rep-title">不及格名单导出 · ' + esc(subjectLabel(sub)) + '</h3>' +
+        '<p class="info-text">以最近一次考试（' + esc(exams[exams.length - 1]) + '）为准，按登录老师所带班级导出本次不及格学生；连续三次标红、连续两次标紫、本次标黑。</p></div>' +
+      '</div>' +
+      '<div class="setting-fields" style="margin:12px 0">' +
+        '<div class="setting-group"><span class="setting-group-title">不及格口径</span><div class="setting-fields">' + modeHtml + '</div></div>' +
+        '<div class="line-setting" id="f11CustomWrap" style="' + (mode === 'custom' ? '' : 'display:none') + '">' +
+          '<span class="setting-label">分数线</span><input type="number" id="f11Custom" value="' + esc(f11State.custom) + '" min="0" step="1"><span class="unit">分</span></div>' +
+      '</div>' +
+      '<div class="rep-actions">' +
+        '<button class="btn btn-primary" id="f11ExportBtn" type="button">一键导出不及格人名单（Excel）</button>' +
+        '<span class="info-text" id="f11Summary"></span>' +
+      '</div>' +
+    '</div>' +
+    '<div id="f11Preview"></div>';
+
+  root.querySelectorAll('input[name="f11Mode"]').forEach(r => {
+    r.addEventListener('change', () => { f11State.mode = r.value; renderF11(root); });
+  });
+  const customEl = $('f11Custom');
+  if (customEl) customEl.addEventListener('input', () => { f11State.custom = customEl.value; f11RenderPreview(root); });
+
+  $('f11ExportBtn').addEventListener('click', f11ExportRoster);
+  f11RenderPreview(root);
+}
+
+function f11RenderPreview(root) {
+  const wrap = $('f11Preview');
+  if (!wrap) return;
+  const data = f11Compute();
+  const total = data.classes.reduce((a, c) => a + c.items.length, 0);
+  const sumEl = $('f11Summary');
+  if (sumEl) sumEl.textContent = data.classes.length ? ('共 ' + data.classes.length + ' 个班、' + total + ' 名不及格学生') : '本次所选口径下暂无不及格学生';
+  if (!data.classes.length) { wrap.innerHTML = emptyTip('当前口径下没有不及格学生'); return; }
+  const toneColor = { red: '#dc2626', purple: '#7c3aed', black: '#1f2937' };
+  wrap.innerHTML = '<div class="f11-grid">' + data.classes.map(c => {
+    const rows = c.items.map(it => {
+      const col = toneColor[it.tone] || toneColor.black;
+      return '<tr><td style="color:' + col + '">' + esc(it.name) + '</td>' +
+        '<td style="color:' + col + '">' + it.score + '</td></tr>';
+    }).join('');
+    return '<div class="card f11-class-card">' +
+      '<div class="f11-class-title">' + esc(c.cls) + '（' + c.items.length + '人）</div>' +
+      '<table class="data-table"><thead><tr><th>人名</th><th>分数</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+function f11ExportRoster() {
+  if (!hasData()) { showToast('暂无数据', '请先上传成绩文件', 'error'); return; }
+  const sub = f11Subject();
+  if (!sub) { showToast('请先选择科目', '当前账号未绑定科目，请先勾选科目', 'error'); return; }
+  if (f11State.mode === 'custom') {
+    const v = parseFloat(f11State.custom);
+    if (Number.isNaN(v) || v < 0) { showToast('分数线无效', '自定义分数请输入不小于 0 的数值', 'error'); return; }
+  }
+  const data = f11Compute();
+  if (!data.classes.length) { showToast('暂无不及格学生', '当前口径下没有不及格学生', 'info'); return; }
+  try {
+    const bytes = f11BuildXlsx(data, sub);
+    const name = sanitizeFileName(CAMPUS_CONFIG.name + '-' + sub + '-不及格名单-' + (data.exam || '')) + '.xlsx';
+    repDownload(name, bytes);
+    showToast('导出成功', '已导出 ' + data.classes.length + ' 个班、' + data.classes.reduce((a, c) => a + c.items.length, 0) + ' 名学生', 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('导出失败', e.message, 'error');
+  }
+}
+
+/* ---- 生成带字体颜色的最小 xlsx（fflate 打包，不走社区版 SheetJS 的样式丢弃路径） ---- */
+function f11ColLetter(n) {
+  let s = ''; n++;
+  while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+function f11EscXml(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+/* 样式索引：0 黑正文，1 红，2 紫，3 表头加粗 */
+function f11CellXml(ref, v, style, numeric) {
+  if (v === '' || v == null) return '';
+  const s = style != null ? ' s="' + style + '"' : '';
+  if (numeric) return '<c r="' + ref + '"' + s + '><v>' + v + '</v></c>';
+  return '<c r="' + ref + '" t="inlineStr"' + s + '><is><t xml:space="preserve">' + f11EscXml(v) + '</t></is></c>';
+}
+function f11BuildXlsx(data, sub) {
+  if (!window.fflate) throw new Error('缺少打包组件 fflate');
+  const classes = data.classes;
+  const pairCols = classes.length;
+  const nCols = pairCols * 2;
+  const toneStyle = { red: 1, purple: 2, black: 0 };
+  const maxRows = Math.max.apply(null, classes.map(c => c.items.length).concat([0]));
+
+  /* grid[r][c] = { v, style, numeric } */
+  const grid = [];
+  const pushRow = cells => grid.push(cells);
+  /* 第 1 行：标题（合并整行） */
+  const titleCells = [];
+  titleCells[0] = { v: CAMPUS_CONFIG.name + ' · ' + sub + ' 不及格名单（' + (data.exam || '') + '）', style: 3, numeric: false };
+  pushRow(titleCells);
+  /* 第 2 行：班级表头（每班合并两列） */
+  const headCells = [];
+  classes.forEach((c, k) => { headCells[k * 2] = { v: c.cls, style: 3, numeric: false }; });
+  pushRow(headCells);
+  /* 第 3 行：列标题 */
+  const subCells = [];
+  classes.forEach((c, k) => { subCells[k * 2] = { v: '人名', style: 3, numeric: false }; subCells[k * 2 + 1] = { v: '分数', style: 3, numeric: false }; });
+  pushRow(subCells);
+  /* 学生行 */
+  for (let i = 0; i < maxRows; i++) {
+    const row = [];
+    classes.forEach((c, k) => {
+      const it = c.items[i];
+      if (it) {
+        row[k * 2] = { v: it.name, style: toneStyle[it.tone], numeric: false };
+        row[k * 2 + 1] = { v: it.score, style: toneStyle[it.tone], numeric: true };
+      }
+    });
+    pushRow(row);
+  }
+
+  /* 合并：标题 A1:末列1；每班表头两行两列 */
+  const merges = [];
+  const lastCol = f11ColLetter(nCols - 1);
+  merges.push('A1:' + lastCol + '1');
+  classes.forEach((c, k) => {
+    const c1 = f11ColLetter(k * 2), c2 = f11ColLetter(k * 2 + 1);
+    merges.push(c1 + '2:' + c2 + '2');
+  });
+
+  /* 生成 sheet XML */
+  let rowsXml = '';
+  grid.forEach((row, r) => {
+    const rn = r + 1;
+    let cellsXml = '';
+    row.forEach((cell, c) => {
+      if (!cell) return;
+      cellsXml += f11CellXml(f11ColLetter(c) + rn, cell.v, cell.style, cell.numeric);
+    });
+    rowsXml += '<row r="' + rn + '">' + cellsXml + '</row>';
+  });
+  const mergeXml = merges.length ? '<mergeCells count="' + merges.length + '">' + merges.map(m => '<mergeCell ref="' + m + '"/>').join('') + '</mergeCells>' : '';
+  const colWidths = '<cols>' + classes.map((c, k) =>
+    '<col min="' + (k * 2 + 1) + '" max="' + (k * 2 + 1) + '" width="12"/><col min="' + (k * 2 + 2) + '" max="' + (k * 2 + 2) + '" width="8"/>'
+  ).join('') + '</cols>';
+  const sheetXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    colWidths + '<sheetData>' + rowsXml + '</sheetData>' + mergeXml + '</worksheet>';
+
+  const stylesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<fonts count="4">' +
+        '<font><sz val="11"/><color rgb="FF1F2937"/><name val="宋体"/></font>' +
+        '<font><sz val="11"/><color rgb="FFDC2626"/><name val="宋体"/></font>' +
+        '<font><sz val="11"/><color rgb="FF7C3AED"/><name val="宋体"/></font>' +
+        '<font><b/><sz val="11"/><color rgb="FF1F2937"/><name val="宋体"/></font>' +
+      '</fonts>' +
+      '<fills count="1"><fill><patternFill patternType="none"/></fill></fills>' +
+      '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+      '<cellXfs count="4">' +
+        '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1"/>' +
+        '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" applyFont="1"/>' +
+        '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" applyFont="1"/>' +
+        '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" applyFont="1"/>' +
+      '</cellXfs>' +
+    '</styleSheet>';
+
+  const workbookXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+      '<sheets><sheet name="不及格名单" sheetId="1" r:id="rId1"/></sheets></workbook>';
+  const wbRelsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+    '</Relationships>';
+  const rootRelsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+    '</Relationships>';
+  const contentTypesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+    '</Types>';
+
+  const files = {
+    '[Content_Types].xml': fflate.strToU8(contentTypesXml),
+    '_rels/.rels': fflate.strToU8(rootRelsXml),
+    'xl/workbook.xml': fflate.strToU8(workbookXml),
+    'xl/_rels/workbook.xml.rels': fflate.strToU8(wbRelsXml),
+    'xl/worksheets/sheet1.xml': fflate.strToU8(sheetXml),
+    'xl/styles.xml': fflate.strToU8(stylesXml)
+  };
+  return fflate.zipSync(files, { level: 6 });
+}
+
 /* ============ 通用工具 ============ */
 function bindAllCheckboxes(wrapId, onchange) {
   const wrap = $(wrapId);
@@ -5502,7 +5808,7 @@ function renderTabs() {
       document.body.style.overflow = '';
       state.currentPage = btn.dataset.page;
       /* 非核心页签：无论登录与否，进入即清空班级/科目并弹引导浮窗，交用户按班级重选 */
-      const FOCUS_PAGES = ['f3a', 'f1a', 'f2a', 'f3b', 'f4a', 'goals', 'f8', 'f9', 'f10'];
+      const FOCUS_PAGES = ['f3a', 'f1a', 'f2a', 'f3b', 'f4a', 'goals', 'f8', 'f9', 'f10', 'f11'];
       if (FOCUS_PAGES.indexOf(btn.dataset.page) >= 0) resetSelectionForFocus();
       if (btn.dataset.page === 'goals') {
         state.topTab = 'report';
@@ -5530,6 +5836,7 @@ function dispatchPage(page, root) {
   else if (page === 'f8') renderF8(root);
   else if (page === 'f9') renderF9(root);
   else if (page === 'f10') renderF10(root);
+  else if (page === 'f11') renderF11(root);
   else if (MERGED_PAGES[page]) renderMerged(root, page);
   else root.innerHTML = emptyTip('未知功能页');
 }
@@ -5563,6 +5870,17 @@ function renderCurrentPage() {
   if (!state.currentPage) { area.innerHTML = ''; return; }
   if (state.currentPage === 'goals') { renderGoals(); return; }
   if (!hasData()) { area.innerHTML = emptyTip('请先上传成绩文件'); return; }
+  /* 依赖顶部班级/科目勾选的功能页：未勾选时弹窗提醒，再渲染空态；同一次初始化内不重复堆叠 */
+  const INTERNAL_PAGES = ['f8', 'f9', 'f10', 'f11'];
+  if (INTERNAL_PAGES.indexOf(state.currentPage) < 0) {
+    if (!getGlobalClasses().length || !getGlobalSubjects().length) {
+      const now = Date.now();
+      if (!renderCurrentPage._lastEmptyToast || now - renderCurrentPage._lastEmptyToast > 2000) {
+        renderCurrentPage._lastEmptyToast = now;
+        showToast('请先选择', '请先在顶部勾选班级和科目，再查看分析结果', 'error');
+      }
+    }
+  }
   area.innerHTML = '<div id="pageRoot"></div>';
   dispatchPage(state.currentPage, $('pageRoot'));
   setTimeout(bindHoverTips, 30);
@@ -5660,9 +5978,9 @@ function resetAll() {
 
 function renderGlobalSelectors() {
   const cw = $('globalClassWrap');
-  /* 自动加载后默认全选班级，页面开箱即用；用户可随时取消勾选 */
+  /* 默认不勾选任何班级，由用户按需勾选；未选择时操作会弹窗提醒 */
   cw.innerHTML = state.classList.map(c =>
-    '<label class="checkbox-item checked"><input type="checkbox" value="' + esc(c) + '" checked><span>' + esc(classLabel(c)) + '</span></label>'
+    '<label class="checkbox-item"><input type="checkbox" value="' + esc(c) + '"><span>' + esc(classLabel(c)) + '</span></label>'
   ).join('');
   bindAllCheckboxes('globalClassWrap', () => {
     if (isAutoSelecting) return;
@@ -5678,12 +5996,10 @@ function renderGlobalSelectors() {
   });
 
   const sw = $('globalSubjectWrap');
-  /* 自动加载后默认仅勾选「总分」（无总分时回退职测总分），其余科目由用户按需勾选 */
-  const defaultSubj = state.subjectList.find(isTotal) || state.subjectList.find(s => normalizeSubjectKey(s) === '职测总分');
-  sw.innerHTML = state.subjectList.map(s => {
-    const on = s === defaultSubj;
-    return '<label class="checkbox-item' + (on ? ' checked' : '') + '"><input type="checkbox" value="' + esc(s) + '"' + (on ? ' checked' : '') + '><span>' + esc(subjectLabel(s)) + '</span></label>';
-  }).join('');
+  /* 默认不勾选任何科目，由用户按需勾选 */
+  sw.innerHTML = state.subjectList.map(s =>
+    '<label class="checkbox-item"><input type="checkbox" value="' + esc(s) + '"><span>' + esc(subjectLabel(s)) + '</span></label>'
+  ).join('');
   bindAllCheckboxes('globalSubjectWrap', () => {
     if (isAutoSelecting) return;
     isAutoSelecting = true;
@@ -6572,6 +6888,6 @@ const colorPool = [
 <script src="../assets/data/report-template.js"></script>
 <script src="../assets/config/ai-config.js?v=2"></script>
 <script src="../assets/js/remote-sync.js?v=1"></script>
-<script src="../assets/js/auth.js?v=6"></script>
+<script src="../assets/js/auth.js?v=7"></script>
 </body>
 </html>
