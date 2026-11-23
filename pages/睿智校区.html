@@ -5637,7 +5637,8 @@ function f11Compute() {
       items.push({ name: name, score: f11Round1(vLast), tone: tone, streak: streak });
     }
     if (items.length) {
-      items.sort((a, b) => a.score - b.score);
+      /* 展示与导出统一按科目成绩降序；同分按姓名稳定排序 */
+      items.sort((a, b) => (b.score - a.score) || a.name.localeCompare(b.name, 'zh'));
       let note = '';
       if (f11State.rule === 'pct') {
         const fm = f11FullMark(cls, last, sub);
