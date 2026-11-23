@@ -103,6 +103,19 @@ body::before{
 .line-setting.rate-setting{background:rgba(240,253,244,.9);border-color:rgba(22,163,74,.18)}
 .line-setting.rate-setting:hover{border-color:rgba(22,163,74,.42)}
 .line-setting.rate-setting input{color:#15803d}
+.line-setting select{
+  border:none;outline:none;background:transparent;font-family:inherit;
+  font-size:.84rem;font-weight:800;color:var(--primary-darker);cursor:pointer;
+}
+.line-setting select:focus{outline:none}
+.line-setting input::placeholder{color:#94a3b8;font-weight:600;font-size:.72rem}
+.f11-rule-panel{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  padding:10px 12px;border-radius:12px;
+  background:rgba(238,242,255,.72);border:1px solid rgba(79,70,229,.14);
+}
+.f11-rule-panel .f11-tilde{font-weight:800;color:var(--primary-dark);font-size:.8rem}
+.f11-rule-panel .f11-rule-tip{flex:1 1 100%;font-size:.73rem;color:var(--text-muted);font-weight:600;line-height:1.5}
 
 /* ===== 开关 ===== */
 .switch{
@@ -232,7 +245,7 @@ body::before{
   background:linear-gradient(135deg,#6366f1,#4338ca);color:#fff;border-color:transparent;
   box-shadow:0 6px 18px rgba(79,70,229,.30);
 }
-/* ===== F11 不及格名单：分班卡片网格 ===== */
+/* ===== F11 指定范围名单：分班卡片网格 ===== */
 .f11-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
 .f11-class-card{padding:16px;margin-bottom:0}
 .f11-class-title{font-size:.95rem;font-weight:800;color:var(--primary-darker);margin-bottom:10px}
@@ -1137,7 +1150,7 @@ const TOP_TABS = [
       { id: 'f8', label: '单科分析报告' },
       { id: 'f9', label: '多班级批量成绩分析报告' },
       { id: 'f10', label: '座位表写成绩' },
-      { id: 'f11', label: '不及格名单导出' }
+      { id: 'f11', label: '指定范围名单导出' }
     ]
   },
   {
@@ -1160,7 +1173,7 @@ const PAGE_NAMES = {
   f2a: '班级整体趋势', f2b: '多班三分对比',
   f3a: '全班单科成绩汇总', f3b: '单科进退步榜',
   f4a: '全班成绩图',
-  f5: '历次平均分汇总', f6: '周测达标率', f7: '总分四线达标率', f8: '单科分析报告', f9: '多班级批量成绩分析报告', f10: '座位表写成绩', f11: '不及格名单导出',
+  f5: '历次平均分汇总', f6: '周测达标率', f7: '总分四线达标率', f8: '单科分析报告', f9: '多班级批量成绩分析报告', f10: '座位表写成绩', f11: '指定范围名单导出',
   goals: '预估学习目标'
 };
 
@@ -5471,12 +5484,27 @@ function exportRateBatch(mode) { exportBatch('f6', mode, '达标率'); }
 function exportDetailBatch(mode) { exportBatch('f5', mode, '数据明细表'); }
 
 /* ==========================================================================
- * F11 不及格名单导出：按登录老师学科，分班导出本次不及格学生
- *   · 口径：默认最低达标率；可切标准达标率；可自定义绝对分数线
- *   · 颜色：连续三次不及格 红，连续两次 紫，本次不及格 黑
+ * F11 指定范围名单导出：按登录老师学科，分班导出命中「指定范围」的学生
+ *   · 三条规则互斥，只能选一条（默认第 1 条）：
+ *       1) 科目满分百分比区间：默认 0%~60%，按科目满分折算
+ *       2) 科目排名前/后若干名：默认前 10 名（按本班该科目本次考试排名）
+ *       3) 预估控分线上下：阈值 = 大类默认预估线 × 科目满分占总分满分比例，
+ *          默认导出线下；分值、占比均可自定义
+ *   · 颜色：连续三次命中 红，连续两次命中 紫，本次命中 黑
  *   · 导出单个 Excel，每班两列：人名、分数
  * ========================================================================== */
-const f11State = { mode: 'min', custom: '' };
+const f11State = {
+  rule: 'pct',
+  pctMin: 0, pctMax: 60,
+  rankDir: 'top', rankN: 10,
+  lineDir: 'below', lineValue: '', lineRatio: ''
+};
+const F11_RULE_OPTS = [
+  { id: 'pct',  label: '满分百分比区间' },
+  { id: 'rank', label: '科目排名前/后若干名' },
+  { id: 'line', label: '预估控分线上下' }
+];
+const f11Round1 = v => Math.round(Number(v) * 10) / 10;
 
 /* 导出学科：优先登录老师本人学科；未绑定（负责人/管理员）时回退顶部勾选的第一个科目 */
 function f11Subject() {
@@ -5494,55 +5522,157 @@ function f11ClassPool(sub) {
   if (sub) pool = pool.filter(c => getClassSubjects(c).indexOf(sub) >= 0);
   return pool;
 }
-/* 某班某次考试本科目的不及格线 */
-function f11Line(cls, exam, sub) {
-  if (f11State.mode === 'custom') {
-    const v = parseFloat(f11State.custom);
-    return Number.isNaN(v) ? null : v;
-  }
+/* 某班某次考试某科目的有效满分（无效返回 null） */
+function f11FullMark(cls, exam, sub) {
   const fm = repFullMark(cls, exam, sub).value;
-  if (fm == null || Number.isNaN(Number(fm))) return null;
-  const pct = f11State.mode === 'std' ? getRateStd() : getRateMin();
-  return Math.round(Number(fm) * pct * 10) / 10;
+  return (fm == null || Number.isNaN(Number(fm)) || Number(fm) <= 0) ? null : Number(fm);
 }
-function f11IsFail(score, line) {
-  return line != null && typeof score === 'number' && !Number.isNaN(score) && score < line;
+/* 某班某次考试的总分满分：优先总科目满分，回退各科标注满分之和 */
+function f11TotalFullMark(cls, exam) {
+  const totalSub = state.subjectList.find(isTotal);
+  if (totalSub) {
+    const v = f11FullMark(cls, exam, totalSub);
+    if (v != null) return v;
+  }
+  const d = derivedTotalMark(cls, exam);
+  return (d != null && d > 0) ? d : null;
 }
-/* 计算不及格名单：以最近一次考试为「本次」，向前回溯最多两次统计连续次数 */
+/* 科目满分占总分满分的百分比（无法计算返回 null） */
+function f11SubjectRatio(cls, exam) {
+  const sub = f11Subject();
+  const fm = f11FullMark(cls, exam, sub);
+  const tf = f11TotalFullMark(cls, exam);
+  if (fm == null || tf == null) return null;
+  return f11Round1(fm / tf * 100);
+}
+/* 预估控分线基数：自定义值优先，否则取该班所属大类的默认预估线 */
+function f11BaseLine(cls) {
+  const v = parseFloat(f11State.lineValue);
+  if (!Number.isNaN(v) && v > 0) return v;
+  const type = getClassType(cls);
+  const preset = type ? CLASS_LINE_MAP[type] : null;
+  return preset ? preset.estimate : null;
+}
+/* 本班本次考试在「预估线上下」规则下的阈值 */
+function f11LineThreshold(cls, exam) {
+  const ratioRaw = parseFloat(f11State.lineRatio);
+  const ratio = (!Number.isNaN(ratioRaw) && ratioRaw > 0) ? ratioRaw : f11SubjectRatio(cls, exam);
+  const base = f11BaseLine(cls);
+  if (base == null || ratio == null) return { line: null, base: base, ratio: ratio };
+  return { line: f11Round1(base * ratio / 100), base: base, ratio: ratio };
+}
+/* 班级内该科目按分数降序的名次表：pos 为 0 起序号（并列同名次取靠前序号） */
+function f11RankTable(cls, exam, sub) {
+  const students = state.classes[cls]?.students || {};
+  const list = [];
+  for (const name in students) {
+    const v = students[name] && students[name][exam] ? students[name][exam][sub] : null;
+    if (typeof v === 'number' && !Number.isNaN(v)) list.push({ name: name, score: v });
+  }
+  list.sort((a, b) => b.score - a.score);
+  const pos = {};
+  list.forEach((it, i) => { if (pos[it.name] == null) pos[it.name] = i; });
+  return { pos: pos, count: list.length };
+}
+/* 某生在本次规则下是否命中 */
+function f11Hit(cls, exam, score, name, cache) {
+  if (typeof score !== 'number' || Number.isNaN(score)) return false;
+  const sub = f11Subject();
+  if (f11State.rule === 'pct') {
+    const fm = f11FullMark(cls, exam, sub);
+    if (fm == null) return false;
+    const p = score / fm * 100;
+    const mn = parseFloat(f11State.pctMin), mx = parseFloat(f11State.pctMax);
+    return (Number.isNaN(mn) || p >= mn - 1e-9) && (Number.isNaN(mx) || p <= mx + 1e-9);
+  }
+  if (f11State.rule === 'rank') {
+    const key = cls + '|' + exam;
+    if (!cache[key]) cache[key] = f11RankTable(cls, exam, sub);
+    const rk = cache[key];
+    const p = rk.pos[name];
+    if (p == null) return false;
+    const n = Math.max(1, Math.round(parseFloat(f11State.rankN) || 10));
+    return f11State.rankDir === 'top' ? p < n : p >= rk.count - n;
+  }
+  const key = cls + '|' + exam;
+  if (!cache[key]) cache[key] = f11LineThreshold(cls, exam);
+  const line = cache[key].line;
+  if (line == null) return false;
+  return f11State.lineDir === 'below' ? score < line : score >= line;
+}
+/* 规则说明（用于标题、导出文件名） */
+function f11RuleTag() {
+  if (f11State.rule === 'pct') {
+    const mn = f11Round1(parseFloat(f11State.pctMin) || 0);
+    const mx = f11Round1(Number.isNaN(parseFloat(f11State.pctMax)) ? 100 : parseFloat(f11State.pctMax));
+    return '满分' + mn + '至' + mx + '%';
+  }
+  if (f11State.rule === 'rank') {
+    const n = Math.max(1, Math.round(parseFloat(f11State.rankN) || 10));
+    return (f11State.rankDir === 'top' ? '前' : '后') + n + '名';
+  }
+  return (f11State.lineDir === 'below' ? '预估线以下' : '预估线以上');
+}
+/* 计算名单：以最近一次考试为「本次」，向前回溯最多两次统计连续命中次数 */
 function f11Compute() {
   const sub = f11Subject();
   const exams = state.examList.slice();
   const last = exams[exams.length - 1];
   const prev1 = exams.length >= 2 ? exams[exams.length - 2] : null;
   const prev2 = exams.length >= 3 ? exams[exams.length - 3] : null;
+  const cache = {};
   const result = [];
   f11ClassPool(sub).forEach(cls => {
     const students = state.classes[cls]?.students || {};
-    const lineLast = sub ? f11Line(cls, last, sub) : null;
     const items = [];
     for (const name in students) {
       const vLast = students[name]?.[last]?.[sub];
-      if (!f11IsFail(vLast, lineLast)) continue;
+      if (!f11Hit(cls, last, vLast, name, cache)) continue;
       let streak = 1;
-      if (prev1) {
-        const v1 = students[name]?.[prev1]?.[sub];
-        if (f11IsFail(v1, f11Line(cls, prev1, sub))) {
-          streak++;
-          if (prev2) {
-            const v2 = students[name]?.[prev2]?.[sub];
-            if (f11IsFail(v2, f11Line(cls, prev2, sub))) streak++;
-          }
-        }
+      if (prev1 && f11Hit(cls, prev1, students[name]?.[prev1]?.[sub], name, cache)) {
+        streak++;
+        if (prev2 && f11Hit(cls, prev2, students[name]?.[prev2]?.[sub], name, cache)) streak++;
       }
       const tone = streak >= 3 ? 'red' : (streak === 2 ? 'purple' : 'black');
-      items.push({ name: name, score: Math.round(Number(vLast) * 10) / 10, tone: tone, streak: streak });
+      items.push({ name: name, score: f11Round1(vLast), tone: tone, streak: streak });
     }
-    if (items.length) result.push({ cls: cls, items: items });
+    if (items.length) {
+      items.sort((a, b) => a.score - b.score);
+      let note = '';
+      if (f11State.rule === 'pct') {
+        const fm = f11FullMark(cls, last, sub);
+        note = fm != null ? ('满分 ' + f11Round1(fm) + ' 分') : '缺满分';
+      } else if (f11State.rule === 'rank') {
+        note = f11RuleTag();
+      } else {
+        const t = f11LineThreshold(cls, last);
+        note = t.line != null ? ('阈值 ' + t.line + ' 分 = ' + f11Round1(t.base) + ' × ' + t.ratio + '%') : '缺满分或大类线';
+      }
+      result.push({ cls: cls, items: items, note: note });
+    }
   });
-  return { sub: sub, exam: last, classes: result };
+  return { sub: sub, exam: last, classes: result, tag: f11RuleTag() };
 }
 function f11ToneLabel(tone) {
-  return tone === 'red' ? '连续三次不及格' : (tone === 'purple' ? '连续两次不及格' : '本次不及格');
+  return tone === 'red' ? '连续三次命中' : (tone === 'purple' ? '连续两次命中' : '本次命中');
+}
+
+
+/* 自动值提示：取第一个可导出班级的默认大类线与科目占比 */
+function f11AutoHints() {
+  const sub = f11Subject();
+  const pool = f11ClassPool(sub);
+  const first = pool[0] || '';
+  const last = state.examList[state.examList.length - 1];
+  const type = first ? getClassType(first) : null;
+  const preset = type ? CLASS_LINE_MAP[type] : null;
+  return {
+    cls: first,
+    type: type,
+    presetLine: preset ? preset.estimate : null,
+    line: first ? f11BaseLine(first) : null,
+    ratio: first ? f11SubjectRatio(first, last) : null
+  };
 }
 
 function renderF11(root) {
@@ -5556,41 +5686,89 @@ function renderF11(root) {
   }
   if (!exams.length) { root.innerHTML = emptyTip('暂无可分析的考试'); return; }
 
-  const mode = f11State.mode;
-  const modeOpts = [
-    { id: 'min',  label: '最低达标率' },
-    { id: 'std',  label: '标准达标率' },
-    { id: 'custom', label: '自定义分数' }
-  ];
-  const modeHtml = modeOpts.map(o =>
-    '<label class="checkbox-item' + (mode === o.id ? ' checked' : '') + '">' +
-      '<input type="radio" name="f11Mode" value="' + o.id + '"' + (mode === o.id ? ' checked' : '') + '>' +
+  const rule = f11State.rule;
+  const hints = f11AutoHints();
+  const ruleHtml = F11_RULE_OPTS.map(o =>
+    '<label class="checkbox-item' + (rule === o.id ? ' checked' : '') + '">' +
+      '<input type="radio" name="f11Rule" value="' + o.id + '"' + (rule === o.id ? ' checked' : '') + '>' +
       '<span>' + esc(o.label) + '</span></label>'
   ).join('');
+
+  let panel = '';
+  if (rule === 'pct') {
+    panel = '<div class="f11-rule-panel" id="f11RulePanel">' +
+      '<span class="line-setting"><span class="setting-label">下限</span>' +
+        '<input type="number" id="f11PctMin" min="0" max="100" step="1" value="' + esc(f11State.pctMin) + '"><span class="unit">%</span></span>' +
+      '<span class="f11-tilde">~</span>' +
+      '<span class="line-setting"><span class="setting-label">上限</span>' +
+        '<input type="number" id="f11PctMax" min="0" max="100" step="1" value="' + esc(f11State.pctMax) + '"><span class="unit">%</span></span>' +
+      '<span class="f11-rule-tip">按科目满分折算，默认 0%~60%（如满分 100 分即 0~60 分）。分数落在区间内（含端点）的学生会被导出。</span>' +
+    '</div>';
+  } else if (rule === 'rank') {
+    panel = '<div class="f11-rule-panel" id="f11RulePanel">' +
+      '<span class="line-setting"><span class="setting-label">方向</span><select id="f11RankDir">' +
+        '<option value="top"' + (f11State.rankDir === 'top' ? ' selected' : '') + '>前</option>' +
+        '<option value="bottom"' + (f11State.rankDir === 'bottom' ? ' selected' : '') + '>后</option>' +
+      '</select></span>' +
+      '<span class="line-setting"><span class="setting-label">名次</span>' +
+        '<input type="number" id="f11RankN" min="1" step="1" value="' + esc(f11State.rankN) + '"><span class="unit">名</span></span>' +
+      '<span class="f11-rule-tip">按本班该科目本次考试分数排名，取前/后若干名，默认前 10 名。</span>' +
+    '</div>';
+  } else {
+    const autoLine = hints.presetLine != null ? f11Round1(hints.presetLine) : '';
+    const autoRatio = hints.ratio != null ? hints.ratio : '';
+    panel = '<div class="f11-rule-panel" id="f11RulePanel">' +
+      '<span class="line-setting"><span class="setting-label">预估控分线</span>' +
+        '<input type="number" id="f11LineValue" min="0" step="1" value="' + esc(f11State.lineValue) + '" placeholder="自动' + esc(autoLine) + '"><span class="unit">分</span></span>' +
+      '<span class="line-setting"><span class="setting-label">占比</span>' +
+        '<input type="number" id="f11LineRatio" min="0" step="0.1" value="' + esc(f11State.lineRatio) + '" placeholder="自动' + esc(autoRatio) + '"><span class="unit">%</span></span>' +
+      '<span class="line-setting"><span class="setting-label">导出</span><select id="f11LineDir">' +
+        '<option value="below"' + (f11State.lineDir === 'below' ? ' selected' : '') + '>线下</option>' +
+        '<option value="above"' + (f11State.lineDir === 'above' ? ' selected' : '') + '>线上</option>' +
+      '</select></span>' +
+      '<span class="f11-rule-tip">阈值 = 预估控分线 × 占比。预估控分线默认取各班所属大类的默认线（' +
+        (hints.type && hints.presetLine != null ? esc(hints.type) + ' ' + f11Round1(hints.presetLine) + ' 分' : '1类 380 分') +
+        '）；占比默认按「科目满分 / 总分满分」自动计算' +
+        (hints.ratio != null ? '（约 ' + hints.ratio + '%）' : '') +
+        '。默认导出线下（低于阈值），可选线上（达到或高于阈值）。</span>' +
+    '</div>';
+  }
 
   root.innerHTML =
     '<div class="card">' +
       '<div class="rep-head">' +
-        '<div><div class="rep-title">不及格名单导出 · ' + esc(subjectLabel(sub)) + '</div>' +
-        '<p class="info-text rep-sub">以最近一次考试（' + esc(exams[exams.length - 1]) + '）为准，按登录老师所带班级导出本次不及格学生；连续三次标红、连续两次标紫、本次标黑。</p></div>' +
+        '<div><div class="rep-title">指定范围名单导出 · ' + esc(subjectLabel(sub)) + '</div>' +
+        '<p class="info-text rep-sub">以最近一次考试（' + esc(exams[exams.length - 1]) + '）为准，按登录老师所带班级导出命中所选范围的学生；三条规则互斥只能选一条；连续三次命中标红、连续两次标紫、本次标黑。</p></div>' +
       '</div>' +
-      '<div class="setting-fields" style="margin:12px 0">' +
-        '<div class="setting-group"><span class="setting-group-title">不及格口径</span><div class="setting-fields">' + modeHtml + '</div></div>' +
-        '<div class="line-setting" id="f11CustomWrap" style="' + (mode === 'custom' ? '' : 'display:none') + '">' +
-          '<span class="setting-label">分数线</span><input type="number" id="f11Custom" value="' + esc(f11State.custom) + '" min="0" step="1"><span class="unit">分</span></div>' +
+      '<div style="margin:12px 0;display:flex;flex-direction:column;gap:10px">' +
+        '<div class="setting-group"><span class="setting-group-title">导出规则</span><div class="setting-fields">' + ruleHtml + '</div></div>' +
+        panel +
       '</div>' +
       '<div class="rep-actions">' +
-        '<button class="btn btn-primary" id="f11ExportBtn" type="button">一键导出不及格人名单（Excel）</button>' +
+        '<button class="btn btn-primary" id="f11ExportBtn" type="button">一键导出指定范围名单（Excel）</button>' +
         '<span class="info-text" id="f11Summary"></span>' +
       '</div>' +
     '</div>' +
     '<div id="f11Preview"></div>';
 
-  root.querySelectorAll('input[name="f11Mode"]').forEach(r => {
-    r.addEventListener('change', () => { f11State.mode = r.value; renderF11(root); });
+  root.querySelectorAll('input[name="f11Rule"]').forEach(r => {
+    r.addEventListener('change', () => { f11State.rule = r.value; renderF11(root); });
   });
-  const customEl = $('f11Custom');
-  if (customEl) customEl.addEventListener('input', () => { f11State.custom = customEl.value; f11RenderPreview(root); });
+  const bindInput = (id, key) => {
+    const el = $(id);
+    if (el) el.addEventListener('input', () => { f11State[key] = el.value; f11RenderPreview(root); });
+  };
+  const bindSelect = (id, key) => {
+    const el = $(id);
+    if (el) el.addEventListener('change', () => { f11State[key] = el.value; f11RenderPreview(root); });
+  };
+  bindInput('f11PctMin', 'pctMin');
+  bindInput('f11PctMax', 'pctMax');
+  bindInput('f11RankN', 'rankN');
+  bindInput('f11LineValue', 'lineValue');
+  bindInput('f11LineRatio', 'lineRatio');
+  bindSelect('f11RankDir', 'rankDir');
+  bindSelect('f11LineDir', 'lineDir');
 
   $('f11ExportBtn').addEventListener('click', f11ExportRoster);
   f11RenderPreview(root);
@@ -5602,8 +5780,11 @@ function f11RenderPreview(root) {
   const data = f11Compute();
   const total = data.classes.reduce((a, c) => a + c.items.length, 0);
   const sumEl = $('f11Summary');
-  if (sumEl) sumEl.textContent = data.classes.length ? ('共 ' + data.classes.length + ' 个班、' + total + ' 名不及格学生') : '本次所选口径下暂无不及格学生';
-  if (!data.classes.length) { wrap.innerHTML = emptyTip('当前口径下没有不及格学生'); return; }
+  if (sumEl) {
+    sumEl.textContent = '规则：' + data.tag + ' · ' +
+      (data.classes.length ? ('共 ' + data.classes.length + ' 个班、' + total + ' 名学生') : '当前规则下暂无学生');
+  }
+  if (!data.classes.length) { wrap.innerHTML = emptyTip('当前规则下没有符合条件的学生'); return; }
   const toneColor = { red: '#dc2626', purple: '#7c3aed', black: '#1f2937' };
   wrap.innerHTML = '<div class="f11-grid">' + data.classes.map(c => {
     const rows = c.items.map(it => {
@@ -5612,7 +5793,9 @@ function f11RenderPreview(root) {
         '<td style="color:' + col + '">' + it.score + '</td></tr>';
     }).join('');
     return '<div class="card f11-class-card">' +
-      '<div class="f11-class-title">' + esc(c.cls) + '（' + c.items.length + '人）</div>' +
+      '<div class="f11-class-title">' + esc(c.cls) + '（' + c.items.length + '人）' +
+        (c.note ? '<span style="font-weight:600;font-size:.74rem;color:#64748b;margin-left:6px">' + esc(c.note) + '</span>' : '') +
+      '</div>' +
       '<table class="data-table"><thead><tr><th>人名</th><th>分数</th></tr></thead><tbody>' + rows + '</tbody></table>' +
     '</div>';
   }).join('') + '</div>';
@@ -5622,17 +5805,28 @@ function f11ExportRoster() {
   if (!hasData()) { showToast('暂无数据', '请先上传成绩文件', 'error'); return; }
   const sub = f11Subject();
   if (!sub) { showToast('请先选择科目', '当前账号未绑定科目，请先勾选科目', 'error'); return; }
-  if (f11State.mode === 'custom') {
-    const v = parseFloat(f11State.custom);
-    if (Number.isNaN(v) || v < 0) { showToast('分数线无效', '自定义分数请输入不小于 0 的数值', 'error'); return; }
+  if (f11State.rule === 'pct') {
+    const mn = parseFloat(f11State.pctMin), mx = parseFloat(f11State.pctMax);
+    if (Number.isNaN(mn) || Number.isNaN(mx) || mn < 0 || mx > 100 || mn > mx) {
+      showToast('百分比区间无效', '请填写 0~100 之间且下限不大于上限的百分比区间', 'error');
+      return;
+    }
+  } else if (f11State.rule === 'rank') {
+    const n = parseFloat(f11State.rankN);
+    if (Number.isNaN(n) || n < 1) { showToast('名次无效', '请输入不小于 1 的整数名次', 'error'); return; }
+  } else {
+    const pool = f11ClassPool(sub);
+    const last = state.examList[state.examList.length - 1];
+    const usable = pool.some(cls => f11LineThreshold(cls, last).line != null);
+    if (!usable) { showToast('阈值无法计算', '缺少科目满分或总分满分，请先确认本次考试的满分数据', 'error'); return; }
   }
   const data = f11Compute();
-  if (!data.classes.length) { showToast('暂无不及格学生', '当前口径下没有不及格学生', 'info'); return; }
+  if (!data.classes.length) { showToast('暂无符合条件的学生', '当前规则下没有符合条件的学生', 'info'); return; }
   try {
     const bytes = f11BuildXlsx(data, sub);
-    const name = sanitizeFileName(CAMPUS_CONFIG.name + '-' + sub + '-不及格名单-' + (data.exam || '')) + '.xlsx';
+    const name = sanitizeFileName(CAMPUS_CONFIG.name + '-' + sub + '-指定范围名单-' + data.tag + '-' + (data.exam || '')) + '.xlsx';
     repDownload(name, bytes);
-    showToast('导出成功', '已导出 ' + data.classes.length + ' 个班、' + data.classes.reduce((a, c) => a + c.items.length, 0) + ' 名学生', 'success');
+    showToast('导出成功', '已导出 ' + data.classes.length + ' 个班、' + data.classes.reduce((a, c) => a + c.items.length, 0) + ' 名学生（' + data.tag + '）', 'success');
   } catch (e) {
     console.error(e);
     showToast('导出失败', e.message, 'error');
@@ -5668,7 +5862,7 @@ function f11BuildXlsx(data, sub) {
   const pushRow = cells => grid.push(cells);
   /* 第 1 行：标题（合并整行） */
   const titleCells = [];
-  titleCells[0] = { v: CAMPUS_CONFIG.name + ' · ' + sub + ' 不及格名单（' + (data.exam || '') + '）', style: 3, numeric: false };
+  titleCells[0] = { v: CAMPUS_CONFIG.name + ' · ' + sub + ' 指定范围名单（' + (data.tag || '') + '｜' + (data.exam || '') + '）', style: 3, numeric: false };
   pushRow(titleCells);
   /* 第 2 行：班级表头（每班合并两列） */
   const headCells = [];
@@ -5740,7 +5934,7 @@ function f11BuildXlsx(data, sub) {
 
   const workbookXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
-      '<sheets><sheet name="不及格名单" sheetId="1" r:id="rId1"/></sheets></workbook>';
+      '<sheets><sheet name="指定范围名单" sheetId="1" r:id="rId1"/></sheets></workbook>';
   const wbRelsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
       '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
