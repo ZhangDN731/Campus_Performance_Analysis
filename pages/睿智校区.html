@@ -5514,11 +5514,26 @@ function f11Subject() {
   const gs = getGlobalSubjects();
   return gs[0] || '';
 }
-/* 导出班级：普通老师锁定本人所带班级；负责人/管理员取全部已加载班级 */
-function f11ClassPool(sub) {
+/* 导出班级：优先用户当前勾选的班级；未勾选时用登录账号默认班级（组长/管理员为全部） */
+function f11ClassScope() {
   let mine = [];
   try { mine = (window.Auth && Auth.myClasses) ? Auth.myClasses() : []; } catch (e) { mine = []; }
-  let pool = (mine && mine.length) ? mine.slice() : state.classList.slice();
+  const checked = (typeof getGlobalClasses === 'function') ? getGlobalClasses() : [];
+  let list, source;
+  if (checked.length) {
+    list = mine.length ? checked.filter(c => mine.indexOf(c) >= 0) : checked.slice();
+    source = 'selected';
+  } else if (mine.length) {
+    list = mine.slice();
+    source = 'account';
+  } else {
+    list = state.classList.slice();
+    source = 'all';
+  }
+  return { list: list, source: source };
+}
+function f11ClassPool(sub) {
+  let pool = f11ClassScope().list;
   if (sub) pool = pool.filter(c => getClassSubjects(c).indexOf(sub) >= 0);
   return pool;
 }
@@ -5739,7 +5754,7 @@ function renderF11(root) {
     '<div class="card">' +
       '<div class="rep-head">' +
         '<div><div class="rep-title">指定范围名单导出 · ' + esc(subjectLabel(sub)) + '</div>' +
-        '<p class="info-text rep-sub">以最近一次考试（' + esc(exams[exams.length - 1]) + '）为准，按登录老师所带班级导出命中所选范围的学生；三条规则互斥只能选一条；连续三次命中标红、连续两次标紫、本次标黑。</p></div>' +
+        '<p class="info-text rep-sub">以最近一次考试（' + esc(exams[exams.length - 1]) + '）为准，默认按本账号班级、若顶部已勾选则按已选班级导出；三条规则互斥只能选一条；连续三次命中标红、连续两次标紫、本次标黑。</p></div>' +
       '</div>' +
       '<div style="margin:12px 0;display:flex;flex-direction:column;gap:10px">' +
         '<div class="setting-group"><span class="setting-group-title">导出规则</span><div class="setting-fields">' + ruleHtml + '</div></div>' +
@@ -5782,7 +5797,11 @@ function f11RenderPreview(root) {
   const total = data.classes.reduce((a, c) => a + c.items.length, 0);
   const sumEl = $('f11Summary');
   if (sumEl) {
-    sumEl.textContent = '规则：' + data.tag + ' · ' +
+    const scope = f11ClassScope();
+    const scoped = f11ClassPool(data.sub);
+    const scopeText = scope.source === 'selected' ? ('已选 ' + scoped.length + ' 个班') :
+      (scope.source === 'account' ? ('账号默认 ' + scoped.length + ' 个班') : ('全部 ' + scoped.length + ' 个班'));
+    sumEl.textContent = '规则：' + data.tag + ' · 班级范围：' + scopeText + ' · ' +
       (data.classes.length ? ('共 ' + data.classes.length + ' 个班、' + total + ' 名学生') : '当前规则下暂无学生');
   }
   if (!data.classes.length) { wrap.innerHTML = emptyTip('当前规则下没有符合条件的学生'); return; }
@@ -6004,7 +6023,7 @@ function renderTabs() {
       document.body.style.overflow = '';
       state.currentPage = btn.dataset.page;
       /* 非核心页签：无论登录与否，进入即清空班级/科目并弹引导浮窗，交用户按班级重选 */
-      const FOCUS_PAGES = ['f3a', 'f1a', 'f2a', 'f3b', 'f4a', 'goals', 'f8', 'f9', 'f10', 'f11'];
+      const FOCUS_PAGES = ['f3a', 'f1a', 'f2a', 'f3b', 'f4a', 'goals', 'f8', 'f9', 'f10'];
       if (FOCUS_PAGES.indexOf(btn.dataset.page) >= 0) resetSelectionForFocus();
       if (btn.dataset.page === 'goals') {
         state.topTab = 'report';
