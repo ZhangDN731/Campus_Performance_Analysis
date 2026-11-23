@@ -1286,6 +1286,20 @@ const getChecked = wrapId => Array.from(document.querySelectorAll('#' + wrapId +
 const getGlobalClasses = () => getChecked('globalClassWrap');
 const getGlobalSubjects = () => getChecked('globalSubjectWrap');
 const getPrimaryClass = () => getGlobalClasses()[0] || '';
+/* 页面班级范围：教师=账号默认班级（无配置时=本科目全部班级）；组长/管理员/访客=全部已加载班级 */
+function accountClassScope() {
+  try {
+    const u = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
+    if (u && u.role === 'teacher') {
+      const mine = (Auth.myClasses ? Auth.myClasses() : []) || [];
+      if (mine.length) {
+        const all = state.classList || [];
+        return all.filter(c => mine.indexOf(c) >= 0);
+      }
+    }
+  } catch (e) {}
+  return (state.classList || []).slice();
+}
 
 /* ============ 悬浮提示 ============ */
 function attachHover(el, title, items) {
@@ -3830,7 +3844,7 @@ function exportReportsByClassSubjects() {
 function exportReportsBySubjectClasses() {
   const sub = repState.sub;
   if (!sub) { alert('请先选择科目'); return; }
-  const list = state.classList.filter(c => !repStats(c, repState.exam, sub).empty);
+  const list = accountClassScope().filter(c => !repStats(c, repState.exam, sub).empty);
   repRunBatch(list.map(c => ({ cls: c, sub: sub, exam: repState.exam })), $('repExportSub'));
 }
 
@@ -3838,7 +3852,7 @@ function exportReportsAll() {
   const exam = repState.exam;
   if (!exam) { alert('请先选择考试'); return; }
   const pairs = [];
-  state.classList.forEach(c => {
+  accountClassScope().forEach(c => {
     getClassSubjects(c).forEach(s => {
       if (!repStats(c, exam, s).empty) pairs.push({ cls: c, sub: s, exam: exam });
     });
@@ -3878,7 +3892,7 @@ function qrLoad() {
 function qrIsTotal(s) { return /^总分/.test(String(s || '')); }
 function qrPool(sub) {
   if (!sub) return [];
-  return state.classList.filter(c => getClassSubjects(c).indexOf(sub) >= 0);
+  return accountClassScope().filter(c => getClassSubjects(c).indexOf(sub) >= 0);
 }
 function qrDefaultTeacher() {
   const u = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
@@ -5516,21 +5530,14 @@ function f11Subject() {
 }
 /* 导出班级：优先用户当前勾选的班级；未勾选时用登录账号默认班级（组长/管理员为全部） */
 function f11ClassScope() {
-  let mine = [];
-  try { mine = (window.Auth && Auth.myClasses) ? Auth.myClasses() : []; } catch (e) { mine = []; }
   const checked = (typeof getGlobalClasses === 'function') ? getGlobalClasses() : [];
-  let list, source;
+  const scoped = accountClassScope();
+  let isTeacher = false;
+  try { const u = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null; isTeacher = !!(u && u.role === 'teacher'); } catch (e) {}
   if (checked.length) {
-    list = mine.length ? checked.filter(c => mine.indexOf(c) >= 0) : checked.slice();
-    source = 'selected';
-  } else if (mine.length) {
-    list = mine.slice();
-    source = 'account';
-  } else {
-    list = state.classList.slice();
-    source = 'all';
+    return { list: checked.filter(c => scoped.indexOf(c) >= 0), source: 'selected' };
   }
-  return { list: list, source: source };
+  return { list: scoped.slice(), source: isTeacher ? 'account' : 'all' };
 }
 function f11ClassPool(sub) {
   let pool = f11ClassScope().list;
@@ -6189,8 +6196,8 @@ function resetAll() {
 
 function renderGlobalSelectors() {
   const cw = $('globalClassWrap');
-  /* 默认不勾选任何班级，由用户按需勾选；未选择时操作会弹窗提醒 */
-  cw.innerHTML = state.classList.map(c =>
+  /* 默认不勾选任何班级；仅渲染登录账号范围内的班级，由用户按需勾选 */
+  cw.innerHTML = accountClassScope().map(c =>
     '<label class="checkbox-item"><input type="checkbox" value="' + esc(c) + '"><span>' + esc(classLabel(c)) + '</span></label>'
   ).join('');
   bindAllCheckboxes('globalClassWrap', () => {
