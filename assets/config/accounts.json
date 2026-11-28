@@ -805,6 +805,7 @@
       "label": "星耀十类班主任"
     }
   ],
+  "deletedUsers": [],
   "ai": {
     "global": {
       "baseUrl": "https://api.siliconflow.cn/v1/chat/completions",
