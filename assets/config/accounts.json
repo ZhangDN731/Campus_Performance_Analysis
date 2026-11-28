@@ -269,21 +269,6 @@
       "alias": "dingran"
     },
     {
-      "u": "龙泉周红",
-      "name": "周红",
-      "role": "teacher",
-      "subject": "数学",
-      "campus": "龙泉校区",
-      "pwd": "123456",
-      "defaultPwd": true,
-      "status": "active",
-      "classes": [],
-      "isLeader": false,
-      "mode": "self",
-      "createdAt": "2026-11-18 17:50",
-      "alias": "zhouhong"
-    },
-    {
       "u": "龙泉曹广汉",
       "name": "曹广汉",
       "role": "teacher",
@@ -297,6 +282,21 @@
       "mode": "self",
       "createdAt": "2026-11-18 17:50",
       "alias": "caoguanghan"
+    },
+    {
+      "u": "龙泉周红",
+      "name": "周红",
+      "role": "teacher",
+      "subject": "数学",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "2026-11-18 17:50",
+      "alias": "zhouhong"
     },
     {
       "u": "longquan",
@@ -899,15 +899,15 @@
         "key": "sk-keijnslgrdiubpxkeyfibqoomgdnfguzfhgpkejsmwpprgbu",
         "share": ""
       },
-      "zhouhong": {
-        "mode": "self",
-        "key": "sk-kezvlsmsxemfpcivoxtuxycslcsgklujnbwhvbuqltafgzre",
-        "share": ""
-      },
       "caoguanghan": {
         "mode": "self",
         "key": "sk-avlwdqqkftdynkgakhlsonuworfmsimhranxnkhklxrfmdlo",
         "share": "zhoujinghui"
+      },
+      "zhouhong": {
+        "mode": "self",
+        "key": "sk-kezvlsmsxemfpcivoxtuxycslcsgklujnbwhvbuqltafgzre",
+        "share": ""
       },
       "龙泉周景辉": {
         "mode": "self",
