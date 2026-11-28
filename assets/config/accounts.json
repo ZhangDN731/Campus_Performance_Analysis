@@ -278,7 +278,11 @@
       "pwd": "123456",
       "defaultPwd": true,
       "status": "active",
-      "classes": [],
+      "classes": [
+        "1类",
+        "5类",
+        "6类"
+      ],
       "isLeader": false,
       "mode": "self",
       "createdAt": "2026-11-18 17:50"
