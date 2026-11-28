@@ -975,7 +975,7 @@
     /* 「默认班级」必须落在某个真实校区上，从「全部」进来自动落到当前页面校区 */
     if (adminTab === 'classes' && adminCampus === '全部') adminCampus = CAMPUS;
     const tabs = [
-      { id: 'users', label: '教师管理' },
+      { id: 'users', label: '账号管理' },
       { id: 'pending', label: '待审核' },
       { id: 'classes', label: '默认班级' },
       { id: 'ai', label: 'AI 配置' },
