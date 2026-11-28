@@ -755,20 +755,6 @@
       "label": "星耀十类班主任"
     },
     {
-      "u": "zhoujinghui",
-      "name": "周景辉",
-      "role": "teacher",
-      "subject": "物理",
-      "campus": "龙泉校区",
-      "pwd": "123456",
-      "defaultPwd": true,
-      "status": "active",
-      "classes": [],
-      "isLeader": false,
-      "mode": "self",
-      "createdAt": "预置账号"
-    },
-    {
       "u": "yanliying",
       "name": "颜立营",
       "role": "teacher",
@@ -1021,7 +1007,9 @@
       "createdAt": "预置账号"
     }
   ],
-  "deletedUsers": [],
+  "deletedUsers": [
+    "zhoujinghui"
+  ],
   "ai": {
     "global": {
       "baseUrl": "https://api.siliconflow.cn/v1/chat/completions",
