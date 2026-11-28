@@ -1055,7 +1055,6 @@
         '<label><span>密码</span><input id="liPwd" type="password" autocomplete="current-password" placeholder="默认密码 123456"></label>' +
         msgHtml() +
         '<button class="btn btn-primary auth-submit" type="submit">登录</button>' +
-        '<p class="auth-tip">本页仅限<b>班主任</b>与<b>任课老师</b>登录：班主任账号为「校区名+班级名」（如 龙泉三类一），任课老师账号为「校区名+姓名」（如 龙泉张迪楠）；默认密码 123456。管理员与教务请到「成绩上传」页面登录。</p>' +
       '</form>';
   }
   function registerView() {

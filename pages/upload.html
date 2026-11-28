@@ -311,8 +311,7 @@ body.role-homeroom .campus-grid{grid-template-columns:1fr}
       <label>账户</label>
       <input type="text" id="username" placeholder="管理员 admin / 教务 longquan / 班主任 龙泉三类一" autocomplete="username">
     </div>
-    <div class="form-group" id="campusPickGroup">
-      <label>校区（班主任用班级名登录时选择）</label>
+    <div class="form-group" id="campusPickGroup" style="display:none">
       <select id="loginCampus">
         <option value="">自动识别 / 教务与管理员无需选择</option>
         <option value="龙泉校区">龙泉校区</option>
@@ -327,10 +326,6 @@ body.role-homeroom .campus-grid{grid-template-columns:1fr}
     </div>
     <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">登 录</button>
     <div class="error-msg" id="loginError"></div>
-    <div class="hint">
-      本页限 <b>管理员 / 教务 / 班主任</b> 登录：管理员管全部校区与账号；教务传本校区整份成绩、并可批量建本校区班主任 / 任课老师账号；班主任传本班成绩（工作表名=班级名）。<br>
-      班主任账号＝校区名+班级名（如 龙泉三类一）；任课老师请到校区分析页登录，账号＝校区名+姓名。默认密码都是 123456。
-    </div>
     <a href="../index.html" class="back-link">← 返回首页</a>
   </div>
 </div>
