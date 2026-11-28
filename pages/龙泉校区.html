@@ -1302,23 +1302,10 @@ function accountClassScope() {
 }
 /* 页面科目范围：任课老师=本科目（+总分）；班主任=本班实际开考的科目；访客=全部科目 */
 function accountSubjectScope() {
+  /* 班主任=本班科目；任课老师=所带班级的全部科目；范围统一由 Auth.mySubjects 决定 */
   try {
-    const u = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
-    if (u && u.role === 'teacher' && u.mode !== 'leader') {
-      const sub = Auth.teacherSubject ? Auth.teacherSubject() : '';
-      if (sub) {
-        const all = state.subjectList || [];
-        const mine = all.filter(s => s === sub || s === '总分');
-        if (mine.length) return mine;
-      }
-    }
-    if (u && u.role === 'homeroom') {
-      const cls = Auth.myClasses ? (Auth.myClasses() || [])[0] : '';
-      if (cls) {
-        const mine = getClassSubjects(cls);
-        if (mine.length) return mine;
-      }
-    }
+    const mine = (window.Auth && Auth.mySubjects) ? Auth.mySubjects() : [];
+    if (mine.length) return mine;
   } catch (e) {}
   return (state.subjectList || []).slice();
 }

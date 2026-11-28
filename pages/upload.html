@@ -527,7 +527,7 @@ function roleLabel(role){
   return role === 'admin' ? '管理员' : role === 'dean' ? '教务' : role === 'homeroom' ? '班主任' : '任课老师';
 }
 /* 从共享库解析登录账号：管理员 / 教务 / 班主任；任课老师不在本页登录
-   账号规则：班主任=校区名+班级名（龙泉三类一），任课老师=校区名+姓名；同时兼容班级名、旧拼音账号 */
+   账号规则：班主任=校区名+班级名（龙泉三类一），任课老师=校区名+姓名；也可只输入班级名/姓名 */
 function normLoginKey(v){ return String(v==null?'':v).replace(/\s+/g,'').toLowerCase(); }
 function matchSharedUsers(users, user, pass, campusHint){
   if(!Array.isArray(users)) return null;
@@ -544,15 +544,6 @@ function matchSharedUsers(users, user, pass, campusHint){
     });
     if(byPrefix.length === 1) u = byPrefix[0];
     else if(byPrefix.length > 1) return {ambiguous:true};
-  }
-  if(!u){
-    let same = users.filter(x => x.pwd === pass && (
-      normLoginKey(x.cls || '') === key ||
-      normLoginKey(x.alias || '') === key ||
-      normLoginKey(x.name || '') === key));
-    if(campusHint) same = same.filter(x => (x.campus || '龙泉校区') === campusHint);
-    if(same.length > 1) return {ambiguous:true};
-    if(same.length === 1) u = same[0];
   }
   if(!u) return null;
   if(u.status && u.status !== 'active') return {disabled:true, name:u.name};

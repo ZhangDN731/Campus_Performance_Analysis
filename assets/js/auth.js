@@ -211,7 +211,6 @@
   /* 老数据/外部导入的归一化：补版本、补校区、补组长标记、补身份、统一科目名 */
   function migrate(o) {
     o.v = DB_VERSION;
-    const renamed = {};   /* 旧账号 → 新账号，用于同步改会话名 */
 
     if (!o.updatedAt) o.updatedAt = nowStr();
     if (!o.campuses) o.campuses = emptyCampusMap();
@@ -240,62 +239,24 @@
         delete map[k];
       });
     });
-    /* 账号改名过渡期去重：同一校区的同一班级/同一位老师只保留一条（新账号信息合并进来） */
-    if (Array.isArray(o.users)) {
-      const seen = {};
-      o.users = o.users.filter(u => {
-        if (!u || (u.role !== 'homeroom' && u.role !== 'teacher')) return true;
-        const key = (u.campus || '龙泉校区') + '|' + (u.role === 'homeroom' ? (u.cls || '') : (u.name || ''));
-        if (key.endsWith('|')) return true;
-        const keep = seen[key];
-        if (!keep) { seen[key] = u; return true; }
-        const want = u.role === 'homeroom' ? homeroomUser(u.campus, u.cls) : teacherUser(u.campus, u.name);
-        if (normLogin(u.u) === normLogin(want)) {
-          /* 后来的这条是标准新账号：把新账号信息并回保留的那条，再丢掉这条 */
-          const keep = seen[key];
-          ['pwd', 'defaultPwd', 'status', 'subject', 'alias', 'cls', 'label', 'classes', 'createdAt'].forEach(k => {
-            if (u[k] !== undefined) keep[k] = u[k];
-          });
-          keep.u = u.u;
-          return false;
-        }
-        return false;
-      });
-    }
     o.users.forEach(u => {
       u.subject = u.subject ? mapSubject(u.subject) : '';
       if (!u.campus) u.campus = (u.role === 'admin' ? '全部' : '龙泉校区');
       if (!u.status) u.status = 'active';
       if (typeof u.defaultPwd === 'undefined') u.defaultPwd = (u.pwd === DEFAULT_PWD);
+      delete u.alias;
       if (u.role === 'admin') return;
       /* 教务：只管校区整体上传，不参与班级/科目分配 */
       if (u.role === 'dean') return;
       /* 班主任：只认一个班（cls），登录后只看本班全部科目 */
       if (u.role === 'homeroom') {
-        if (!u.cls) u.cls = (Array.isArray(u.classes) && u.classes[0]) || u.alias || '';
+        if (!u.cls) u.cls = (Array.isArray(u.classes) && u.classes[0]) || '';
         u.classes = u.cls ? [u.cls] : (Array.isArray(u.classes) ? u.classes.slice() : []);
-        /* 账号统一为「校区名+中文班级名」；旧账号（lq-3类1 / 3类1）自动改名，别名保留班级名 */
-        const want = homeroomUser(u.campus, u.cls);
-        const taken = o.users.some(x => x !== u && normLogin(x.u) === normLogin(want));
-        if (u.cls && normLogin(u.u) !== normLogin(want) && !taken) {
-          const old = u.u; u.u = want; renamed[old] = want;
-        }
-        u.alias = u.cls; u.label = u.u + '班主任';
+        u.label = u.u + '班主任';
         return;
       }
       if (typeof u.isLeader === 'undefined') u.isLeader = LEADERS.indexOf(u.name) >= 0;
       if (!u.mode) u.mode = 'self';
-      if (!u.status) u.status = 'active';
-      if (typeof u.defaultPwd === 'undefined') u.defaultPwd = (u.pwd === DEFAULT_PWD);
-      /* 任课老师：账号统一为「校区名+姓名」，旧拼音账号变为别名 */
-      if (u.role === 'teacher' && u.name) {
-        const want = teacherUser(u.campus, u.name);
-        const taken = o.users.some(x => x !== u && normLogin(x.u) === normLogin(want));
-        if (normLogin(u.u) !== normLogin(want) && !taken) {
-          if (!u.alias) u.alias = u.u;
-          const old = u.u; u.u = want; renamed[old] = want;
-        }
-      }
       const cm = o.campuses[u.campus] ? o.campuses[u.campus].subjectClasses : null;
       if (!cm) return;
       const key = mapSubject(u.subject) || '未设科目';
@@ -306,14 +267,6 @@
     if (!o.ai || typeof o.ai !== 'object') o.ai = aiDefaults();
     if (!o.ai.global) o.ai.global = aiDefaults().global;
     if (!o.ai.teachers || typeof o.ai.teachers !== 'object') o.ai.teachers = {};
-    /* 账号改名后把本地会话名一并换掉，避免登录态凭空失效 */
-    Object.keys(renamed).forEach(old => {
-      try {
-        [LS_SESSION, LS_CAMPUS_SESSION].forEach(k => {
-          if (localStorage.getItem(k) === old) localStorage.setItem(k, renamed[old]);
-        });
-      } catch (e) {}
-    });
     return o;
   }
   function persistDB() {
@@ -332,7 +285,7 @@
   }
 
   /* ---------------- 仓库共享同步（账号 + AI 配置） ---------------- */
-  const SYNC_USER_FIELDS = ['u', 'name', 'role', 'subject', 'campus', 'pwd', 'defaultPwd', 'status', 'classes', 'isLeader', 'mode', 'createdAt', 'alias', 'cls', 'label', 'file', 'targetFile'];
+  const SYNC_USER_FIELDS = ['u', 'name', 'role', 'subject', 'campus', 'pwd', 'defaultPwd', 'status', 'classes', 'isLeader', 'mode', 'createdAt', 'cls', 'label', 'file', 'targetFile'];
   let syncReady = false;        /* 初始拉取完成前不回推，避免启动时把空库推上去 */
   let syncTimer = null;
 
@@ -573,17 +526,7 @@
     });
     if (byPrefix.length === 1) return byPrefix[0];
     if (byPrefix.length > 1) return { ambiguous: true, roles: byPrefix };
-    /* 别名：班主任=班级名（3类1），任课老师=姓名拼音（zhangdinan） */
-    const byAlias = cands.filter(x => {
-      if (!inCampus(x)) return false;
-      const a = normLogin(x.alias || '');
-      const cls = x.role === 'homeroom' ? normLogin(x.cls || '') : '';
-      const nm = normLogin(x.name || '');
-      return (a && a === key) || (cls && cls === key) || (nm && nm === key);
-    });
-    if (!byAlias.length) return null;
-    if (byAlias.length > 1) return { ambiguous: true, roles: byAlias };
-    return byAlias[0];
+    /* 别名已废弃：登录只认「账号」本身，旧写法不再兼容 */
   }
   /* 当前上下文该读哪个会话键：上传页独立管理台 / iframe 内嵌管理台读管理员共享会话；独立打开的校区页只读校区会话 */
   function activeSessionKey() {
@@ -765,16 +708,16 @@
       return [];
     } catch (e) { return []; }
   }
-  /* 某班实际有成绩的科目（班主任只看本班涉及科目）；优先页面函数，其次名单缓存 */
+  /* 某班开出的全部科目：优先名单缓存（整份表的科目清单），其次页面已加载数据 */
   function subjectsOfClass(campus, cls) {
     try {
       if (!cls) return [];
+      const r = hostRoster(campus || CAMPUS);
+      if (r && r.map && Array.isArray(r.map[cls]) && r.map[cls].length) return r.map[cls].slice();
       if (typeof window.getClassSubjects === 'function' && typeof state !== 'undefined' && state.classList) {
         const arr = window.getClassSubjects(cls) || [];
         if (arr.length) return arr.slice();
       }
-      const r = hostRoster(campus || CAMPUS);
-      if (r && r.map && Array.isArray(r.map[cls])) return r.map[cls].slice();
     } catch (e) {}
     return [];
   }
@@ -924,17 +867,22 @@
       if (u.mode === 'leader') return (typeof state !== 'undefined' && state.classList) ? state.classList.slice() : [];
       return effectiveClasses(u);
     },
-    /* 登录后显示的科目：班主任=本班实际有成绩的科目；任课老师=本科目；访客/组长=空（不限） */
+    /* 登录后显示的科目：班主任=本班开出的科目；任课老师=所带班级开出的全部科目；访客/组长=空（不限） */
     mySubjects: function () {
       const u = currentUser();
       if (!u) return [];
       if (u.role === 'homeroom') {
-        const cls = (effectiveClasses(u)[0]) || '';
-        const subs = subjectsOfClass(u.campus || CAMPUS, cls);
-        if (subs.length) return subs.filter(s => s !== '职测总分');
-        return [];
+        return subjectsOfClass(u.campus || CAMPUS, (effectiveClasses(u)[0]) || '');
       }
       if (u.role !== 'teacher' || u.mode === 'leader') return [];
+      /* 任课老师：所带班级里开出的所有科目都可见（信息技术老师带九类 → 九类全部科目） */
+      const out = [];
+      (effectiveClasses(u) || []).forEach(cls => {
+        subjectsOfClass(u.campus || CAMPUS, cls).forEach(s => {
+          if (out.indexOf(s) < 0) out.push(s);
+        });
+      });
+      if (out.length) return out;
       const s = mapSubject(u.subject);
       return s ? [s] : [];
     },
@@ -957,7 +905,7 @@
       const subs = window.Auth.mySubjects();
       if (subs.length && Array.isArray(st.subjectList)) {
         const isAgg = s => { const n = String(s || '').replace(/[（(].*$/, '').trim(); return n === '总分' || n === '职测总分' || n === '总成绩'; };
-        /* 任课老师保留本科目 + 总分；班主任保留本班实际开出的科目 */
+        /* 任课老师保留所带班级开出的科目 + 总分；班主任保留本班实际开出的科目 */
         const keep = st.subjectList.filter(s => subs.indexOf(s) >= 0 || isAgg(s));
         st.subjectList = keep.length ? keep : subs.slice();
       }
@@ -972,24 +920,25 @@
         (!campus || (x.campus || '龙泉校区') === campus) &&
         (!role || x.role === role)).map(x => ({
           u: x.u, name: x.name, role: x.role, campus: x.campus, cls: x.cls || '', subject: x.subject || '',
-          pwd: x.pwd, defaultPwd: !!x.defaultPwd, status: x.status, alias: x.alias || ''
+          pwd: x.pwd, defaultPwd: !!x.defaultPwd, status: x.status,
+          label: x.label || ''
         }));
     },
-    /* 补建本校区缺失的班主任账号：账号=校区名+中文班级名，密码 123456，别名=班级名 */
+    /* 补建本校区缺失的班主任账号：账号=校区名+中文班级名，密码 123456 */
     ensureHomerooms: function (campus, classes) {
       const out = { created: [], skipped: [] };
       (classes || []).forEach(clsRaw => {
         const cls = String(clsRaw == null ? '' : clsRaw).trim().replace(/班$/,'');
         if (!cls) return;
         const exists = db.users.find(x => x.role === 'homeroom' && (x.campus || '龙泉校区') === campus &&
-          normLogin(x.cls || x.alias || '') === normLogin(cls));
+          normLogin(x.cls || '') === normLogin(cls));
         if (exists) { out.skipped.push(cls); return; }
         let uu = homeroomUser(campus, cls);
         let n = 2;
         while (findUser(uu)) { uu = homeroomUser(campus, cls) + n; n++; }
         db.users.push({
           u: uu, name: cls + '班主任', role: 'homeroom', campus: campus, subject: '', pwd: DEFAULT_PWD,
-          defaultPwd: true, status: 'active', classes: [cls], cls: cls, alias: cls,
+          defaultPwd: true, status: 'active', classes: [cls], cls: cls,
           label: uu + '班主任', createdAt: nowStr()
         });
         out.created.push({ u: uu, cls: cls });
@@ -1012,7 +961,7 @@
         db.users.push({
           u: uu, name: name, role: 'teacher', campus: campus, subject: subject, pwd: DEFAULT_PWD,
           defaultPwd: true, status: 'active', classes: [], createdAt: nowStr(), mode: 'self',
-          isLeader: LEADERS.indexOf(name) >= 0, alias: PY[name] || name
+          isLeader: LEADERS.indexOf(name) >= 0
         });
         out.created.push({ u: uu, name: name, subject: subject });
       });
@@ -1106,7 +1055,7 @@
         '<label><span>密码</span><input id="liPwd" type="password" autocomplete="current-password" placeholder="默认密码 123456"></label>' +
         msgHtml() +
         '<button class="btn btn-primary auth-submit" type="submit">登录</button>' +
-        '<p class="auth-tip">本页仅限<b>班主任</b>与<b>任课老师</b>登录：班主任账号为「校区名+班级名」（如 龙泉三类一，也可只填 3类1），任课老师账号为「校区名+姓名」（如 龙泉张迪楠）；默认密码 123456。管理员与教务请到「成绩上传」页面登录。</p>' +
+        '<p class="auth-tip">本页仅限<b>班主任</b>与<b>任课老师</b>登录：班主任账号为「校区名+班级名」（如 龙泉三类一），任课老师账号为「校区名+姓名」（如 龙泉张迪楠）；默认密码 123456。管理员与教务请到「成绩上传」页面登录。</p>' +
       '</form>';
   }
   function registerView() {
@@ -1262,7 +1211,7 @@
     const q = adminSearch.trim().toLowerCase();
     const list = all.filter(u => (adminCampus === '全部' || (u.campus || '龙泉校区') === adminCampus) &&
         (adminRole === '全部' || u.role === adminRole) &&
-        (!q || [u.u, u.name, u.cls, u.alias, u.subject, u.campus].some(v => String(v || '').toLowerCase().indexOf(q) >= 0)))
+        (!q || [u.u, u.name, u.cls, u.subject, u.campus].some(v => String(v || '').toLowerCase().indexOf(q) >= 0)))
       .sort((a, b) => (a.campus || '').localeCompare(b.campus || '') ||
         ['dean', 'homeroom', 'teacher'].indexOf(a.role) - ['dean', 'homeroom', 'teacher'].indexOf(b.role) ||
         String(a.cls || '').localeCompare(String(b.cls || ''), 'zh', { numeric: true }) ||
@@ -1600,7 +1549,7 @@
           if (!cls) { msg = { type: 'err', text: '班级名称不能为空' }; return renderCard(); }
           const oldWant = homeroomUser(u.campus, u.cls);
           const oldU = u.u;
-          u.cls = cls; u.classes = [cls]; u.alias = cls;
+          u.cls = cls; u.classes = [cls];
           if (normLogin(u.u) === normLogin(oldWant)) {
             const nu = homeroomUser(u.campus, cls);
             if (!findUser(nu)) {
@@ -1852,23 +1801,6 @@
   }
 
   /* ---------------- 业务动作 ---------------- */
-  /* 班级名首次登录：按班级自动建一个班主任账号（默认密码 123456） */
-  function ensureHomeroomByClass(input, cls) {
-    if (!cls) return null;
-    const u = homeroomUser(CAMPUS, cls);
-    const exist = findUser(u);
-    if (exist) return exist;
-    const nu = {
-      u: u, alias: cls, name: cls + '班主任', label: u + '班主任', role: 'homeroom', subject: '', campus: CAMPUS,
-      cls: cls, pwd: DEFAULT_PWD, defaultPwd: true, status: 'active', classes: [cls],
-      createdAt: nowStr() + '（班级名自动识别）'
-    };
-    db.users.push(nu);
-    saveDB();
-    logAct('按班级名自动创建班主任账号：' + u);
-    draft.u = '';
-    return nu;
-  }
   function doLogin() {
     const uu = (el('liUser').value || '').trim();
     const pp = el('liPwd').value || '';
@@ -1878,11 +1810,6 @@
     if (u && u.ambiguous) {
       msg = { type: 'err', text: '「' + uu + '」在多个校区都有同名班级，请改输「校区名+班级名」，如 ' + CAMPUS + '三类一' };
       return renderCard();
-    }
-    /* 班主任账号默认按班级名称识别：输入班级名 + 默认密码即可登录 */
-    if (!u && pp === DEFAULT_PWD) {
-      const cls = classList().filter(c => String(c).toLowerCase() === uu.toLowerCase())[0];
-      if (cls) u = ensureHomeroomByClass(uu, cls);
     }
     if (!u) {
       msg = SELF_REG
@@ -1974,7 +1901,7 @@
     db.users.push({
       u: uu, name: name, role: 'teacher', subject: subject, campus: CAMPUS, pwd: pp,
       defaultPwd: pp === DEFAULT_PWD, status: 'pending', classes: [], createdAt: nowStr(),
-      mode: 'self', alias: PY[name] || name
+      mode: 'self'
     });
     saveDB();
     msg = { text: uu };
@@ -2107,7 +2034,7 @@
       db.users.push({
         u: uu, name: name, role: 'teacher', subject: sub, campus: camp, pwd: pp,
         defaultPwd: pp === DEFAULT_PWD, status: 'active', classes: [],
-        createdAt: '导入 ' + nowStr(), isLeader: !!r.leader, mode: 'self', alias: PY[name] || name
+        createdAt: '导入 ' + nowStr(), isLeader: !!r.leader, mode: 'self'
       });
       added.push(name + '（' + uu + '）');
     });
@@ -2202,13 +2129,12 @@
       defaultPwd: pp === DEFAULT_PWD, status: 'active', classes: [], createdAt: nowStr()
     };
     if (role === 'homeroom') {
-      base.alias = cls; base.cls = cls; base.classes = [cls]; base.subject = ''; base.label = uu + '班主任';
+      base.cls = cls; base.classes = [cls]; base.subject = ''; base.label = uu + '班主任';
       if (!name) base.name = cls + '班主任';
     } else if (role === 'dean') {
-      base.subject = ''; base.label = camp + '教务'; base.alias = name;
+      base.subject = ''; base.label = camp + '教务';
     } else {
       base.role = 'teacher'; base.subject = subject; base.mode = 'self'; base.isLeader = false;
-      base.alias = PY[name] || name;
     }
     db.users.push(base);
     saveDB();
