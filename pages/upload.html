@@ -710,12 +710,12 @@ async function showUploadPage(){
     }
     hint.style.display = 'block';
     hint.innerHTML = role === 'homeroom'
-      ? '班主任账号 · 只上传 <b>' + (currentAccount.cls || '本班') + '</b> 的成绩：系统会把该班工作表合并进校区成绩表，其他班保持不动；若教务已上传整份成绩，会先询问是否覆盖。'
+      ? '班主任账号 · 只上传 <b>' + (currentAccount.cls || '本班') + '</b> 的成绩与本班目标院校：成绩按「考号+姓名」核对后合并进校区成绩表；目标院校只替换本班工作表，其他班保持不动。'
       : '教务账号 · 上传 <b>' + (currentAccount.campus || '本校区') + '</b> 整份成绩表与目标表；若班主任已上传过成绩，会先询问是否覆盖。';
   }
-  /* 班主任不负责目标表，隐藏目标上传整列 */
+  /* 班主任也可以上传本班目标院校；教务/管理员管整份 */
   const targetCol = document.querySelector('#uploadPage .target-col');
-  if(targetCol) targetCol.style.display = role === 'homeroom' ? 'none' : '';
+  if(targetCol) targetCol.style.display = '';
   renderTemplates();
   initGradeDest();
   renderTargetCards();
@@ -1702,6 +1702,61 @@ function setTargetProgress(pct, text){
   $('targetProgressText').textContent=text;
 }
 
+/* 班主任目标上传：校验姓名必须在本班考号名单里 */
+async function validateTargetNames(bytes, cls){
+  const errs = [];
+  let roster = null;
+  try {
+    const campus = (currentAccount && currentAccount.campus) || '';
+    roster = campus && window.__AUTH_ENSURE_ROSTER__ ? await window.__AUTH_ENSURE_ROSTER__(campus) : null;
+  } catch(e) {}
+  const ref = roster && roster.students && roster.students[cls];
+  if(!ref || !ref.length) return errs;          /* 还没名单：不拦 */
+  const wb = XLSX.read(bytes, {type:'array'});
+  const sheet = wb.Sheets[cls] ? cls : wb.SheetNames[0];
+  if(!sheet) return errs;
+  const mat = XLSX.utils.sheet_to_json(wb.Sheets[sheet], {header:1, raw:true, defval:null});
+  const first = mat[0] || [];
+  const start = (String(first[0]??'').includes('姓名') || String(first[1]??'').includes('目标') || String(first[1]??'').includes('院校')) ? 1 : 0;
+  for(let r = start; r < mat.length; r++){
+    const row = mat[r] || [];
+    const name = String(row[0]??'').trim();
+    const target = String(row[1]??'').trim();
+    if(!name || !target) continue;
+    if(!ref.some(s => s.name === name)) errs.push(name + '：不在本班名单里');
+  }
+  return errs;
+}
+
+/* 班主任目标上传：只替换本班工作表，其他班保持不动 */
+async function mergeHomeroomTargetBytes(bytes, cls, path){
+  const srcWb = XLSX.read(bytes, {type:'array'});
+  const srcSheet = srcWb.Sheets[cls] ? cls : srcWb.SheetNames[0];
+  if(!srcSheet) throw new Error('目标文件里没有工作表');
+  let mat = XLSX.utils.sheet_to_json(srcWb.Sheets[srcSheet], {header:1, raw:true, defval:null});
+  const first = mat[0] || [];
+  const hasHead = String(first[0]??'').includes('姓名') || String(first[1]??'').includes('目标') || String(first[1]??'').includes('院校');
+  if(!hasHead) mat = [['姓名','目标院校']].concat(mat);
+  mat = mat.map(r => Array.isArray(r) ? r.slice(0,2) : ['','']);
+
+  let oldWb = null;
+  try {
+    const f = await fetchRepoFile(path);
+    if(f && f.bytes) oldWb = XLSX.read(f.bytes, {type:'array'});
+  } catch(e) { console.warn('读取现有目标表失败，按新建处理：', e); }
+
+  const outWb = XLSX.utils.book_new();
+  const done = {};
+  if(oldWb){
+    oldWb.SheetNames.forEach(n => {
+      if(n === cls){ XLSX.utils.book_append_sheet(outWb, XLSX.utils.aoa_to_sheet(mat), cls); done[cls] = 1; return; }
+      if(oldWb.Sheets[n]) XLSX.utils.book_append_sheet(outWb, oldWb.Sheets[n], n);
+    });
+  }
+  if(!done[cls]) XLSX.utils.book_append_sheet(outWb, XLSX.utils.aoa_to_sheet(mat), cls);
+  return XLSX.write(outWb, {bookType:'xlsx', type:'array'});
+}
+
 async function doUploadTarget(){
   if(!selectedTargetFile || !targetDest) return;
   $('targetUploadBtn').disabled = true;
@@ -1710,7 +1765,20 @@ async function doUploadTarget(){
   try{
     setTargetProgress(30,'编码文件…');
     const buf = await selectedTargetFile.arrayBuffer();
-    const b64 = bufToBase64(buf);
+    let bytes = new Uint8Array(buf);
+    let mergedCls = '';
+    if(currentAccount.role === 'homeroom'){
+      const cls = currentAccount.cls;
+      setTargetProgress(35,'核对本班名单…');
+      const errs = await validateTargetNames(bytes, cls);
+      if(errs.length){
+        throw new Error('姓名核对未通过，禁止上传：' + errs.slice(0,4).join('；') + (errs.length>4?'；等 '+errs.length+' 处':''));
+      }
+      setTargetProgress(40,'合并到校区目标表…');
+      bytes = await mergeHomeroomTargetBytes(bytes, cls, targetDest);
+      mergedCls = cls;
+    }
+    const b64 = bufToBase64(bytes);
     setTargetProgress(50,'连接 GitHub…');
     const token = _dec();
     const apiBase='https://api.github.com';
@@ -1736,7 +1804,9 @@ async function doUploadTarget(){
     if(resp.ok){
       setTargetProgress(100,'上传完成！');
       showTargetResult('success',
-        `✅ 目标院校表上传成功！<br>文件：<b>${targetDest}</b><br>对应校区「学习目标」页刷新后即可看到最新目标，GitHub Pages 约 1-2 分钟生效。`
+        mergedCls
+          ? `✅ 本班目标院校已上传！<br>已合并 <b>${mergedCls}</b> 到 <b>${targetDest}</b>，其他班级保持不动；校区「学习目标」页刷新后即可看到。`
+          : `✅ 目标院校表上传成功！<br>文件：<b>${targetDest}</b><br>对应校区「学习目标」页刷新后即可看到最新目标，GitHub Pages 约 1-2 分钟生效。`
       );
       if(repoSizeMap && selectedTargetFile) repoSizeMap[targetDest] = selectedTargetFile.size;
       if(!repoTimeMap) repoTimeMap = {};
