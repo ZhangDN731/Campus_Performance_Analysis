@@ -803,6 +803,21 @@
       "alias": "10类",
       "cls": "10类",
       "label": "星耀十类班主任"
+    },
+    {
+      "u": "龙泉测试老师",
+      "name": "测试老师",
+      "role": "teacher",
+      "subject": "体育",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "2026-11-28 09:54",
+      "alias": "测试老师"
     }
   ],
   "ai": {
