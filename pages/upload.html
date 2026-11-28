@@ -233,6 +233,39 @@ body.teacher-mode .teacher-panel{flex:1 1 auto;min-height:0;height:auto;}
 #uploadPage .admin-tabs{flex:0 0 auto;}
 #uploadPage .upload-cols{flex:1 1 auto;min-height:0;}
 #uploadPage .teacher-panel{flex:1 1 auto;min-height:0;}
+/* ===== 角色说明条 + 覆盖确认弹窗 ===== */
+.role-hint{
+  display:none;margin:0 0 10px;padding:9px 12px;border-radius:10px;
+  background:#eff6ff;border:1px solid #dbeafe;color:#1e40af;font-size:.78rem;line-height:1.6;
+}
+body.role-homeroom .role-hint{background:#f0fdf4;border-color:#dcfce7;color:#166534}
+body.role-homeroom .upload-cols{grid-template-columns:1fr}
+body.role-campus .campus-grid{grid-template-columns:1fr 1fr}
+body.role-homeroom .campus-grid{grid-template-columns:1fr}
+.form-group select{
+  width:100%;padding:11px 13px;border-radius:10px;border:1px solid #d8dee9;
+  background:#fff;color:#334155;font-size:.9rem;font-family:inherit;outline:none;
+}
+.form-group select:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+.confirm-mask{
+  position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+  background:rgba(15,23,42,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+}
+.confirm-box{
+  width:min(440px,92vw);background:#1e293b;color:#e2e8f0;border-radius:16px;padding:22px 24px;
+  box-shadow:0 30px 70px rgba(2,6,23,.55);border:1px solid rgba(148,163,184,.25);
+}
+.cb-title{font-size:1.02rem;font-weight:800;color:#fff;margin-bottom:8px}
+.cb-text{font-size:.84rem;line-height:1.75;color:#cbd5e1}
+.cb-text b{color:#fbbf24}
+.cb-row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+.cb-btn{
+  padding:9px 18px;border-radius:10px;border:1px solid rgba(148,163,184,.35);
+  background:transparent;color:#e2e8f0;font-size:.84rem;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.cb-btn:hover{background:rgba(148,163,184,.14)}
+.cb-btn.primary{background:#4f46e5;border-color:#4f46e5;color:#fff}
+.cb-btn.primary:hover{background:#4338ca}
 </style>
 </head>
 <body>
@@ -247,17 +280,27 @@ body.teacher-mode .teacher-panel{flex:1 1 auto;min-height:0;height:auto;}
     </div>
     <div class="form-group">
       <label>账户</label>
-      <input type="text" id="username" placeholder="请输入账户" autocomplete="username">
+      <input type="text" id="username" placeholder="管理员 admin / 教务 longquan / 班主任 班级名" autocomplete="username">
+    </div>
+    <div class="form-group" id="campusPickGroup">
+      <label>校区（班主任用班级名登录时选择）</label>
+      <select id="loginCampus">
+        <option value="">自动识别 / 教务与管理员无需选择</option>
+        <option value="龙泉校区">龙泉校区</option>
+        <option value="星耀校区">星耀校区</option>
+        <option value="睿智校区">睿智校区</option>
+        <option value="廊坊校区">廊坊校区</option>
+      </select>
     </div>
     <div class="form-group">
       <label>密码</label>
-      <input type="password" id="password" placeholder="请输入密码" autocomplete="current-password">
+      <input type="password" id="password" placeholder="默认密码 123456" autocomplete="current-password">
     </div>
     <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">登 录</button>
     <div class="error-msg" id="loginError"></div>
     <div class="hint">
-      上传后的成绩文件将自动同步到 GitHub 仓库<br>
-      对应校区的分析页面将在 1-2 分钟内自动更新
+      本页限 <b>管理员 / 教务 / 班主任</b> 登录：管理员管全部校区与账号，教务传本校区整份成绩，班主任传本班成绩（工作表名=班级名）。<br>
+      任课老师请直接进入对应校区页面查看成绩；上传后 GitHub Pages 约 1-2 分钟自动更新。
     </div>
     <a href="../index.html" class="back-link">← 返回首页</a>
   </div>
@@ -273,7 +316,7 @@ body.teacher-mode .teacher-panel{flex:1 1 auto;min-height:0;height:auto;}
 
     <div class="admin-tabs" id="adminTabs">
       <button type="button" class="on" id="tabUploadBtn" onclick="switchAdminTab('upload')">成绩上传</button>
-      <button type="button" id="tabTeacherBtn" onclick="switchAdminTab('teacher')">教师管理</button>
+      <button type="button" id="tabTeacherBtn" onclick="switchAdminTab('teacher')">账号管理</button>
     </div>
 
     <div class="upload-cols" id="uploadCols">
@@ -399,20 +442,33 @@ function bufToBase64(buf){
   return btoa(binary);
 }
 
-/* 账户配置：密码用 SHA-256 哈希存储；targetFile 为该校区学习目标表路径（相对仓库根） */
+/* 账户配置：密码用 SHA-256 哈希存储（全部默认密码 123456）；targetFile 为该校区学习目标表路径 */
 const ACCOUNTS = {
   'admin':     {hash:'8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', role:'admin',    label:'管理员'},
-  'longquan':  {hash:'b94027baec8a2b669650572e27090b29acde1dba447e7fef4ea8eb80f2a7746b', role:'campus',   label:'龙泉校区', campus:'龙泉校区', file:'27届龙泉周测成绩.xlsx', targetFile:'data/targets/龙泉校区目标.xlsx'},
-  'xingyao':   {hash:'fa7b9499876ba65522fd907e5a472011690e17f882542eb73596c4e296ba5a2c', role:'campus',   label:'星耀校区', campus:'星耀校区', file:'27届星耀周测成绩.xlsx', targetFile:'data/targets/星耀校区目标.xlsx'},
-  'ruizhi':    {hash:'2ae0d9da57534f8c9817bb789d32362edd1585124e69fdb4de42d6e38d86a88d', role:'campus',   label:'睿智校区', campus:'睿智校区', file:'27届睿智周测成绩.xlsx', targetFile:'data/targets/睿智校区目标.xlsx'}
+  'longquan':  {hash:'8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', role:'dean', label:'龙泉校区教务', campus:'龙泉校区', file:'27届龙泉周测成绩.xlsx', targetFile:'data/targets/龙泉校区目标.xlsx'},
+  'xingyao':   {hash:'8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', role:'dean', label:'星耀校区教务', campus:'星耀校区', file:'27届星耀周测成绩.xlsx', targetFile:'data/targets/星耀校区目标.xlsx'},
+  'ruizhi':    {hash:'8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', role:'dean', label:'睿智校区教务', campus:'睿智校区', file:'27届睿智周测成绩.xlsx', targetFile:'data/targets/睿智校区目标.xlsx'},
+  'langfang':  {hash:'8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', role:'dean', label:'廊坊校区教务', campus:'廊坊校区', file:'27届廊坊周测成绩.xlsx', targetFile:'data/targets/廊坊校区目标.xlsx'}
 };
 
-/* 管理员可选择上传的目标院校表（与三个校区一一对应） */
+/* 管理员可选择上传的目标院校表（与四个校区一一对应） */
 const TARGET_CAMPUSES = [
   {label:'龙泉校区', targetFile:'data/targets/龙泉校区目标.xlsx'},
   {label:'星耀校区', targetFile:'data/targets/星耀校区目标.xlsx'},
-  {label:'睿智校区', targetFile:'data/targets/睿智校区目标.xlsx'}
+  {label:'睿智校区', targetFile:'data/targets/睿智校区目标.xlsx'},
+  {label:'廊坊校区', targetFile:'data/targets/廊坊校区目标.xlsx'}
 ];
+
+/* 校区成绩文件 / 目标文件路径 */
+const CAMPUS_FILES = {
+  '龙泉校区': {file:'27届龙泉周测成绩.xlsx', targetFile:'data/targets/龙泉校区目标.xlsx'},
+  '星耀校区': {file:'27届星耀周测成绩.xlsx', targetFile:'data/targets/星耀校区目标.xlsx'},
+  '睿智校区': {file:'27届睿智周测成绩.xlsx', targetFile:'data/targets/睿智校区目标.xlsx'},
+  '廊坊校区': {file:'27届廊坊周测成绩.xlsx', targetFile:'data/targets/廊坊校区目标.xlsx'}
+};
+function campusFiles(campus){
+  return CAMPUS_FILES[campus] || {file:null, targetFile:null};
+}
 
 /* ==================== 工具函数 ==================== */
 const $ = id => document.getElementById(id);
@@ -427,7 +483,7 @@ function formatSize(bytes){
   return (bytes/1048576).toFixed(2)+' MB';
 }
 
-/* ==================== 三校区共享 admin ==================== */
+/* ==================== 四类账号（管理员/教务/班主任/任课老师）共用库 ==================== */
 function sharedDB(){
   try{
     const raw = localStorage.getItem('pw_lq_db_v2');
@@ -435,13 +491,56 @@ function sharedDB(){
     return (d && Array.isArray(d.users)) ? d : null;
   }catch(e){ return null; }
 }
-function sharedAdminAccount(user, pass){
-  const d = sharedDB();
-  if(!d) return null;
-  const u = d.users.find(x => x.role === 'admin' && x.u === user && x.pwd === pass);
+function roleLabel(role){
+  return role === 'admin' ? '管理员' : role === 'dean' ? '教务' : role === 'homeroom' ? '班主任' : '任课老师';
+}
+/* 从共享库解析登录账号：管理员 / 教务 / 班主任；任课老师不在本页登录 */
+function matchSharedUsers(users, user, pass, campusHint){
+  if(!Array.isArray(users)) return null;
+  const key = String(user).toLowerCase();
+  let u = users.find(x => String(x.u).toLowerCase() === key && x.pwd === pass);
+  if(!u){
+    let same = users.filter(x => x.role === 'homeroom' &&
+      String(x.cls || x.alias || '').toLowerCase() === key && x.pwd === pass);
+    if(campusHint) same = same.filter(x => (x.campus || '龙泉校区') === campusHint);
+    if(same.length > 1) return {ambiguous:true};
+    if(same.length === 1) u = same[0];
+  }
   if(!u) return null;
-  try{ localStorage.setItem('pw_lq_session_v1', u.u); }catch(e){}
-  return {user: u.u, role: 'admin', label: '管理员', name: u.name || '审核员', shared: true};
+  if(u.status && u.status !== 'active') return {disabled:true, name:u.name};
+  if(u.role === 'teacher') return {rejected:true};
+  const f = campusFiles(u.campus);
+  if(u.role === 'admin'){
+    try{ localStorage.setItem('pw_lq_session_v1', u.u); }catch(e){}
+    return {user:u.u, role:'admin', label:'管理员', name:u.name || '管理员', shared:true};
+  }
+  if(u.role === 'dean'){
+    return {user:u.u, role:'dean', label:(u.campus || '') + '教务', name:u.name || '教务',
+      campus:u.campus, file:f.file || u.file, targetFile:f.targetFile || u.targetFile, shared:true};
+  }
+  if(u.role === 'homeroom'){
+    return {user:u.u, role:'homeroom', label:(u.campus || '') + ' · ' + (u.cls || '') + '班主任',
+      name:u.name || '', campus:u.campus, cls:u.cls || '',
+      file:f.file, targetFile:f.targetFile, shared:true};
+  }
+  return null;
+}
+function sharedAccount(user, pass, campusHint){
+  const d = sharedDB();
+  const hit = d ? matchSharedUsers(d.users, user, pass, campusHint) : null;
+  if(hit) return hit;
+  /* 首次打开上传页、本地库还没同步到远端账号时，直接读一次仓库账号表兜底 */
+  return null;
+}
+async function sharedAccountAsync(user, pass, campusHint){
+  const hit = sharedAccount(user, pass, campusHint);
+  if(hit) return hit;
+  try{
+    const resp = await fetch(new URL('../assets/config/accounts.json?t=' + Date.now(), location.href).href, {cache:'no-store'});
+    if(!resp.ok) return null;
+    const d = await resp.json();
+    return matchSharedUsers(d && d.users, user, pass, campusHint);
+  }catch(e){ return null; }
 }
 function switchAdminTab(mode){
   const panel = $('teacherPanel'), cols = $('uploadCols');
@@ -476,23 +575,40 @@ async function doLogin(){
   $('loginBtn').disabled = true;
   err.textContent = '';
   const hash = await sha256(pass);
-  /* 先认三校区管理台里的同一个 admin 账号（同源共享 pw_lq_db_v2 / pw_lq_session_v1） */
-  const shared = sharedAdminAccount(user, pass);
+  /* 先查四类账号共享库（管理员 / 教务 / 班主任）；再回退到页面内置的教务账号表 */
+  const shared = await sharedAccountAsync(user, pass, ($('loginCampus') && $('loginCampus').value) || '');
   const acc = ACCOUNTS[user];
+  if(shared && shared.ambiguous){
+    err.textContent = '「' + user + '」在多个校区都有同名班级，请在上方「校区」里选择所在校区，或用「校区代号-班级」（如 lq-3类1）登录';
+    $('loginBtn').disabled = false;
+    return;
+  }
+  if(shared && shared.rejected){
+    err.textContent = '任课老师账号只能查看成绩，请到「校区成绩分析」页面登录';
+    $('loginBtn').disabled = false;
+    return;
+  }
+  if(shared && shared.disabled){
+    err.textContent = '账号已被停用，请联系管理员';
+    $('loginBtn').disabled = false;
+    return;
+  }
   if(shared){
     currentAccount = shared;
     sessionStorage.setItem('upload_user', JSON.stringify(currentAccount));
     showUploadPage();
-  } else if(acc && acc.hash === hash){
+    return;
+  }
+  if(acc && acc.hash === hash && acc.role !== 'teacher'){
     currentAccount = {user, ...acc};
     /* 三校区库还没建立时也能进整页教师管理：写入共享会话，校区页会初始化同一个 admin */
     if(acc.role === 'admin'){ try{ localStorage.setItem('pw_lq_session_v1', user); }catch(e){} }
     sessionStorage.setItem('upload_user', JSON.stringify(currentAccount));
     showUploadPage();
-  } else {
-    err.textContent = '账户或密码错误';
-    $('loginBtn').disabled = false;
+    return;
   }
+  err.textContent = '账户或密码错误（教务 / 班主任默认密码 123456；任课老师请到成绩分析页登录）';
+  $('loginBtn').disabled = false;
 }
 
 function doLogout(){
@@ -503,7 +619,8 @@ function doLogout(){
   currentAccount = null;
   if (window.Auth && typeof window.Auth.closeAdmin === 'function') window.Auth.closeAdmin();
   switchAdminTab('upload');
-  document.body.classList.remove('role-admin','role-campus');
+  document.body.classList.remove('role-admin','role-campus','role-dean','role-homeroom');
+  const hint = $('roleHint'); if(hint) hint.style.display = 'none';
   $('uploadPage').style.display = 'none';
   $('loginPage').style.display = 'block';
   $('username').value = '';
@@ -520,11 +637,32 @@ let repoTimeMap = null;    /* 仓库路径 → 'YYYY-MM-DD HH:mm'（最近一次
 async function showUploadPage(){
   $('loginPage').style.display = 'none';
   $('uploadPage').style.display = 'block';
-  document.body.classList.remove('role-admin','role-campus');
-  document.body.classList.add(currentAccount.role === 'admin' ? 'role-admin' : 'role-campus');
+  document.body.classList.remove('role-admin','role-campus','role-dean','role-homeroom');
+  const role = currentAccount.role;
+  document.body.classList.add(role === 'admin' ? 'role-admin' : 'role-campus');
+  if(role === 'dean') document.body.classList.add('role-dean');
+  if(role === 'homeroom') document.body.classList.add('role-homeroom');
   $('currentUser').textContent = currentAccount.label + '（' + currentAccount.user + '）';
-  $('adminTabs').style.display = currentAccount.role === 'admin' ? 'flex' : 'none';
-  if(currentAccount.role !== 'admin') switchAdminTab('upload');
+  const adminTabs = $('adminTabs');
+  adminTabs.style.display = role === 'admin' ? 'flex' : 'none';
+  if(role !== 'admin'){
+    /* 教务工/班主任：不显示管理台页签，并给上传区加一行身份说明 */
+    switchAdminTab('upload');
+    let hint = $('roleHint');
+    if(!hint){
+      hint = document.createElement('div');
+      hint.id = 'roleHint';
+      hint.className = 'role-hint';
+      adminTabs.parentNode.insertBefore(hint, adminTabs.nextSibling);
+    }
+    hint.style.display = 'block';
+    hint.innerHTML = role === 'homeroom'
+      ? '班主任账号 · 只上传 <b>' + (currentAccount.cls || '本班') + '</b> 的成绩：系统会把该班工作表合并进校区成绩表，其他班保持不动；若教务已上传整份成绩，会先询问是否覆盖。'
+      : '教务账号 · 上传 <b>' + (currentAccount.campus || '本校区') + '</b> 整份成绩表与目标表；若班主任已上传过成绩，会先询问是否覆盖。';
+  }
+  /* 班主任不负责目标表，隐藏目标上传整列 */
+  const targetCol = document.querySelector('#uploadPage .target-col');
+  if(targetCol) targetCol.style.display = role === 'homeroom' ? 'none' : '';
   renderTemplates();
   initGradeDest();
   renderTargetCards();
@@ -691,9 +829,10 @@ function downloadEmptyGradeTemplate(fileName){
 }
 
 function gradeCampusList(){
-  return currentAccount.role === 'admin'
-    ? [{name:'龙泉校区',file:'27届龙泉周测成绩.xlsx'},{name:'星耀校区',file:'27届星耀周测成绩.xlsx'},{name:'睿智校区',file:'27届睿智周测成绩.xlsx'}]
-    : [{name:currentAccount.campus,file:currentAccount.file}];
+  if(currentAccount.role === 'admin'){
+    return Object.keys(CAMPUS_FILES).map(n => ({name:n, file:CAMPUS_FILES[n].file}));
+  }
+  return [{name:currentAccount.campus, file:currentAccount.file}];
 }
 
 function renderTemplates(){
@@ -715,8 +854,8 @@ function renderTemplates(){
       </div>
       <div class="upload-zone grade-zone" data-file="${c.file}" data-name="${c.name}">
         <div class="icon">📁</div>
-        <div class="title">拖拽上传${c.name}</div>
-        <div class="desc">点击选择或拖拽 .xlsx 到此处</div>
+        <div class="title">${currentAccount.role === 'homeroom' ? '拖拽上传本班（' + (currentAccount.cls || '') + '）成绩' : '拖拽上传' + c.name}</div>
+        <div class="desc">${currentAccount.role === 'homeroom' ? '只需包含本班工作表，其他班不会被改动' : '点击选择或拖拽 .xlsx 到此处'}</div>
       </div>`;
     grid.insertBefore(col, grid.querySelector('.status-col'));
     const card = col.querySelector('.tpl-item');
@@ -923,6 +1062,91 @@ function showResult(type, msg){
   box.innerHTML = msg;
 }
 
+/* ==================== 上传归属记录（教务 ↔ 班主任 互相识别） ==================== */
+const UPLOAD_META_PATH = 'assets/config/upload-meta.json';
+async function loadUploadMeta(){
+  try{
+    const f = await fetchRepoFile(UPLOAD_META_PATH);
+    if(!f) return {sha:null, data:{}};
+    const txt = new TextDecoder().decode(f.bytes);
+    const o = JSON.parse(txt || '{}');
+    return {sha:f.sha || null, data:(o && typeof o === 'object') ? o : {}};
+  }catch(e){ console.warn('读取上传记录失败：', e); return {sha:null, data:{}}; }
+}
+async function saveUploadMeta(meta, campus, role, extra){
+  try{
+    const data = Object.assign({}, meta.data || {});
+    data[campus] = Object.assign({role: role, user: currentAccount.user, name: currentAccount.name || '',
+      cls: currentAccount.cls || '', time: formatRepoTime(new Date().toISOString())}, extra || {});
+    const body = JSON.stringify(data, null, 2);
+    const b64 = btoa(unescape(encodeURIComponent(body)));
+    const payload = { message: 'meta: ' + campus + ' 成绩上传记录', content: b64, branch: GITHUB_BRANCH };
+    if(meta.sha) payload.sha = meta.sha;
+    const resp = await fetch(`${API_BASE}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodeRepoPath(UPLOAD_META_PATH)}`, {
+      method:'PUT',
+      headers:{'Authorization':'token '+_dec(),'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    return resp.ok;
+  }catch(e){ console.warn('写入上传记录失败：', e); return false; }
+}
+function roleOfUpload(role){
+  return role === 'admin' ? 'admin' : role === 'dean' ? 'dean' : 'homeroom';
+}
+/* 深色确认弹窗：覆盖上传 / 不上传 */
+function askOverwrite(prev){
+  return new Promise(resolve=>{
+    const roleText = prev.role === 'dean' ? '教务' : prev.role === 'homeroom' ? '班主任' : '管理员';
+    const mask = document.createElement('div');
+    mask.className = 'confirm-mask';
+    mask.innerHTML =
+      '<div class="confirm-box" role="dialog" aria-modal="true">' +
+        '<div class="cb-title">检测到已有上传</div>' +
+        '<div class="cb-text">' + roleText + (prev.name ? '（' + prev.name + '）' : '') +
+          (prev.cls ? '（' + prev.cls + '）' : '') + ' 已于 <b>' + (prev.time || '未知时间') + '</b> 上传过' +
+          (prev.role === 'dean' ? '整份成绩表' : '本班成绩') + '。<br>' +
+          (currentAccount.role === 'homeroom'
+            ? '继续上传将覆盖<b>本班</b>此前成绩，其他班级不受影响。'
+            : '继续上传将覆盖整份成绩表，包含班主任上传的内容。') +
+        '</div>' +
+        '<div class="cb-row">' +
+          '<button class="cb-btn primary" type="button" data-ok>覆盖上传</button>' +
+          '<button class="cb-btn" type="button" data-cancel>不上传</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(mask);
+    const done = ok => { mask.remove(); resolve(ok); };
+    mask.querySelector('[data-ok]').addEventListener('click', ()=>done(true));
+    mask.querySelector('[data-cancel]').addEventListener('click', ()=>done(false));
+    mask.addEventListener('click', ev => { if(ev.target === mask) done(false); });
+  });
+}
+
+/* 班主任上传：把本班工作表合并进校区现有成绩表，其他班原样保留 */
+function mergeHomeroomSheet(inputBuf, cls, existBytes){
+  const wbIn = XLSX.read(new Uint8Array(inputBuf), {type:'array'});
+  const norm = s => String(s == null ? '' : s).replace(/\s+/g,'').replace(/班$/,'');
+  let sheetName = wbIn.SheetNames.filter(n => norm(n) === norm(cls))[0];
+  if(!sheetName && wbIn.SheetNames.length === 1) sheetName = wbIn.SheetNames[0];
+  if(!sheetName) throw new Error('上传文件里没有「' + cls + '」工作表，请只上传本班成绩表（工作表名=班级名）');
+  const aoa = XLSX.utils.sheet_to_json(wbIn.Sheets[sheetName], {header:1, raw:true, defval:''});
+  if(!aoa.length) throw new Error('「' + cls + '」工作表是空的');
+  const wsNew = XLSX.utils.aoa_to_sheet(aoa);
+  const out = XLSX.utils.book_new();
+  if(existBytes){
+    const old = XLSX.read(new Uint8Array(existBytes), {type:'array'});
+    let placed = false;
+    old.SheetNames.forEach(n => {
+      if(norm(n) === norm(cls)) { XLSX.utils.book_append_sheet(out, wsNew, cls); placed = true; }
+      else XLSX.utils.book_append_sheet(out, old.Sheets[n], n);
+    });
+    if(!placed) XLSX.utils.book_append_sheet(out, wsNew, cls);
+  }else{
+    XLSX.utils.book_append_sheet(out, wsNew, cls);
+  }
+  return XLSX.write(out, {bookType:'xlsx', type:'array'});
+}
+
 async function doUpload(){
   if(!selectedFile) return;
   $('uploadBtn').disabled = true;
@@ -930,14 +1154,15 @@ async function doUpload(){
   setProgress(10, '读取文件…');
 
   try{
-    /* 确定上传目标：管理员取所选校区，校区账户固定本校 */
+    /* 确定上传目标：管理员取所选校区，教务/班主任固定本校 */
     const targetPath = gradeDest;
     const targetFile = targetPath.replace('data/','');
     if(currentAccount.role === 'admin'){
       const GUESS = [
         ['龙泉','27届龙泉周测成绩.xlsx'],['longquan','27届龙泉周测成绩.xlsx'],
         ['星耀','27届星耀周测成绩.xlsx'],['xingyao','27届星耀周测成绩.xlsx'],
-        ['睿智','27届睿智周测成绩.xlsx'],['ruizhi','27届睿智周测成绩.xlsx']
+        ['睿智','27届睿智周测成绩.xlsx'],['ruizhi','27届睿智周测成绩.xlsx'],
+        ['廊坊','27届廊坊周测成绩.xlsx'],['langfang','27届廊坊周测成绩.xlsx']
       ];
       const hit = GUESS.find(g => selectedFile.name.includes(g[0]));
       if(hit && hit[1] !== targetFile){
@@ -947,9 +1172,36 @@ async function doUpload(){
       }
     }
 
-    setProgress(30, '编码文件…');
-    const buf = await selectedFile.arrayBuffer();
-    const b64 = bufToBase64(buf);
+    /* 目标校区名（用于上传归属记录） */
+    const campusName = Object.keys(CAMPUS_FILES).filter(n => 'data/' + CAMPUS_FILES[n].file === targetPath)[0] || currentAccount.campus;
+    const roleKey = roleOfUpload(currentAccount.role);
+    const metaRes = await loadUploadMeta();
+    const prev = metaRes.data[campusName];
+    const needAsk = prev && ((roleKey === 'homeroom' && prev.role === 'dean') || (roleKey === 'dean' && prev.role === 'homeroom'));
+    if(needAsk){
+      setProgress(15, '等待确认是否覆盖…');
+      const ok = await askOverwrite(prev);
+      if(!ok){
+        setProgress(0, '已取消上传');
+        showResult('error', '已取消上传：保留 ' + (prev.role === 'dean' ? '教务' : '班主任') + ' 已上传的版本。');
+        $('progressWrap').style.display = 'none';
+        $('uploadBtn').disabled = false;
+        return;
+      }
+    }
+
+    setProgress(30, currentAccount.role === 'homeroom' ? '读取并合并本班成绩…' : '编码文件…');
+    let buf = await selectedFile.arrayBuffer();
+    let bytes = new Uint8Array(buf);
+    if(currentAccount.role === 'homeroom'){
+      let existBytes = null;
+      try{
+        const f = await fetchRepoFile(targetPath);
+        if(f && f.bytes) existBytes = f.bytes;
+      }catch(e){}
+      bytes = mergeHomeroomSheet(bytes, currentAccount.cls, existBytes);
+    }
+    const b64 = bufToBase64(bytes);
 
     setProgress(50, '连接 GitHub…');
     const token = _dec();
@@ -981,11 +1233,15 @@ async function doUpload(){
     if(resp.ok){
       setProgress(100, '上传完成！');
       showResult('success',
-        `✅ 上传成功！<br>文件：<b>${targetFile}</b><br>GitHub Pages 将在 1-2 分钟内自动更新。<br>访问地址：<a href="https://${GITHUB_OWNER}.github.io/${GITHUB_REPO}/" target="_blank">https://${GITHUB_OWNER}.github.io/${GITHUB_REPO}/</a>`
+        `✅ 上传成功！<br>文件：<b>${targetFile}</b>` +
+        (currentAccount.role === 'homeroom' ? `<br>已合并 <b>${currentAccount.cls}</b> 本班工作表，其他班级保持原样。` : '') +
+        `<br>GitHub Pages 将在 1-2 分钟内自动更新。<br>访问地址：<a href="https://${GITHUB_OWNER}.github.io/${GITHUB_REPO}/" target="_blank">https://${GITHUB_OWNER}.github.io/${GITHUB_REPO}/</a>`
       );
-      if(repoSizeMap && selectedFile) repoSizeMap[targetPath] = selectedFile.size;
+      if(repoSizeMap && selectedFile) repoSizeMap[targetPath] = bytes.length || selectedFile.size;
       if(!repoTimeMap) repoTimeMap = {};
       repoTimeMap[targetPath] = formatRepoTime(new Date().toISOString());
+      /* 记录这次上传由谁完成，供教务 / 班主任下次识别 */
+      await saveUploadMeta(metaRes, campusName, roleKey);
       resetUpload();
       refreshGradeCards();
     } else {
@@ -1317,7 +1573,7 @@ window.__AUTH_ENSURE_ROSTER__ = async function (campus) {
   var file = null;
   Object.keys(ACCOUNTS).forEach(function (k) {
     var a = ACCOUNTS[k];
-    if (a && a.role === 'campus' && a.campus === campus) file = a.file;
+    if (a && a.role !== 'admin' && a.campus === campus && a.file) file = a.file;
   });
   var job = (async function () {
     var roster = null;
@@ -1346,3 +1602,5 @@ window.__AUTH_ENSURE_ROSTER__ = async function (campus) {
 </script>
 </body>
 </html>
+
+

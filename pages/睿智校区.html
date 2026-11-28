@@ -1139,14 +1139,14 @@ const TOP_TABS = [
       { id: 'f7',  label: '总分四线达标率' },
       { id: 'f5',  label: '历次平均分汇总' },
       { id: 'f3a', label: '全班单科成绩汇总' },
-      { id: 'f1a', label: '个人成绩变化' }
+      { id: 'f1a', label: '个人成绩变化' },
+      { id: 'goals', label: '预估学习目标' }
     ]
   },
   {
     id: 'report',
     label: '报表处理组',
     pages: [
-      { id: 'goals', label: '预估学习目标' },
       { id: 'f8', label: '单科分析报告' },
       { id: 'f9', label: '多班级批量成绩分析报告' },
       { id: 'f10', label: '座位表写成绩' },
@@ -1286,11 +1286,11 @@ const getChecked = wrapId => Array.from(document.querySelectorAll('#' + wrapId +
 const getGlobalClasses = () => getChecked('globalClassWrap');
 const getGlobalSubjects = () => getChecked('globalSubjectWrap');
 const getPrimaryClass = () => getGlobalClasses()[0] || '';
-/* 页面班级范围：教师=账号默认班级（无配置时=本科目全部班级）；组长/管理员/访客=全部已加载班级 */
+/* 页面班级范围：班主任=本班；任课老师=本人相关班级；组长/管理员/访客=全部已加载班级 */
 function accountClassScope() {
   try {
     const u = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
-    if (u && u.role === 'teacher') {
+    if (u && (u.role === 'teacher' || u.role === 'homeroom')) {
       const mine = (Auth.myClasses ? Auth.myClasses() : []) || [];
       if (mine.length) {
         const all = state.classList || [];
@@ -1299,6 +1299,21 @@ function accountClassScope() {
     }
   } catch (e) {}
   return (state.classList || []).slice();
+}
+/* 页面科目范围：任课老师=本科目（+总分）；班主任/访客=全部科目 */
+function accountSubjectScope() {
+  try {
+    const u = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
+    if (u && u.role === 'teacher' && u.mode !== 'leader') {
+      const sub = Auth.teacherSubject ? Auth.teacherSubject() : '';
+      if (sub) {
+        const all = state.subjectList || [];
+        const mine = all.filter(s => s === sub || s === '总分');
+        if (mine.length) return mine;
+      }
+    }
+  } catch (e) {}
+  return (state.subjectList || []).slice();
 }
 
 /* ============ 悬浮提示 ============ */
@@ -6033,7 +6048,7 @@ function renderTabs() {
       const FOCUS_PAGES = ['f3a', 'f1a', 'f2a', 'f3b', 'f4a', 'goals', 'f8', 'f9', 'f10'];
       if (FOCUS_PAGES.indexOf(btn.dataset.page) >= 0) resetSelectionForFocus();
       if (btn.dataset.page === 'goals') {
-        state.topTab = 'report';
+        state.topTab = 'core';
         renderTabs();
         renderGoals();
         return;
@@ -6214,8 +6229,8 @@ function renderGlobalSelectors() {
   });
 
   const sw = $('globalSubjectWrap');
-  /* 默认不勾选任何科目，由用户按需勾选 */
-  sw.innerHTML = state.subjectList.map(s =>
+  /* 默认不勾选科目；任课老师只渲染本科目（+总分） */
+  sw.innerHTML = accountSubjectScope().map(s =>
     '<label class="checkbox-item"><input type="checkbox" value="' + esc(s) + '"><span>' + esc(subjectLabel(s)) + '</span></label>'
   ).join('');
   bindAllCheckboxes('globalSubjectWrap', () => {
@@ -6228,9 +6243,34 @@ function renderGlobalSelectors() {
   });
 }
 
+/* 按登录身份裁剪底层数据（班主任=本班，任课老师=本科目相关班级）；先备份全量，退出后可还原 */
+window.__DATA_BACKUP = null;
+function applyAccountScopeData() {
+  const u = (window.Auth && Auth.currentUser) ? Auth.currentUser() : null;
+  if (!window.__DATA_BACKUP) {
+    window.__DATA_BACKUP = {
+      classList: state.classList.slice(),
+      classes: Object.assign({}, state.classes),
+      subjectList: state.subjectList.slice()
+    };
+  }
+  const bk = window.__DATA_BACKUP;
+  state.classList = bk.classList.slice();
+  state.classes = Object.assign({}, bk.classes);
+  state.subjectList = bk.subjectList.slice();
+  if (u && window.Auth && Auth.scopeState) { try { Auth.scopeState(state); } catch (e) {} }
+  try { statCache.clear(); } catch (e) {}
+  try { classSubCache.clear(); } catch (e) {}
+  $('globalClassWrap').innerHTML = '';
+  $('globalSubjectWrap').innerHTML = '';
+  renderGlobalSelectors();
+}
+window.applyAccountScopeData = applyAccountScopeData;
+
 function initUIAfterLoad() {
   $('statusBar').style.display = 'flex';
-  renderGlobalSelectors();
+  /* 登录后先把底层数据裁到账号范围：班主任=本班，任课老师=本科目相关班级 */
+  applyAccountScopeData();
   autoSetScoreLines();
   $('exportBtn').disabled = false;
   state.topTab = 'core';

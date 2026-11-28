@@ -114,9 +114,20 @@ h1 .accent{
 }
 .section-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(15,23,42,.10),transparent)}
 
-/* ===== 功能入口卡片：桌面四列，三张校区卡跨两行，右侧通用/大类上下堆叠 ===== */
+/* ===== 功能入口卡片：四个校区一排，工具卡单独一排 ===== */
 .grid{display:grid;gap:clamp(12px,1.6vw,18px);grid-template-columns:repeat(4,minmax(0,1fr))}
-.card.campus{grid-row:span 2}
+.grid-campus{grid-template-columns:repeat(4,minmax(0,1fr))}
+.grid-tools{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:clamp(4px,0.8vw,8px)}
+.card.campus{grid-row:auto}
+/* 校区卡顶部色条：四个校区各自一条，快速区分 */
+.card.campus::after{
+  content:'';position:absolute;left:0;right:0;top:0;height:3px;
+  background:linear-gradient(90deg,#4f46e5,#06b6d4);opacity:.75;
+}
+#card-xy::after{background:linear-gradient(90deg,#0891b2,#22d3ee)}
+#card-rz::after{background:linear-gradient(90deg,#7c3aed,#c084fc)}
+#card-lf::after{background:linear-gradient(90deg,#0d9488,#2dd4bf)}
+.card-desc{font-size:.76rem;color:var(--text-sub);line-height:1.75}
 .card{
   position:relative;display:flex;flex-direction:column;gap:12px;
   padding:clamp(18px,2.4vw,26px) clamp(17px,2.2vw,24px);
@@ -252,13 +263,14 @@ h1 .accent{
 
 /* ===== 响应式 ===== */
 @media (max-width:900px){
-  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid,.grid-campus{grid-template-columns:repeat(2,minmax(0,1fr))}
   .card.campus{grid-row:auto}
+  .grid-tools{grid-template-columns:1fr}
   .overview{max-width:none}
 }
 @media (max-width:620px){
   body{padding:16px 12px 26px}
-  .grid,.grid-2{grid-template-columns:1fr}
+  .grid,.grid-2,.grid-campus,.grid-tools{grid-template-columns:1fr}
   .card.campus{grid-row:auto}
   .overview{grid-template-columns:1fr}
   .ov-upload{display:none}
@@ -313,10 +325,10 @@ h1 .accent{
     </a>
   </div>
 
-  <!-- ===== 功能入口：校区 + 通用分析 + 大类信息 统一响应式网格 ===== -->
+  <!-- ===== 功能入口：四校区一排，工具入口单独一排 ===== -->
   <section class="section">
-    <div class="section-label">功能入口</div>
-    <div class="grid">
+    <div class="section-label">校区成绩分析</div>
+    <div class="grid grid-campus">
 
       <a href="pages/龙泉校区.html" class="card campus" id="card-lq">
         <div class="card-top">
@@ -372,6 +384,30 @@ h1 .accent{
         <span class="badge badge-load" data-k="badge">正在读取成绩…</span>
       </a>
 
+      <a href="pages/廊坊校区.html" class="card campus" id="card-lf">
+        <div class="card-top">
+          <div class="card-icon">🏫</div>
+          <div class="card-titles">
+            <div class="card-title">廊坊校区</div>
+            <div class="card-en">LANGFANG CAMPUS</div>
+          </div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="metrics" id="m-lf">
+          <div class="metric"><div class="metric-k">班级</div><div class="metric-v" data-k="classes">—</div></div>
+          <div class="metric"><div class="metric-k">考试次数</div><div class="metric-v cyan" data-k="exams">—</div></div>
+          <div class="metric"><div class="metric-k">最新周测</div><div class="metric-v cyan" data-k="latest">—</div></div>
+          <div class="metric"><div class="metric-k" data-kl="updateLabel">上周六周测</div><div class="metric-v" data-k="update">—</div></div>
+        </div>
+        <span class="badge badge-load" data-k="badge">正在读取成绩…</span>
+      </a>
+
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-label">工具与数据</div>
+    <div class="grid grid-tools">
 
       <a href="pages/通用成绩分析.html" class="card card-generic" id="card-generic">
         <div class="card-top">
@@ -382,6 +418,7 @@ h1 .accent{
           </div>
           <span class="arrow">→</span>
         </div>
+        <div class="card-desc">任意格式成绩表上传即分析，不绑定校区；适合临时表格、外部成绩与单次核对。</div>
         <span class="badge badge-generic">手动上传</span>
       </a>
 
@@ -394,6 +431,7 @@ h1 .accent{
           </div>
           <span class="arrow">→</span>
         </div>
+        <div class="card-desc">按考试大类查询分数线、招生计划与一分一档，辅助预估学习目标与志愿定位。</div>
         <span class="badge badge-admission">分数线 · 计划 · 一分一档</span>
       </a>
 
@@ -428,6 +466,10 @@ const CAMPUSES = [
   {
     key: 'rz', name: '睿智校区', page: 'pages/睿智校区.html',
     candidates: ['data/27届睿智周测成绩.xlsx','data/27届睿智周测成绩.xls']
+  },
+  {
+    key: 'lf', name: '廊坊校区', page: 'pages/廊坊校区.html',
+    candidates: ['data/27届廊坊周测成绩.xlsx','data/27届廊坊周测成绩.xls']
   }
 ];
 

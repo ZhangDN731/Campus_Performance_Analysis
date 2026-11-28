@@ -61,16 +61,26 @@
     };
   }
 
-  /* ---------- 三校区共用一套数据库：账号带校区，班级分组按校区隔离 ---------- */
-  const CAMPUSES = ['龙泉校区', '星耀校区', '睿智校区'];
+  /* ---------- 四校区共用一套数据库：账号带校区，班级分组按校区隔离 ---------- */
+  const CAMPUSES = ['龙泉校区', '星耀校区', '睿智校区', '廊坊校区'];
+  const CAMPUS_CODE = { '龙泉校区': 'lq', '星耀校区': 'xy', '睿智校区': 'rz', '廊坊校区': 'lf' };
+  const DEAN_USER = { '龙泉校区': 'longquan', '星耀校区': 'xingyao', '睿智校区': 'ruizhi', '廊坊校区': 'langfang' };
   const CAMPUS = (typeof CAMPUS_CONFIG !== 'undefined' && CAMPUS_CONFIG.name) || '龙泉校区';
-  /* 三校区均开放自助注册：老师自行提交申请，状态为「待审核」，管理员在后台通过后才能登录；也可由 admin 直接建号 */
+  /* 各校区均开放自助注册：老师自行提交申请，状态为「待审核」，管理员在后台通过后才能登录；也可由 admin 直接建号 */
   const SELF_REG = true;
 
-  /* 各角色可见的核心页签 */
-  const PAGES_BASE = ['f6', 'f7', 'f5', 'f3a', 'f1a'];
-  const PAGES_ADMIN = PAGES_BASE.concat(['f8', 'f9', 'f11']);
-  const PAGES_TEACHER = PAGES_BASE.concat(['goals', 'f8', 'f9', 'f10', 'f11']);
+  /* 四类角色：admin 管理员 / dean 教务 / homeroom 班主任 / teacher 任课老师 */
+  const ROLE_TEXT = { admin: '管理员', dean: '教务', homeroom: '班主任', teacher: '任课老师' };
+  function roleText(u) { return ROLE_TEXT[(u && u.role) || ''] || '账号'; }
+
+  /* 页签分组：核心分析（含预估学习目标）/ 报表处理组 / 拓展分析 */
+  const PAGES_CORE = ['f6', 'f7', 'f5', 'f3a', 'f1a', 'goals'];
+  const PAGES_REPORT = ['f8', 'f9', 'f10', 'f11'];
+  const PAGES_EXTRA = ['f2a', 'f2b', 'f3b', 'f4a'];
+  const PAGES_GUEST = ['f6', 'f7', 'f5', 'f3a', 'f1a'];
+  const PAGES_HOMEROOM = PAGES_CORE.concat(PAGES_EXTRA);
+  const PAGES_TEACHER = PAGES_CORE.concat(PAGES_REPORT, PAGES_EXTRA);
+  const PAGES_BASE = PAGES_GUEST;
 
   let db = null;
   let view = 'login';
@@ -81,7 +91,8 @@
   let editTeacher = null;   /* 后台：当前正在分配默认班级的老师账号 */
   let selUsers = new Set(); /* 后台：账号表里勾选待批量删除的账号 */
   let adminTab = 'pending';
-  let adminCampus = '全部'; /* 后台：账号表默认看全部三校区，可用小胶囊切换 */
+  let adminCampus = '全部'; /* 后台：账号表默认看全部校区，可用小胶囊切换 */
+  let adminRole = '全部';   /* 后台：账号表按身份筛选（全部/教务/班主任/任课老师） */
 
   /* ---------------- 基础工具 ---------------- */
   function nowStr() {
@@ -94,11 +105,21 @@
    * users: 账号 + 审核状态 + 身份 + 密码状态全在里面
    * subjectClasses: { '语文': ['9类1','10类'], ... } 默认班级按科目分组
    */
+  const DEAN_SEED = [
+    { u: 'longquan', campus: '龙泉校区' }, { u: 'xingyao', campus: '星耀校区' },
+    { u: 'ruizhi', campus: '睿智校区' }, { u: 'langfang', campus: '廊坊校区' }
+  ];
   function seedUsers() {
     const users = [{
       u: 'admin', name: '审核员', role: 'admin', subject: '', pwd: 'admin', campus: '全部',
       defaultPwd: false, status: 'active', classes: [], createdAt: '系统内置'
     }];
+    DEAN_SEED.forEach(d => {
+      users.push({
+        u: d.u, name: d.campus.replace('校区', '') + '教务', role: 'dean', subject: '', campus: d.campus, pwd: DEFAULT_PWD,
+        defaultPwd: true, status: 'active', classes: [], createdAt: '预置账号', label: d.campus + '教务'
+      });
+    });
     SEED.forEach(t => {
       users.push({
         u: PY[t.name], name: t.name, role: 'teacher', subject: t.subject, campus: '龙泉校区',
@@ -185,7 +206,18 @@
     o.users.forEach(u => {
       u.subject = u.subject ? mapSubject(u.subject) : '';
       if (!u.campus) u.campus = (u.role === 'admin' ? '全部' : '龙泉校区');
+      if (!u.status) u.status = 'active';
+      if (typeof u.defaultPwd === 'undefined') u.defaultPwd = (u.pwd === DEFAULT_PWD);
       if (u.role === 'admin') return;
+      /* 教务：只管校区整体上传，不参与班级/科目分配 */
+      if (u.role === 'dean') return;
+      /* 班主任：只认一个班（cls），登录后只看本班全部科目 */
+      if (u.role === 'homeroom') {
+        if (!u.cls) u.cls = (Array.isArray(u.classes) && u.classes[0]) || u.alias || '';
+        u.classes = u.cls ? [u.cls] : (Array.isArray(u.classes) ? u.classes.slice() : []);
+        if (!u.alias) u.alias = u.cls;
+        return;
+      }
       if (typeof u.isLeader === 'undefined') u.isLeader = LEADERS.indexOf(u.name) >= 0;
       if (!u.mode) u.mode = 'self';
       if (!u.status) u.status = 'active';
@@ -212,7 +244,7 @@
   }
 
   /* ---------------- 仓库共享同步（账号 + AI 配置） ---------------- */
-  const SYNC_USER_FIELDS = ['u', 'name', 'role', 'subject', 'campus', 'pwd', 'defaultPwd', 'status', 'classes', 'isLeader', 'mode', 'createdAt'];
+  const SYNC_USER_FIELDS = ['u', 'name', 'role', 'subject', 'campus', 'pwd', 'defaultPwd', 'status', 'classes', 'isLeader', 'mode', 'createdAt', 'alias', 'cls', 'label', 'file', 'targetFile'];
   let syncReady = false;        /* 初始拉取完成前不回推，避免启动时把空库推上去 */
   let syncTimer = null;
 
@@ -378,6 +410,21 @@
     const key = String(u).toLowerCase();
     return db.users.find(x => String(x.u).toLowerCase() === key) || null;
   }
+  /* 登录账号解析：先按账号，再按班主任班级名（alias）；限定校区时优先本校区 */
+  function findLoginUser(input, campusOnly) {
+    const key = String(input == null ? '' : input).trim().toLowerCase();
+    if (!key) return null;
+    const exact = db.users.find(x => String(x.u).toLowerCase() === key);
+    if (exact) return exact;
+    const same = db.users.filter(x => x.role === 'homeroom' && String(x.cls || x.alias || '').toLowerCase() === key);
+    if (!same.length) return null;
+    if (campusOnly) {
+      const hit = same.find(x => (x.campus || '龙泉校区') === campusOnly);
+      if (hit) return hit;
+    }
+    if (same.length > 1) return { ambiguous: true, roles: same };
+    return same[0];
+  }
   /* 当前上下文该读哪个会话键：上传页独立管理台 / iframe 内嵌管理台读管理员共享会话；独立打开的校区页只读校区会话 */
   function activeSessionKey() {
     if (window.__AUTH_HOST === 'admin') return LS_SESSION;
@@ -451,7 +498,13 @@
     const reg = window.__AUTH_REG;
     const u = currentUser();
     const isAdmin = !!(u && u.role === 'admin');
-    const ids = !u ? PAGES_BASE.slice() : (u.role === 'teacher' ? PAGES_TEACHER.slice() : []);
+    /* 未登录：只露核心分析；班主任：核心+拓展；任课老师：核心+报表+拓展；教务：全部分组 */
+    let ids = PAGES_GUEST.slice();
+    if (u) {
+      if (u.role === 'homeroom') ids = PAGES_HOMEROOM.slice();
+      else if (u.role === 'teacher') ids = PAGES_TEACHER.slice();
+      else ids = PAGES_CORE.concat(PAGES_REPORT, PAGES_EXTRA);
+    }
 
     /* 审核员登录后不再展示成绩分析页签，整页只剩管理台 */
     document.body.classList.toggle('pw-admin', isAdmin);
@@ -465,16 +518,16 @@
       renderAdminConsole(); return;
     }
 
-    /* 核心分析只放 5 个核心页；报表处理组单独取 goals/f8/f9/f10，避免串页 */
-    core.pages = ['f6', 'f7', 'f5', 'f3a', 'f1a'].map(id => reg[id]).filter(Boolean);
+    /* 核心分析：基础 5 个核心页 + 预估学习目标（从报表处理组移入） */
+    core.pages = PAGES_CORE.map(id => reg[id]).filter(Boolean);
 
-    /* 两层结构：核心分析 / 报表处理组 / 拓展分析；登录前只露出核心分析 */
+    /* 两层结构：核心分析 / 报表处理组 / 拓展分析；按角色裁剪 */
     const report = TOP_TABS.find(g => g.id === 'report');
-    if (report) report.pages = ids.filter(id => ['goals', 'f8', 'f9', 'f10', 'f11'].indexOf(id) >= 0).map(id => reg[id]).filter(Boolean);
+    if (report) report.pages = PAGES_REPORT.map(id => reg[id]).filter(Boolean);
     const extra = TOP_TABS.find(g => g.id === 'extra');
     const visible = {
       core: true,
-      report: !!(u && report && report.pages.length),
+      report: !!(u && ids.indexOf('f8') >= 0 && report && report.pages.length),
       extra: !!(u && extra && extra.pages.length)
     };
     document.querySelectorAll('.main-tab').forEach(b => {
@@ -553,7 +606,12 @@
     } catch (e) { return []; }
   }
   function effectiveClasses(u) {
-    if (!u || u.role === 'admin') return [];
+    if (!u || u.role === 'admin' || u.role === 'dean') return [];
+    /* 班主任：只认本班 */
+    if (u.role === 'homeroom') {
+      if (u.cls) return [u.cls];
+      return Array.isArray(u.classes) ? u.classes.slice() : [];
+    }
     /* 管理员按「单个老师」指定过的，严格按该老师自己的清单（可以是空） */
     if (u.clsSet === true && Array.isArray(u.classes)) return u.classes.slice();
     const sub = mapSubject(u.subject);
@@ -565,7 +623,13 @@
 
   function lockedClasses() {
     const u = currentUser();
-    if (!u || u.role !== 'teacher') return null;
+    if (!u) return null;
+    /* 班主任：锁死本班（不因组长身份放开） */
+    if (u.role === 'homeroom') {
+      const own = effectiveClasses(u);
+      return own.length ? own : null;
+    }
+    if (u.role !== 'teacher') return null;
     if (u.mode === 'leader') return null;   /* 组长视角：不限班级 */
     const arr = effectiveClasses(u);
     return arr.length ? arr : null;
@@ -626,9 +690,18 @@
     return changed;
   }
 
-  /* 教师登录后科目默认不勾选，由用户在顶部自行选择；本人学科可在「不及格名单导出」中自动带出 */
+  /* 任课老师登录后只保留本科目（与总分）可勾选；班主任/访客/组长仍然全部科目 */
   function applySubjectDefault() {
-    return;
+    const sw = el('globalSubjectWrap');
+    if (!sw) return;
+    const u = currentUser();
+    const sub = (u && u.role === 'teacher' && u.mode !== 'leader') ? mapSubject(u.subject) : '';
+    sw.querySelectorAll('.checkbox-item').forEach(it => {
+      const inp = it.querySelector('input');
+      if (!inp) return;
+      const show = (!sub || inp.value === sub || inp.value === '总分') ? '' : 'none';
+      if (it.style.display !== show) it.style.display = show;
+    });
   }
 
   function applyAll(reRender) {
@@ -653,6 +726,8 @@
   window.Auth = {
     currentUser: currentUser,
     isAdmin: isAdmin,
+    role: function () { const u = currentUser(); return u ? u.role : ''; },
+    isHomeroom: function () { const u = currentUser(); return !!(u && u.role === 'homeroom'); },
     teacherDefault: function (cls, sub) {
       const u = currentUser();
       if (!u || u.role !== 'teacher') return '';
@@ -667,12 +742,43 @@
       const u = currentUser();
       return (u && u.role === 'teacher' && u.mode === 'leader') ? 'leader' : 'self';
     },
-    /* 登录后可选/可导出的班级范围：教师=本科目全部班级，组长=全部班级 */
+    /* 登录后可选/可导出的班级范围：班主任=本班；教师=本科目全部班级；组长=全部班级 */
     myClasses: function () {
       const u = currentUser();
-      if (!u || u.role !== 'teacher') return [];
+      if (!u) return [];
+      if (u.role === 'homeroom') return effectiveClasses(u);
+      if (u.role !== 'teacher') return [];
       if (u.mode === 'leader') return (typeof state !== 'undefined' && state.classList) ? state.classList.slice() : [];
       return effectiveClasses(u);
+    },
+    /* 任课老师登录后只能看本科目；班主任/访客/组长返回空表示不限 */
+    mySubjects: function () {
+      const u = currentUser();
+      if (!u || u.role !== 'teacher' || u.mode === 'leader') return [];
+      const s = mapSubject(u.subject);
+      return s ? [s] : [];
+    },
+    /* 数据加载完成后，从底层把班级/科目裁到账号范围（避免批量报表等仍看到别的班） */
+    scopeState: function (st) {
+      const u = currentUser();
+      if (!u || !st) return;
+      const cls = lockedClasses();
+      if (u.role === 'homeroom' && Array.isArray(st.classList)) {
+        st.classList = cls ? st.classList.filter(c => cls.indexOf(c) >= 0) : st.classList.slice();
+        if (st.classes && typeof st.classes === 'object') {
+          Object.keys(st.classes).forEach(c => { if (cls && cls.indexOf(c) < 0) delete st.classes[c]; });
+        }
+      } else if (u.role === 'teacher' && cls) {
+        st.classList = st.classList.filter(c => cls.indexOf(c) >= 0);
+        if (st.classes && typeof st.classes === 'object') {
+          Object.keys(st.classes).forEach(c => { if (cls.indexOf(c) < 0) delete st.classes[c]; });
+        }
+      }
+      const subs = window.Auth.mySubjects();
+      if (subs.length && Array.isArray(st.subjectList)) {
+        const keep = st.subjectList.filter(s => subs.indexOf(s) >= 0);
+        st.subjectList = keep.length ? keep : subs.slice();
+      }
     },
     /* 任课老师下拉备选：本校区在职教师姓名 */
     teacherNames: function () {
@@ -757,13 +863,11 @@
         (SELF_REG ? '<button data-act="tab-register" type="button">注册</button>' : '') +
       '</div>' +
       '<form id="authLoginForm" class="auth-form">' +
-        '<label><span>账号</span><input id="liUser" autocomplete="username" value="' + esc(draft.u || '') + '" placeholder="如 zhangsan"></label>' +
-        '<label><span>密码</span><input id="liPwd" type="password" autocomplete="current-password" placeholder="请输入密码"></label>' +
+        '<label><span>账号</span><input id="liUser" autocomplete="username" value="' + esc(draft.u || '') + '" placeholder="任课老师填姓名全拼 / 班主任填班级名称"></label>' +
+        '<label><span>密码</span><input id="liPwd" type="password" autocomplete="current-password" placeholder="默认密码 123456"></label>' +
         msgHtml() +
         '<button class="btn btn-primary auth-submit" type="submit">登录</button>' +
-        (SELF_REG
-          ? '<p class="auth-tip">没有账号？点上方「注册」提交申请，管理员审核通过后即可登录；管理员也直接在后台建号。</p>'
-          : '<p class="auth-tip">本校区账号由管理员统一创建。忘记账号或密码请联系管理员，不开放自助注册。</p>') +
+        '<p class="auth-tip">本页仅限<b>班主任</b>与<b>任课老师</b>登录：班主任直接用班级名称（如 3类1）登录，任课老师用姓名全拼登录；管理员与教务请到「成绩上传」页面登录。</p>' +
       '</form>';
   }
   function registerView() {
@@ -814,21 +918,23 @@
     const u = currentUser();
     if (!u) return loginView();
     const cls = effectiveClasses(u);
-    const leader = !!(u.isLeader && u.role !== 'admin');
+    const isTeacher = u.role === 'teacher';
+    const leader = !!(u.isLeader && isTeacher);
     const leaderMode = leader && u.mode === 'leader';
-    return head(u.role === 'admin' ? '管理员界面' : '教师个人界面') +
+    return head(roleText(u) + '界面') +
       '<div class="auth-body">' +
         '<div class="auth-profile">' +
           '<div class="auth-profile-avatar">' + esc(u.name.slice(-1)) + '</div>' +
           '<div class="auth-profile-main">' +
             '<div class="auth-profile-name">' + esc(u.name) +
-              (u.role === 'admin' ? '<span class="auth-badge admin">审核员</span>'
+              (u.role === 'admin' ? '<span class="auth-badge admin">管理员</span>'
                 : leader ? '<span class="auth-badge">' + (leaderMode ? '组长' : '教师') + '</span>'
-                : '<span class="auth-badge">教师</span>') +
+                : '<span class="auth-badge">' + esc(roleText(u)) + '</span>') +
             '</div>' +
             '<div class="auth-profile-sub">账号 ' + esc(u.u) +
-              (u.role === 'admin' ? ' · 三校区管理员' : ' · ' + esc(u.campus || CAMPUS)) +
-              (u.subject ? ' · 任课科目 ' + esc(u.subject) : '') +
+              (u.role === 'admin' ? ' · 全校区管理员' : ' · ' + esc(u.campus || CAMPUS)) +
+              (isTeacher && u.subject ? ' · 任课科目 ' + esc(u.subject) : '') +
+              (u.role === 'homeroom' && (u.cls || cls.length) ? ' · 班主任班级 ' + esc(u.cls || cls[0]) : '') +
               (leader ? ' · 学科组长' : '') +
               ' · ' + statusText(u) + '</div>' +
           '</div>' +
@@ -842,13 +948,14 @@
             '<p class="auth-tip">个人视角：只统计分配给自己的默认班级；组长视角：不限班级，可查看全校区本科目数据。</p>'
           : '') +
         '<div class="auth-meta">' +
-          '<div class="auth-meta-item"><span>任课教师</span><b>' + esc(u.name) + '</b></div>' +
-          '<div class="auth-meta-item"><span>任课科目</span><b>' + esc(u.subject || '-') + '</b></div>' +
-          '<div class="auth-meta-item"><span>默认班级</span><b>' +
+          '<div class="auth-meta-item"><span>姓名</span><b>' + esc(u.name) + '</b></div>' +
+          '<div class="auth-meta-item"><span>' + (isTeacher ? '任课科目' : '身份') + '</span><b>' +
+            (isTeacher ? esc(u.subject || '-') : esc(roleText(u))) + '</b></div>' +
+          '<div class="auth-meta-item"><span>' + (u.role === 'homeroom' ? '所带班级' : '可见班级') + '</span><b>' +
             (leaderMode ? '<span class="auth-muted">组长视角：全部班级</span>'
               : cls.length ? esc(cls.join(' / ')) : '<span class="auth-muted">未设置（联系管理员分配）</span>') + '</b></div>' +
           '<div class="auth-meta-item"><span>密码状态</span><b>' +
-            ((u.pwd === DEFAULT_PWD || u.defaultPwd) ? '<span class="auth-warn-text">仍是初始密码</span>' : '已修改') + '</b></div>' +
+            ((u.pwd === DEFAULT_PWD || u.defaultPwd) ? '<span class="auth-warn-text">默认密码 123456</span>' : '已修改') + '</b></div>' +
         '</div>' +
         (u.role === 'admin'
           ? '<div class="auth-row"><button class="btn btn-primary" type="button" data-act="admin">进入后台管理</button>' +
@@ -856,10 +963,10 @@
             '<button class="btn" type="button" data-act="logout">退出登录</button></div>'
           : '<div class="auth-row"><button class="btn" type="button" data-act="change-pwd">修改密码</button>' +
             '<button class="btn" type="button" data-act="logout">退出登录</button></div>') +
-        '<p class="auth-tip">登录后可用功能：达标率 / 四线达标率 / 全班成绩 / 学习目标 / 单科分析报告' +
-          (u.role === 'teacher'
-            ? (leaderMode ? '（组长视角：全部班级）' : '（班级已限制为分配的默认班级）')
-            : '') + '。</p>' +
+        '<p class="auth-tip">登录后可用功能：' +
+          (u.role === 'homeroom' ? '核心分析 + 拓展分析（只含本班全部科目）'
+            : isTeacher ? (leaderMode ? '核心分析 + 报表处理组 + 拓展分析（组长视角：全部班级）' : '核心分析 + 报表处理组 + 拓展分析（只含本科目相关班级）')
+            : '核心分析 + 报表处理组 + 拓展分析') + '。</p>' +
       '</div>';
   }
 
@@ -909,9 +1016,19 @@
   }
   function adminUsers() {
     const all = db.users.filter(u => u.role !== 'admin');
-    const list = all.filter(u => adminCampus === '全部' || (u.campus || '龙泉校区') === adminCampus)
-      .sort((a, b) => (a.campus || '').localeCompare(b.campus || '') || a.name.localeCompare(b.name, 'zh'));
+    const list = all.filter(u => (adminCampus === '全部' || (u.campus || '龙泉校区') === adminCampus) &&
+        (adminRole === '全部' || u.role === adminRole))
+      .sort((a, b) => (a.campus || '').localeCompare(b.campus || '') ||
+        ['dean', 'homeroom', 'teacher'].indexOf(a.role) - ['dean', 'homeroom', 'teacher'].indexOf(b.role) ||
+        a.name.localeCompare(b.name, 'zh'));
     const selCount = selUsers.size;
+    /* 身份筛选：全部 / 教务 / 班主任 / 任课老师 */
+    const roleTabs = '<div class="auth-campus-mini">' +
+      ['全部', 'dean', 'homeroom', 'teacher'].map(r => {
+        const n = r === '全部' ? all.length : all.filter(u => u.role === r).length;
+        return '<button class="' + (adminRole === r ? 'on' : '') + '" type="button" data-act="admin-role" data-role="' +
+          r + '">' + (r === '全部' ? '全部' : ROLE_TEXT[r]) + ' <b>' + n + '</b></button>';
+      }).join('') + '</div>';
     /* 校区切换收成小按钮，放在工具条右侧，不再占一整行 */
     const campusTabs = '<div class="auth-campus-mini">' +
       ['全部'].concat(CAMPUSES).map(c => {
@@ -919,39 +1036,48 @@
         return '<button class="' + (adminCampus === c ? 'on' : '') + '" type="button" data-act="admin-campus" data-campus="' +
           esc(c) + '">' + esc(c.replace('校区', '')) + ' <b>' + n + '</b></button>';
       }).join('') + '</div>';
+    function scopeCell(u) {
+      if (u.role === 'dean') return '<span class="auth-muted">全校成绩上传 / 目标表</span>';
+      if (u.role === 'homeroom') {
+        return '本班 ' + esc(u.cls || '-') + ' <span class="auth-muted">（全部科目 · 只看不传他人）</span>';
+      }
+      const arr = effectiveClasses(u);
+      if (!arr.length) return '<span class="auth-muted">全部（自动，暂无数据）</span>';
+      return esc(arr.join('、')) + ' <span class="auth-muted">（' + esc(subjectKey(u)) + ' · ' +
+        (u.clsSet === true ? '本人设定' : '自动全部') + '）</span>';
+    }
     return '<div class="auth-toolbar">' +
-      '<button class="btn btn-primary" type="button" data-act="new-user">+ 新增教师账号</button>' +
+      '<button class="btn btn-primary" type="button" data-act="new-user">+ 新增账号</button>' +
       '<button class="btn" type="button" data-act="import-users">导入账号</button>' +
       '<button class="btn btn-danger" type="button" data-act="bulk-delete"' + (selCount ? '' : ' disabled') +
         '>批量删除' + (selCount ? '（' + selCount + '）' : '') + '</button>' +
-      campusTabs +
-      '<span class="auth-muted">当前 ' + esc(adminCampus) + '：' + list.length + ' 个账号 / 全库 ' + all.length + ' 个</span></div>' +
+      roleTabs + campusTabs +
+      '<span class="auth-muted">当前 ' + esc(adminCampus) + ' / ' + (adminRole === '全部' ? '全部身份' : ROLE_TEXT[adminRole]) +
+        '：' + list.length + ' 个账号 · 全库 ' + all.length + ' 个</span></div>' +
       '<div class="auth-table wide">' +
-      '<div class="auth-tr head"><span><input id="chkAll" type="checkbox" title="全选本页教师账号"></span>' +
-        '<span>姓名</span><span>校区</span><span>科目</span><span>账号</span><span>密码</span><span>状态</span><span>默认班级</span><span>操作</span></div>' +
+      '<div class="auth-tr head"><span><input id="chkAll" type="checkbox" title="全选本页账号"></span>' +
+        '<span>姓名 / 身份</span><span>校区</span><span>科目 / 班级</span><span>账号</span><span>密码</span><span>状态</span><span>可见范围</span><span>操作</span></div>' +
       list.map(u => '<div class="auth-tr"><span>' +
         '<input class="chkUser" type="checkbox" data-u="' + esc(u.u) + '"' +
           (selUsers.has(u.u) ? ' checked' : '') + '></span>' +
-        '<span>' + esc(u.name) + '</span><span>' + esc(u.campus || '龙泉校区') + '</span><span>' +
-        esc(u.subject || '-') + '</span><span>' + esc(u.u) + '</span><span>' +
-        ((u.pwd === DEFAULT_PWD || u.defaultPwd) ? '<span class="auth-warn-text">初始</span>' : '已改') + '</span><span>' +
-        statusText(u) + '</span><span>' +
-        (u.role === 'admin' ? '-' :
-          (function () {
-            const arr = effectiveClasses(u);
-            if (!arr.length) return '<span class="auth-muted">全部（自动，暂无数据）</span>';
-            return esc(arr.join('、')) + ' <span class="auth-muted">（' + esc(subjectKey(u)) + '组 · ' +
-              (u.clsSet === true ? '按本人设定' : '自动全部') + '）</span>';
-          })()) + '</span>' +
+        '<span>' + esc(u.name) + ' <em class="auth-role-tag ' + esc(u.role) + '">' + esc(roleText(u)) + '</em></span>' +
+        '<span>' + esc(u.campus || '龙泉校区') + '</span><span>' +
+        (u.role === 'homeroom' ? '班级 ' + esc(u.cls || '-') : (u.role === 'dean' ? '—' : esc(u.subject || '-'))) + '</span><span>' +
+        esc(u.u) + '</span><span>' +
+        ((u.pwd === DEFAULT_PWD || u.defaultPwd) ? '<span class="auth-warn-text">123456</span>' : '已改') + '</span><span>' +
+        statusText(u) + '</span><span>' + scopeCell(u) + '</span>' +
         '<span class="auth-ops">' +
-          (u.role === 'admin' ? '<span class="auth-muted">—</span>' :
-            '<button class="auth-mini" type="button" data-act="toggle" data-u="' + esc(u.u) + '">' +
-              (u.status === 'disabled' ? '启用' : '停用') + '</button>' +
-            '<button class="auth-mini" type="button" data-act="reset" data-u="' + esc(u.u) + '">重置密码</button>' +
-            '<button class="auth-mini" type="button" data-act="edit-class" data-u="' + esc(u.u) + '">科目班级</button>' +
-            '<button class="auth-mini danger" type="button" data-act="del" data-u="' + esc(u.u) + '">删除</button>') +
+          '<button class="auth-mini" type="button" data-act="toggle" data-u="' + esc(u.u) + '">' +
+            (u.status === 'disabled' ? '启用' : '停用') + '</button>' +
+          '<button class="auth-mini" type="button" data-act="reset" data-u="' + esc(u.u) + '">重置密码</button>' +
+          (u.role === 'homeroom'
+            ? '<button class="auth-mini" type="button" data-act="edit-homeroom" data-u="' + esc(u.u) + '">改班级</button>'
+            : u.role === 'teacher'
+              ? '<button class="auth-mini" type="button" data-act="edit-class" data-u="' + esc(u.u) + '">科目班级</button>'
+              : '') +
+          '<button class="auth-mini danger" type="button" data-act="del" data-u="' + esc(u.u) + '">删除</button>' +
         '</span></div>').join('') + '</div>' +
-      '<p class="auth-tip dim">默认班级默认自动取「该科目在成绩数据里出现的全部班级」，登录后即按此范围显示与导出；如需缩小范围，可在「默认班级」页按科目勾选（勾选后以手动的为准，清空恢复全部）。</p>';
+      '<p class="auth-tip dim"><b>教务</b>负责本校区整份成绩表与目标表的上传；<b>班主任</b>用班级名登录，只看/只传本班，登录后只显示核心分析 + 拓展分析；<b>任课老师</b>只能看核心分析 + 报表处理组 + 拓展分析中本科目相关班级。所有账号默认密码均为 123456。</p>';
   }
   function adminImport() {
     return '<p class="auth-tip">支持 CSV（逗号或制表符分隔）和 JSON。列顺序：姓名, 科目, 账号, 密码, 校区（可选：龙泉/星耀/睿智）, 身份（可选，填「组长」）。' +
@@ -969,12 +1095,12 @@
   function adminData() {
     const t = db.users.filter(u => u.role !== 'admin').length;
     const groups = CAMPUSES.reduce((n, c) => n + Object.keys(campusSubjectClasses(c)).filter(k => (campusSubjectClasses(c)[k] || []).length).length, 0);
-    return '<p class="auth-tip">三个校区的账号、审核状态、默认班级统一存放在<b>一个数据库对象</b>里（浏览器 localStorage 的 ' +
+    return '<p class="auth-tip">四个校区的账号、审核状态、默认班级统一存放在<b>一个数据库对象</b>里（浏览器 localStorage 的 ' +
       '<code>pw_lq_db_v2</code>），可以整体导出备份、换电脑时导入恢复。</p>' +
       '<div class="auth-meta">' +
         '<div class="auth-meta-item"><span>数据库版本</span><b>v' + (db.v || DB_VERSION) + '</b></div>' +
         '<div class="auth-meta-item"><span>最后更新</span><b>' + esc(db.updatedAt || '-') + '</b></div>' +
-        '<div class="auth-meta-item"><span>教师账号（三校区）</span><b>' + t + ' 个</b></div>' +
+        '<div class="auth-meta-item"><span>教务 / 班主任 / 教师账号</span><b>' + t + ' 个</b></div>' +
         '<div class="auth-meta-item"><span>已设班级的科目组</span><b>' + groups + ' 组</b></div>' +
       '</div>' +
       '<div class="auth-row">' +
@@ -998,7 +1124,7 @@
       '</div>';
   }
   function adminClasses() {
-    const teachers = db.users.filter(u => u.role !== 'admin' && (u.campus || '龙泉校区') === adminCampus);
+    const teachers = db.users.filter(u => u.role === 'teacher' && (u.campus || '龙泉校区') === adminCampus);
     if (!classList().length) return '<p class="auth-empty">暂未读取到「' + esc(adminCampus) + '」的班级名单：请先在「成绩上传」页上传该校区成绩表，再点刷新重试。</p>' +
       '<button class="btn" type="button" data-act="admin-tab" data-tab="classes">刷新</button>';
     if (!teachers.length) return '<p class="auth-empty">还没有教师账号。</p>';
@@ -1035,16 +1161,27 @@
   function adminNewUserForm() {
     const opts = SUBJECTS.map(s => '<option value="' + s + '">' + s + '</option>').join('');
     const cam = CAMPUSES.map(c => '<option value="' + c + '"' + (c === adminCampus || (adminCampus === '全部' && c === CAMPUS) ? ' selected' : '') + '>' + c + '</option>').join('');
+    const cls = classList();
+    const clsOpts = cls.length
+      ? '<option value="">（选择班级）</option>' + cls.map(c => '<option value="' + esc(c) + '">' + esc(c) + '</option>').join('')
+      : '';
     return '<form id="newUserForm" class="auth-form">' +
-      '<label><span>姓名</span><input id="nuName" placeholder="教师姓名"></label>' +
+      '<label><span>身份</span><select id="nuRole">' +
+        '<option value="homeroom">班主任（只看本班 / 上传本班成绩）</option>' +
+        '<option value="dean">教务（本校区成绩上传）</option>' +
+        '<option value="teacher">任课老师（只看本科目相关班级）</option>' +
+      '</select></label>' +
+      '<label><span>姓名</span><input id="nuName" placeholder="如 张三 / 3类1班主任"></label>' +
       '<label><span>校区</span><select id="nuCampus">' + cam + '</select></label>' +
-      '<label><span>科目</span><select id="nuSubject">' + opts + '</select></label>' +
-      '<label><span>账号</span><input id="nuUser" placeholder="姓名全拼，不可与现有账号重复"></label>' +
+      '<label class="nu-for-homeroom"><span>班主任班级</span>' +
+        (clsOpts ? '<select id="nuCls">' + clsOpts + '</select>' : '<input id="nuCls" placeholder="如 3类1">') + '</label>' +
+      '<label class="nu-for-teacher"><span>科目</span><select id="nuSubject">' + opts + '</select></label>' +
+      '<label><span>账号</span><input id="nuUser" placeholder="留空自动：班主任=校区-班级，教务=longquan 等"></label>' +
       '<label><span>密码</span><input id="nuPwd" value="123456"></label>' +
       msgHtml() +
       '<div class="auth-row"><button class="btn btn-primary" type="submit">创建账号</button>' +
       '<button class="btn" type="button" data-act="admin-tab" data-tab="users">取消</button></div>' +
-      '<p class="auth-tip">新建账号直接为「正常」状态，可直接登录；账号全库唯一，校区只决定他能看到哪个校区的班级。</p></form>';
+      '<p class="auth-tip">班主任账号默认直接识别班级名称（如 3类1），默认密码 123456；教务账号用校区拼音（longquan / xingyao / ruizhi / langfang）；任课老师只可见本科目相关班级。</p></form>';
   }
   function adminAi() {
     const a = aiConfig();
@@ -1056,7 +1193,7 @@
     g.visionModel = g.visionModel || cfg.visionModel || '';
     g.defaultKey = g.defaultKey || cfg.defaultKey || '';
     const cfgTeachers = cfg.teachers || {};
-    const teachers = db.users.filter(u => u.role !== 'admin');
+    const teachers = db.users.filter(u => u.role === 'teacher');
     const rows = teachers.map(u => {
       const t = (a.teachers || {})[u.u] || {};
       const cfgKey = cfgTeachers[u.name] || cfgTeachers[u.u] || '';
@@ -1166,6 +1303,26 @@
           editSubject = null;
           editTeacher = null;
           msg = null;
+          return renderCard();
+        }
+        if (act === 'admin-role') {
+          adminRole = b.dataset.role || '全部';
+          msg = null;
+          return renderCard();
+        }
+        if (act === 'edit-homeroom') {
+          const u = findUser(b.dataset.u);
+          if (!u) return;
+          const pool = classList();
+          const hint = pool.length ? '（本校区：' + pool.join('、') + '）' : '';
+          const val = window.prompt('修改「' + u.name + '」所带班级名称' + hint, u.cls || '');
+          if (val == null) return;
+          const cls = String(val).trim();
+          if (!cls) { msg = { type: 'err', text: '班级名称不能为空' }; return renderCard(); }
+          u.cls = cls; u.classes = [cls]; u.alias = cls;
+          saveDB();
+          logAct('修改班主任 ' + u.name + ' 的班级为 ' + cls);
+          msg = { type: 'ok', text: '已把 ' + u.name + ' 调整为「' + cls + '」' };
           return renderCard();
         }
         if (act === 'save-ai-global') {
@@ -1333,6 +1490,17 @@
     if (af) af.addEventListener('submit', ev => { ev.preventDefault(); doChangePwd('apwNew', 'apwNew2'); });
     const nf = card.querySelector('#newUserForm');
     if (nf) nf.addEventListener('submit', ev => { ev.preventDefault(); doNewUser(); });
+    const nr = card.querySelector('#nuRole');
+    if (nr) {
+      const syncRoleFields = () => {
+        card.querySelectorAll('.nu-for-homeroom').forEach(n => { n.style.display = nr.value === 'homeroom' ? '' : 'none'; });
+        card.querySelectorAll('.nu-for-teacher').forEach(n => { n.style.display = nr.value === 'teacher' ? '' : 'none'; });
+        const nameEl = card.querySelector('#nuName');
+        if (nameEl) nameEl.placeholder = nr.value === 'homeroom' ? '默认「班级名+班主任」' : '如 张三';
+      };
+      nr.addEventListener('change', syncRoleFields);
+      syncRoleFields();
+    }
     card.querySelectorAll('#clsBox .auth-check').forEach(lb => {
       lb.addEventListener('change', () => lb.classList.toggle('on', !!lb.querySelector('input').checked));
     });
@@ -1341,12 +1509,38 @@
   }
 
   /* ---------------- 业务动作 ---------------- */
+  /* 班级名首次登录：按班级自动建一个班主任账号（默认密码 123456） */
+  function ensureHomeroomByClass(input, cls) {
+    if (!cls) return null;
+    const u = CAMPUS_CODE[CAMPUS] + '-' + cls;
+    const exist = findUser(u);
+    if (exist) return exist;
+    const nu = {
+      u: u, alias: cls, name: cls + '班主任', role: 'homeroom', subject: '', campus: CAMPUS,
+      cls: cls, pwd: DEFAULT_PWD, defaultPwd: true, status: 'active', classes: [cls],
+      createdAt: nowStr() + '（班级名自动识别）'
+    };
+    db.users.push(nu);
+    saveDB();
+    logAct('按班级名自动创建班主任账号：' + u);
+    draft.u = '';
+    return nu;
+  }
   function doLogin() {
     const uu = (el('liUser').value || '').trim();
     const pp = el('liPwd').value || '';
     draft.u = uu;
     if (!uu || !pp) { msg = { type: 'err', text: '请输入账号和密码' }; return renderCard(); }
-    const u = findUser(uu);
+    let u = findLoginUser(uu, CAMPUS);
+    if (u && u.ambiguous) {
+      msg = { type: 'err', text: '「' + uu + '」在多个校区都有同名班级，请改用「' + CAMPUS_CODE[CAMPUS] + '-' + uu + '」登录' };
+      return renderCard();
+    }
+    /* 班主任账号默认按班级名称识别：输入班级名 + 默认密码即可登录 */
+    if (!u && pp === DEFAULT_PWD) {
+      const cls = classList().filter(c => String(c).toLowerCase() === uu.toLowerCase())[0];
+      if (cls) u = ensureHomeroomByClass(uu, cls);
+    }
     if (!u) {
       msg = SELF_REG
         ? { type: 'err', text: '账号不存在，请先注册或联系审核员添加' }
@@ -1360,6 +1554,17 @@
     if (u.status === 'pending') { msg = { type: 'warn', text: '账号正在等待审核员审核，通过后才能登录' }; return renderCard(); }
     if (u.status === 'disabled') { msg = { type: 'err', text: '账号已被停用，请联系审核员' }; return renderCard(); }
     if (u.pwd !== pp) { msg = { type: 'err', text: '密码错误' }; return renderCard(); }
+    /* 教务统一在「成绩上传」页面登录；校区分析页只受理班主任与任课老师 */
+    if (u.role === 'dean') {
+      msg = { type: 'warn', text: '教务账号请在「成绩上传」页面登录，正在跳转…' };
+      renderCard();
+      setTimeout(redirectToUpload, 900);
+      return;
+    }
+    if (u.role !== 'homeroom' && u.role !== 'teacher' && u.role !== 'admin') {
+      msg = { type: 'err', text: '这个账号不能在校区分析页登录' };
+      return renderCard();
+    }
     /* 管理员统一在「成绩上传」页面登录；校区页独立打开时不受理管理员账号 */
     if (u.role === 'admin' && !inIframe()) {
       msg = { type: 'warn', text: '管理员请在「成绩上传」页面登录，正在跳转…' };
@@ -1379,10 +1584,17 @@
       open_('admin');
       return;
     }
-    if (u.pwd === DEFAULT_PWD || u.defaultPwd) { u.defaultPwd = true; saveDB(); view = 'change-pwd'; renderCard(); return; }
-    /* 教师：登录后直接落在成绩分析页（弹窗关掉），个人资料从右上角头像进入 */
+    /* 班主任 / 教务不强制改密，统一默认密码 123456；任课老师保留首次改密提醒 */
+    if (u.role === 'teacher' && (u.pwd === DEFAULT_PWD || u.defaultPwd)) {
+      u.defaultPwd = true; saveDB(); view = 'change-pwd'; renderCard(); return;
+    }
+    /* 班主任 / 任课老师：登录后直接落在成绩分析页（弹窗关掉），个人资料从右上角头像进入 */
     view = 'profile';
     close_();
+    /* 登录后按身份立即重算数据范围与页签（班主任=本班全科，任课老师=本科目相关班级） */
+    try { if (window.applyAccountScopeData) window.applyAccountScopeData(); } catch (e) {}
+    try { applyAll(true); } catch (e) {}
+    try { logAct(roleText(u) + ' ' + u.name + ' 登录 ' + CAMPUS); } catch (e) {}
   }
 
   function doLogout() {
@@ -1396,6 +1608,8 @@
     restoreAllClasses();
     const acts = box && box.parentElement && box.parentElement.querySelector('.group-actions');
     if (acts) acts.style.display = '';
+    /* 先把数据范围还原成全量，再应用访客态 */
+    if (window.applyAccountScopeData) { try { window.applyAccountScopeData(); } catch (e) {} }
     applyAll(true);
     close_();
     /* 独立管理台宿主：登出后交由外层页面清理自身登录态 */
@@ -1612,23 +1826,43 @@
     applyAll(true);
   }
   function doNewUser() {
+    const role = (el('nuRole') && el('nuRole').value) || 'teacher';
     const name = (el('nuName').value || '').trim();
-    const subject = el('nuSubject').value;
     const camp = (el('nuCampus') && el('nuCampus').value) || CAMPUS;
-    const uu = (el('nuUser').value || '').trim();
+    const subject = (el('nuSubject') && el('nuSubject').value) || '';
+    const cls = (el('nuCls') && String(el('nuCls').value || '').trim()) || '';
+    let uu = (el('nuUser').value || '').trim();
     const pp = (el('nuPwd').value || '').trim() || DEFAULT_PWD;
     if (!name) { msg = { type: 'err', text: '请填写姓名' }; return renderCard(); }
-    if (!/^[A-Za-z][A-Za-z0-9]{2,19}$/.test(uu)) { msg = { type: 'err', text: '账号需为 3-20 位英文/数字，字母开头' }; return renderCard(); }
-    if (findUser(uu)) { msg = { type: 'err', text: '账号已存在' }; return renderCard(); }
-    db.users.push({
-      u: uu, name: name, role: 'teacher', subject: subject, campus: camp, pwd: pp,
+    if (role === 'homeroom' && !cls) { msg = { type: 'err', text: '请填写/选择班主任所带的班级' }; return renderCard(); }
+    if (!uu && role === 'homeroom') uu = CAMPUS_CODE[camp] + '-' + cls;
+    if (!uu && role === 'dean') uu = DEAN_USER[camp] || '';
+    if (!uu) { msg = { type: 'err', text: '请填写账号' }; return renderCard(); }
+    if (!/^[A-Za-z0-9\u4e00-\u9fa5_-]{2,30}$/.test(uu)) {
+      msg = { type: 'err', text: '账号只能由中文、字母、数字、- 或 _ 组成（2-30 位）' };
+      return renderCard();
+    }
+    if (findUser(uu) || db.users.some(x => String(x.u).toLowerCase() === uu.toLowerCase())) {
+      msg = { type: 'err', text: '账号已存在' }; return renderCard();
+    }
+    const base = {
+      u: uu, name: name, role: role, campus: camp, pwd: pp,
       defaultPwd: pp === DEFAULT_PWD, status: 'active', classes: [], createdAt: nowStr()
-    });
+    };
+    if (role === 'homeroom') {
+      base.alias = cls; base.cls = cls; base.classes = [cls]; base.subject = '';
+    } else if (role === 'dean') {
+      base.subject = ''; base.label = camp + '教务';
+    } else {
+      base.role = 'teacher'; base.subject = subject; base.mode = 'self'; base.isLeader = false;
+    }
+    db.users.push(base);
     saveDB();
-    logAct('新建账号 ' + name + '（' + camp + '）');
+    logAct('新建' + ROLE_TEXT[role] + '账号 ' + name + '（' + camp + (cls ? ' · ' + cls : '') + '）');
     adminCampus = camp;
+    adminRole = role;
     view = 'admin'; adminTab = 'users';
-    msg = { type: 'ok', text: '已创建教师账号 ' + name + '（' + uu + '，' + camp + '）' };
+    msg = { type: 'ok', text: '已创建' + ROLE_TEXT[role] + '账号 ' + name + '（' + uu + '，' + camp + '）' };
     renderCard();
   }
 
@@ -1641,7 +1875,7 @@
       try { old = localStorage.getItem(LS_SESSION) || ''; } catch (e) {}
       if (old) {
         const ou = findUser(old);
-        const keep = ou && ou.status === 'active' && ou.role === 'teacher' && (!ou.campus || ou.campus === CAMPUS);
+        const keep = ou && ou.status === 'active' && (ou.role === 'teacher' || ou.role === 'homeroom') && (!ou.campus || ou.campus === CAMPUS);
         if (keep) { try { localStorage.setItem(LS_CAMPUS_SESSION, old); } catch (e) {} }
         try { localStorage.removeItem(LS_SESSION); } catch (e) {}
       }
