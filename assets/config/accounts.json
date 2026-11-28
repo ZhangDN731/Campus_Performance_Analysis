@@ -277,6 +277,482 @@
       "isLeader": false,
       "mode": "self",
       "createdAt": "2026-11-18 17:50"
+    },
+    {
+      "u": "longquan",
+      "name": "教务",
+      "role": "dean",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "createdAt": "预置账号",
+      "label": "龙泉校区教务",
+      "file": "27届龙泉周测成绩.xlsx",
+      "targetFile": "data/targets/龙泉校区目标.xlsx"
+    },
+    {
+      "u": "xingyao",
+      "name": "教务",
+      "role": "dean",
+      "subject": "",
+      "campus": "星耀校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "createdAt": "预置账号",
+      "label": "星耀校区教务",
+      "file": "27届星耀周测成绩.xlsx",
+      "targetFile": "data/targets/星耀校区目标.xlsx"
+    },
+    {
+      "u": "ruizhi",
+      "name": "教务",
+      "role": "dean",
+      "subject": "",
+      "campus": "睿智校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "createdAt": "预置账号",
+      "label": "睿智校区教务",
+      "file": "27届睿智周测成绩.xlsx",
+      "targetFile": "data/targets/睿智校区目标.xlsx"
+    },
+    {
+      "u": "langfang",
+      "name": "教务",
+      "role": "dean",
+      "subject": "",
+      "campus": "廊坊校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "createdAt": "预置账号",
+      "label": "廊坊校区教务",
+      "file": "27届廊坊周测成绩.xlsx",
+      "targetFile": "data/targets/廊坊校区目标.xlsx"
+    },
+    {
+      "u": "lq-1类",
+      "name": "1类班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "1类"
+      ],
+      "createdAt": "预置账号",
+      "alias": "1类",
+      "cls": "1类"
+    },
+    {
+      "u": "lq-2类1",
+      "name": "2类1班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "2类1"
+      ],
+      "createdAt": "预置账号",
+      "alias": "2类1",
+      "cls": "2类1"
+    },
+    {
+      "u": "lq-2类2",
+      "name": "2类2班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "2类2"
+      ],
+      "createdAt": "预置账号",
+      "alias": "2类2",
+      "cls": "2类2"
+    },
+    {
+      "u": "lq-3类1",
+      "name": "3类1班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "3类1"
+      ],
+      "createdAt": "预置账号",
+      "alias": "3类1",
+      "cls": "3类1"
+    },
+    {
+      "u": "lq-3类2",
+      "name": "3类2班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "3类2"
+      ],
+      "createdAt": "预置账号",
+      "alias": "3类2",
+      "cls": "3类2"
+    },
+    {
+      "u": "lq-3类3",
+      "name": "3类3班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "3类3"
+      ],
+      "createdAt": "预置账号",
+      "alias": "3类3",
+      "cls": "3类3"
+    },
+    {
+      "u": "lq-4类1",
+      "name": "4类1班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "4类1"
+      ],
+      "createdAt": "预置账号",
+      "alias": "4类1",
+      "cls": "4类1"
+    },
+    {
+      "u": "lq-4类2",
+      "name": "4类2班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "4类2"
+      ],
+      "createdAt": "预置账号",
+      "alias": "4类2",
+      "cls": "4类2"
+    },
+    {
+      "u": "lq-5类",
+      "name": "5类班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "5类"
+      ],
+      "createdAt": "预置账号",
+      "alias": "5类",
+      "cls": "5类"
+    },
+    {
+      "u": "lq-6类",
+      "name": "6类班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "6类"
+      ],
+      "createdAt": "预置账号",
+      "alias": "6类",
+      "cls": "6类"
+    },
+    {
+      "u": "lq-7类",
+      "name": "7类班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "7类"
+      ],
+      "createdAt": "预置账号",
+      "alias": "7类",
+      "cls": "7类"
+    },
+    {
+      "u": "lq-8类",
+      "name": "8类班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "8类"
+      ],
+      "createdAt": "预置账号",
+      "alias": "8类",
+      "cls": "8类"
+    },
+    {
+      "u": "lq-9类1",
+      "name": "9类1班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "9类1"
+      ],
+      "createdAt": "预置账号",
+      "alias": "9类1",
+      "cls": "9类1"
+    },
+    {
+      "u": "lq-9类2",
+      "name": "9类2班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "9类2"
+      ],
+      "createdAt": "预置账号",
+      "alias": "9类2",
+      "cls": "9类2"
+    },
+    {
+      "u": "lq-10类",
+      "name": "10类班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "10类"
+      ],
+      "createdAt": "预置账号",
+      "alias": "10类",
+      "cls": "10类"
+    },
+    {
+      "u": "xy-2类1",
+      "name": "2类1班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "星耀校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "2类1"
+      ],
+      "createdAt": "预置账号",
+      "alias": "2类1",
+      "cls": "2类1"
+    },
+    {
+      "u": "xy-2类2",
+      "name": "2类2班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "星耀校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "2类2"
+      ],
+      "createdAt": "预置账号",
+      "alias": "2类2",
+      "cls": "2类2"
+    },
+    {
+      "u": "xy-3类1",
+      "name": "3类1班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "星耀校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "3类1"
+      ],
+      "createdAt": "预置账号",
+      "alias": "3类1",
+      "cls": "3类1"
+    },
+    {
+      "u": "xy-3类2",
+      "name": "3类2班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "星耀校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "3类2"
+      ],
+      "createdAt": "预置账号",
+      "alias": "3类2",
+      "cls": "3类2"
+    },
+    {
+      "u": "xy-3类3",
+      "name": "3类3班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "星耀校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "3类3"
+      ],
+      "createdAt": "预置账号",
+      "alias": "3类3",
+      "cls": "3类3"
+    },
+    {
+      "u": "xy-4类",
+      "name": "4类班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "星耀校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "4类"
+      ],
+      "createdAt": "预置账号",
+      "alias": "4类",
+      "cls": "4类"
+    },
+    {
+      "u": "xy-5类",
+      "name": "5类班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "星耀校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "5类"
+      ],
+      "createdAt": "预置账号",
+      "alias": "5类",
+      "cls": "5类"
+    },
+    {
+      "u": "xy-7类",
+      "name": "7类班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "星耀校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "7类"
+      ],
+      "createdAt": "预置账号",
+      "alias": "7类",
+      "cls": "7类"
+    },
+    {
+      "u": "xy-9类1",
+      "name": "9类1班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "星耀校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "9类1"
+      ],
+      "createdAt": "预置账号",
+      "alias": "9类1",
+      "cls": "9类1"
+    },
+    {
+      "u": "xy-9类2",
+      "name": "9类2班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "星耀校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "9类2"
+      ],
+      "createdAt": "预置账号",
+      "alias": "9类2",
+      "cls": "9类2"
+    },
+    {
+      "u": "xy-10类",
+      "name": "10类班主任",
+      "role": "homeroom",
+      "subject": "",
+      "campus": "星耀校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [
+        "10类"
+      ],
+      "createdAt": "预置账号",
+      "alias": "10类",
+      "cls": "10类"
     }
   ],
   "ai": {
