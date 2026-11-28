@@ -79,7 +79,15 @@
       "pwd": "123456",
       "defaultPwd": true,
       "status": "active",
-      "classes": [],
+      "classes": [
+        "2类1",
+        "2类2",
+        "4类1",
+        "4类2",
+        "6类",
+        "7类",
+        "10类"
+      ],
       "isLeader": false,
       "mode": "self",
       "createdAt": "预置账号"
