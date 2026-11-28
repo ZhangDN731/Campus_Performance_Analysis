@@ -280,7 +280,7 @@
     },
     {
       "u": "longquan",
-      "name": "教务",
+      "name": "龙泉教务",
       "role": "dean",
       "subject": "",
       "campus": "龙泉校区",
@@ -295,7 +295,7 @@
     },
     {
       "u": "xingyao",
-      "name": "教务",
+      "name": "星耀教务",
       "role": "dean",
       "subject": "",
       "campus": "星耀校区",
@@ -310,7 +310,7 @@
     },
     {
       "u": "ruizhi",
-      "name": "教务",
+      "name": "睿智教务",
       "role": "dean",
       "subject": "",
       "campus": "睿智校区",
@@ -325,7 +325,7 @@
     },
     {
       "u": "langfang",
-      "name": "教务",
+      "name": "廊坊教务",
       "role": "dean",
       "subject": "",
       "campus": "廊坊校区",
