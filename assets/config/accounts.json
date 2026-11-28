@@ -10,8 +10,7 @@
       "defaultPwd": false,
       "status": "active",
       "classes": [],
-      "createdAt": "系统内置",
-      "alias": "admin"
+      "createdAt": "系统内置"
     },
     {
       "u": "龙泉周景辉",
@@ -25,8 +24,7 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "zhoujinghui"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉颜立营",
@@ -40,8 +38,7 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "yanliying"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉吴恩乐",
@@ -55,8 +52,7 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "wuenle"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉陈莹哲",
@@ -70,8 +66,7 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "chenyingzhe"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉杜翠花",
@@ -85,8 +80,7 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "ducuihua"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉张迪楠",
@@ -100,8 +94,7 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "zhangdinan"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉王玄烨",
@@ -115,8 +108,7 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "wangxuanye"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉杜得京",
@@ -130,8 +122,7 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "dudejing"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉徐静娜",
@@ -145,8 +136,7 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "xujingna"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉尹雅蕾",
@@ -160,8 +150,7 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "yinyalei"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉贾晓迈",
@@ -175,8 +164,7 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "jiaxiaomai"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉王敏婕",
@@ -190,8 +178,7 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "wangminjie"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉李欣茹",
@@ -205,8 +192,7 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "lixinru"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉张洁",
@@ -220,8 +206,7 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "zhangjie"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉杜佳雯",
@@ -235,8 +220,7 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "dujiawen"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉赵晓亚",
@@ -250,8 +234,7 @@
       "classes": [],
       "isLeader": true,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "zhaoxiaoya"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉丁然",
@@ -265,23 +248,7 @@
       "classes": [],
       "isLeader": true,
       "mode": "self",
-      "createdAt": "预置账号",
-      "alias": "dingran"
-    },
-    {
-      "u": "龙泉曹广汉",
-      "name": "曹广汉",
-      "role": "teacher",
-      "subject": "物理",
-      "campus": "龙泉校区",
-      "pwd": "123456",
-      "defaultPwd": true,
-      "status": "active",
-      "classes": [],
-      "isLeader": false,
-      "mode": "self",
-      "createdAt": "2026-11-18 17:50",
-      "alias": "caoguanghan"
+      "createdAt": "预置账号"
     },
     {
       "u": "龙泉周红",
@@ -295,8 +262,21 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "2026-11-18 17:50",
-      "alias": "zhouhong"
+      "createdAt": "2026-11-18 17:50"
+    },
+    {
+      "u": "龙泉曹广汉",
+      "name": "曹广汉",
+      "role": "teacher",
+      "subject": "物理",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "2026-11-18 17:50"
     },
     {
       "u": "longquan",
@@ -309,7 +289,6 @@
       "status": "active",
       "classes": [],
       "createdAt": "预置账号",
-      "alias": "龙泉教务",
       "label": "龙泉校区教务",
       "file": "27届龙泉周测成绩.xlsx",
       "targetFile": "data/targets/龙泉校区目标.xlsx"
@@ -325,7 +304,6 @@
       "status": "active",
       "classes": [],
       "createdAt": "预置账号",
-      "alias": "星耀教务",
       "label": "星耀校区教务",
       "file": "27届星耀周测成绩.xlsx",
       "targetFile": "data/targets/星耀校区目标.xlsx"
@@ -341,7 +319,6 @@
       "status": "active",
       "classes": [],
       "createdAt": "预置账号",
-      "alias": "睿智教务",
       "label": "睿智校区教务",
       "file": "27届睿智周测成绩.xlsx",
       "targetFile": "data/targets/睿智校区目标.xlsx"
@@ -357,7 +334,6 @@
       "status": "active",
       "classes": [],
       "createdAt": "预置账号",
-      "alias": "廊坊教务",
       "label": "廊坊校区教务",
       "file": "27届廊坊周测成绩.xlsx",
       "targetFile": "data/targets/廊坊校区目标.xlsx"
@@ -375,7 +351,6 @@
         "1类"
       ],
       "createdAt": "预置账号",
-      "alias": "1类",
       "cls": "1类",
       "label": "龙泉一类班主任"
     },
@@ -392,7 +367,6 @@
         "2类1"
       ],
       "createdAt": "预置账号",
-      "alias": "2类1",
       "cls": "2类1",
       "label": "龙泉二类一班主任"
     },
@@ -409,7 +383,6 @@
         "2类2"
       ],
       "createdAt": "预置账号",
-      "alias": "2类2",
       "cls": "2类2",
       "label": "龙泉二类二班主任"
     },
@@ -426,7 +399,6 @@
         "3类1"
       ],
       "createdAt": "预置账号",
-      "alias": "3类1",
       "cls": "3类1",
       "label": "龙泉三类一班主任"
     },
@@ -443,7 +415,6 @@
         "3类2"
       ],
       "createdAt": "预置账号",
-      "alias": "3类2",
       "cls": "3类2",
       "label": "龙泉三类二班主任"
     },
@@ -460,7 +431,6 @@
         "3类3"
       ],
       "createdAt": "预置账号",
-      "alias": "3类3",
       "cls": "3类3",
       "label": "龙泉三类三班主任"
     },
@@ -477,7 +447,6 @@
         "4类1"
       ],
       "createdAt": "预置账号",
-      "alias": "4类1",
       "cls": "4类1",
       "label": "龙泉四类一班主任"
     },
@@ -494,7 +463,6 @@
         "4类2"
       ],
       "createdAt": "预置账号",
-      "alias": "4类2",
       "cls": "4类2",
       "label": "龙泉四类二班主任"
     },
@@ -511,7 +479,6 @@
         "5类"
       ],
       "createdAt": "预置账号",
-      "alias": "5类",
       "cls": "5类",
       "label": "龙泉五类班主任"
     },
@@ -528,7 +495,6 @@
         "6类"
       ],
       "createdAt": "预置账号",
-      "alias": "6类",
       "cls": "6类",
       "label": "龙泉六类班主任"
     },
@@ -545,7 +511,6 @@
         "7类"
       ],
       "createdAt": "预置账号",
-      "alias": "7类",
       "cls": "7类",
       "label": "龙泉七类班主任"
     },
@@ -562,7 +527,6 @@
         "8类"
       ],
       "createdAt": "预置账号",
-      "alias": "8类",
       "cls": "8类",
       "label": "龙泉八类班主任"
     },
@@ -579,7 +543,6 @@
         "9类1"
       ],
       "createdAt": "预置账号",
-      "alias": "9类1",
       "cls": "9类1",
       "label": "龙泉九类一班主任"
     },
@@ -596,7 +559,6 @@
         "9类2"
       ],
       "createdAt": "预置账号",
-      "alias": "9类2",
       "cls": "9类2",
       "label": "龙泉九类二班主任"
     },
@@ -613,7 +575,6 @@
         "10类"
       ],
       "createdAt": "预置账号",
-      "alias": "10类",
       "cls": "10类",
       "label": "龙泉十类班主任"
     },
@@ -630,7 +591,6 @@
         "2类1"
       ],
       "createdAt": "预置账号",
-      "alias": "2类1",
       "cls": "2类1",
       "label": "星耀二类一班主任"
     },
@@ -647,7 +607,6 @@
         "2类2"
       ],
       "createdAt": "预置账号",
-      "alias": "2类2",
       "cls": "2类2",
       "label": "星耀二类二班主任"
     },
@@ -664,7 +623,6 @@
         "3类1"
       ],
       "createdAt": "预置账号",
-      "alias": "3类1",
       "cls": "3类1",
       "label": "星耀三类一班主任"
     },
@@ -681,7 +639,6 @@
         "3类2"
       ],
       "createdAt": "预置账号",
-      "alias": "3类2",
       "cls": "3类2",
       "label": "星耀三类二班主任"
     },
@@ -698,7 +655,6 @@
         "3类3"
       ],
       "createdAt": "预置账号",
-      "alias": "3类3",
       "cls": "3类3",
       "label": "星耀三类三班主任"
     },
@@ -715,7 +671,6 @@
         "4类"
       ],
       "createdAt": "预置账号",
-      "alias": "4类",
       "cls": "4类",
       "label": "星耀四类班主任"
     },
@@ -732,7 +687,6 @@
         "5类"
       ],
       "createdAt": "预置账号",
-      "alias": "5类",
       "cls": "5类",
       "label": "星耀五类班主任"
     },
@@ -749,7 +703,6 @@
         "7类"
       ],
       "createdAt": "预置账号",
-      "alias": "7类",
       "cls": "7类",
       "label": "星耀七类班主任"
     },
@@ -766,7 +719,6 @@
         "9类1"
       ],
       "createdAt": "预置账号",
-      "alias": "9类1",
       "cls": "9类1",
       "label": "星耀九类一班主任"
     },
@@ -783,7 +735,6 @@
         "9类2"
       ],
       "createdAt": "预置账号",
-      "alias": "9类2",
       "cls": "9类2",
       "label": "星耀九类二班主任"
     },
@@ -800,7 +751,6 @@
         "10类"
       ],
       "createdAt": "预置账号",
-      "alias": "10类",
       "cls": "10类",
       "label": "星耀十类班主任"
     }
@@ -899,15 +849,15 @@
         "key": "sk-keijnslgrdiubpxkeyfibqoomgdnfguzfhgpkejsmwpprgbu",
         "share": ""
       },
-      "caoguanghan": {
-        "mode": "self",
-        "key": "sk-avlwdqqkftdynkgakhlsonuworfmsimhranxnkhklxrfmdlo",
-        "share": "zhoujinghui"
-      },
       "zhouhong": {
         "mode": "self",
         "key": "sk-kezvlsmsxemfpcivoxtuxycslcsgklujnbwhvbuqltafgzre",
         "share": ""
+      },
+      "caoguanghan": {
+        "mode": "self",
+        "key": "sk-avlwdqqkftdynkgakhlsonuworfmsimhranxnkhklxrfmdlo",
+        "share": "zhoujinghui"
       },
       "龙泉周景辉": {
         "mode": "self",
