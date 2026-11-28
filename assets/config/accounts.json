@@ -10,10 +10,11 @@
       "defaultPwd": false,
       "status": "active",
       "classes": [],
-      "createdAt": "系统内置"
+      "createdAt": "系统内置",
+      "alias": "admin"
     },
     {
-      "u": "zhoujinghui",
+      "u": "龙泉周景辉",
       "name": "周景辉",
       "role": "teacher",
       "subject": "物理",
@@ -24,10 +25,11 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "zhoujinghui"
     },
     {
-      "u": "yanliying",
+      "u": "龙泉颜立营",
       "name": "颜立营",
       "role": "teacher",
       "subject": "历史",
@@ -35,19 +37,14 @@
       "pwd": "123456",
       "defaultPwd": true,
       "status": "active",
-      "classes": [
-        "5类",
-        "6类",
-        "8类",
-        "9类1",
-        "9类2"
-      ],
+      "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "yanliying"
     },
     {
-      "u": "wuenle",
+      "u": "龙泉吴恩乐",
       "name": "吴恩乐",
       "role": "teacher",
       "subject": "政治",
@@ -55,23 +52,14 @@
       "pwd": "123456",
       "defaultPwd": true,
       "status": "active",
-      "classes": [
-        "3类1",
-        "3类2",
-        "3类3",
-        "4类1",
-        "4类2",
-        "5类",
-        "6类",
-        "9类1",
-        "9类2"
-      ],
+      "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "wuenle"
     },
     {
-      "u": "chenyingzhe",
+      "u": "龙泉陈莹哲",
       "name": "陈莹哲",
       "role": "teacher",
       "subject": "英语",
@@ -79,21 +67,14 @@
       "pwd": "123456",
       "defaultPwd": true,
       "status": "active",
-      "classes": [
-        "2类1",
-        "2类2",
-        "4类1",
-        "4类2",
-        "6类",
-        "7类",
-        "10类"
-      ],
+      "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "chenyingzhe"
     },
     {
-      "u": "ducuihua",
+      "u": "龙泉杜翠花",
       "name": "杜翠花",
       "role": "teacher",
       "subject": "信息技术",
@@ -101,22 +82,14 @@
       "pwd": "123456",
       "defaultPwd": true,
       "status": "active",
-      "classes": [
-        "1类",
-        "3类1",
-        "3类2",
-        "3类3",
-        "6类",
-        "9类1",
-        "9类2",
-        "10类"
-      ],
+      "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "ducuihua"
     },
     {
-      "u": "zhangdinan",
+      "u": "龙泉张迪楠",
       "name": "张迪楠",
       "role": "teacher",
       "subject": "信息技术",
@@ -124,22 +97,14 @@
       "pwd": "123456",
       "defaultPwd": true,
       "status": "active",
-      "classes": [
-        "1类",
-        "3类1",
-        "3类2",
-        "3类3",
-        "6类",
-        "9类1",
-        "9类2",
-        "10类"
-      ],
+      "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "zhangdinan"
     },
     {
-      "u": "wangxuanye",
+      "u": "龙泉王玄烨",
       "name": "王玄烨",
       "role": "teacher",
       "subject": "数学",
@@ -150,10 +115,11 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "wangxuanye"
     },
     {
-      "u": "dudejing",
+      "u": "龙泉杜得京",
       "name": "杜得京",
       "role": "teacher",
       "subject": "数学",
@@ -164,10 +130,11 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "dudejing"
     },
     {
-      "u": "xujingna",
+      "u": "龙泉徐静娜",
       "name": "徐静娜",
       "role": "teacher",
       "subject": "语文",
@@ -178,10 +145,11 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "xujingna"
     },
     {
-      "u": "yinyalei",
+      "u": "龙泉尹雅蕾",
       "name": "尹雅蕾",
       "role": "teacher",
       "subject": "语文",
@@ -192,10 +160,11 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "yinyalei"
     },
     {
-      "u": "jiaxiaomai",
+      "u": "龙泉贾晓迈",
       "name": "贾晓迈",
       "role": "teacher",
       "subject": "化学",
@@ -203,19 +172,14 @@
       "pwd": "123456",
       "defaultPwd": true,
       "status": "active",
-      "classes": [
-        "2类1",
-        "2类2",
-        "4类1",
-        "4类2",
-        "7类"
-      ],
+      "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "jiaxiaomai"
     },
     {
-      "u": "wangminjie",
+      "u": "龙泉王敏婕",
       "name": "王敏婕",
       "role": "teacher",
       "subject": "地理",
@@ -223,18 +187,14 @@
       "pwd": "123456",
       "defaultPwd": true,
       "status": "active",
-      "classes": [
-        "1类",
-        "2类1",
-        "2类2",
-        "5类"
-      ],
+      "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "wangminjie"
     },
     {
-      "u": "lixinru",
+      "u": "龙泉李欣茹",
       "name": "李欣茹",
       "role": "teacher",
       "subject": "美术",
@@ -242,15 +202,14 @@
       "pwd": "123456",
       "defaultPwd": true,
       "status": "active",
-      "classes": [
-        "8类"
-      ],
+      "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "lixinru"
     },
     {
-      "u": "zhangjie",
+      "u": "龙泉张洁",
       "name": "张洁",
       "role": "teacher",
       "subject": "生物",
@@ -258,17 +217,14 @@
       "pwd": "123456",
       "defaultPwd": true,
       "status": "active",
-      "classes": [
-        "4类1",
-        "4类2",
-        "7类"
-      ],
+      "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "zhangjie"
     },
     {
-      "u": "dujiawen",
+      "u": "龙泉杜佳雯",
       "name": "杜佳雯",
       "role": "teacher",
       "subject": "语文",
@@ -279,10 +235,11 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "dujiawen"
     },
     {
-      "u": "zhaoxiaoya",
+      "u": "龙泉赵晓亚",
       "name": "赵晓亚",
       "role": "teacher",
       "subject": "语文",
@@ -293,10 +250,11 @@
       "classes": [],
       "isLeader": true,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "zhaoxiaoya"
     },
     {
-      "u": "dingran",
+      "u": "龙泉丁然",
       "name": "丁然",
       "role": "teacher",
       "subject": "数学",
@@ -307,24 +265,11 @@
       "classes": [],
       "isLeader": true,
       "mode": "self",
-      "createdAt": "预置账号"
+      "createdAt": "预置账号",
+      "alias": "dingran"
     },
     {
-      "u": "caoguanghan",
-      "name": "曹广汉",
-      "role": "teacher",
-      "subject": "物理",
-      "campus": "龙泉校区",
-      "pwd": "123456",
-      "defaultPwd": true,
-      "status": "active",
-      "classes": [],
-      "isLeader": false,
-      "mode": "self",
-      "createdAt": "2026-11-18 17:50"
-    },
-    {
-      "u": "zhouhong",
+      "u": "龙泉周红",
       "name": "周红",
       "role": "teacher",
       "subject": "数学",
@@ -335,7 +280,23 @@
       "classes": [],
       "isLeader": false,
       "mode": "self",
-      "createdAt": "2026-11-18 17:50"
+      "createdAt": "2026-11-18 17:50",
+      "alias": "zhouhong"
+    },
+    {
+      "u": "龙泉曹广汉",
+      "name": "曹广汉",
+      "role": "teacher",
+      "subject": "物理",
+      "campus": "龙泉校区",
+      "pwd": "123456",
+      "defaultPwd": true,
+      "status": "active",
+      "classes": [],
+      "isLeader": false,
+      "mode": "self",
+      "createdAt": "2026-11-18 17:50",
+      "alias": "caoguanghan"
     },
     {
       "u": "longquan",
@@ -348,6 +309,7 @@
       "status": "active",
       "classes": [],
       "createdAt": "预置账号",
+      "alias": "龙泉教务",
       "label": "龙泉校区教务",
       "file": "27届龙泉周测成绩.xlsx",
       "targetFile": "data/targets/龙泉校区目标.xlsx"
@@ -363,6 +325,7 @@
       "status": "active",
       "classes": [],
       "createdAt": "预置账号",
+      "alias": "星耀教务",
       "label": "星耀校区教务",
       "file": "27届星耀周测成绩.xlsx",
       "targetFile": "data/targets/星耀校区目标.xlsx"
@@ -378,6 +341,7 @@
       "status": "active",
       "classes": [],
       "createdAt": "预置账号",
+      "alias": "睿智教务",
       "label": "睿智校区教务",
       "file": "27届睿智周测成绩.xlsx",
       "targetFile": "data/targets/睿智校区目标.xlsx"
@@ -393,12 +357,13 @@
       "status": "active",
       "classes": [],
       "createdAt": "预置账号",
+      "alias": "廊坊教务",
       "label": "廊坊校区教务",
       "file": "27届廊坊周测成绩.xlsx",
       "targetFile": "data/targets/廊坊校区目标.xlsx"
     },
     {
-      "u": "lq-1类",
+      "u": "龙泉一类",
       "name": "1类班主任",
       "role": "homeroom",
       "subject": "",
@@ -411,10 +376,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "1类",
-      "cls": "1类"
+      "cls": "1类",
+      "label": "龙泉一类班主任"
     },
     {
-      "u": "lq-2类1",
+      "u": "龙泉二类一",
       "name": "2类1班主任",
       "role": "homeroom",
       "subject": "",
@@ -427,10 +393,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "2类1",
-      "cls": "2类1"
+      "cls": "2类1",
+      "label": "龙泉二类一班主任"
     },
     {
-      "u": "lq-2类2",
+      "u": "龙泉二类二",
       "name": "2类2班主任",
       "role": "homeroom",
       "subject": "",
@@ -443,10 +410,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "2类2",
-      "cls": "2类2"
+      "cls": "2类2",
+      "label": "龙泉二类二班主任"
     },
     {
-      "u": "lq-3类1",
+      "u": "龙泉三类一",
       "name": "3类1班主任",
       "role": "homeroom",
       "subject": "",
@@ -459,10 +427,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "3类1",
-      "cls": "3类1"
+      "cls": "3类1",
+      "label": "龙泉三类一班主任"
     },
     {
-      "u": "lq-3类2",
+      "u": "龙泉三类二",
       "name": "3类2班主任",
       "role": "homeroom",
       "subject": "",
@@ -475,10 +444,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "3类2",
-      "cls": "3类2"
+      "cls": "3类2",
+      "label": "龙泉三类二班主任"
     },
     {
-      "u": "lq-3类3",
+      "u": "龙泉三类三",
       "name": "3类3班主任",
       "role": "homeroom",
       "subject": "",
@@ -491,10 +461,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "3类3",
-      "cls": "3类3"
+      "cls": "3类3",
+      "label": "龙泉三类三班主任"
     },
     {
-      "u": "lq-4类1",
+      "u": "龙泉四类一",
       "name": "4类1班主任",
       "role": "homeroom",
       "subject": "",
@@ -507,10 +478,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "4类1",
-      "cls": "4类1"
+      "cls": "4类1",
+      "label": "龙泉四类一班主任"
     },
     {
-      "u": "lq-4类2",
+      "u": "龙泉四类二",
       "name": "4类2班主任",
       "role": "homeroom",
       "subject": "",
@@ -523,10 +495,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "4类2",
-      "cls": "4类2"
+      "cls": "4类2",
+      "label": "龙泉四类二班主任"
     },
     {
-      "u": "lq-5类",
+      "u": "龙泉五类",
       "name": "5类班主任",
       "role": "homeroom",
       "subject": "",
@@ -539,10 +512,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "5类",
-      "cls": "5类"
+      "cls": "5类",
+      "label": "龙泉五类班主任"
     },
     {
-      "u": "lq-6类",
+      "u": "龙泉六类",
       "name": "6类班主任",
       "role": "homeroom",
       "subject": "",
@@ -555,10 +529,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "6类",
-      "cls": "6类"
+      "cls": "6类",
+      "label": "龙泉六类班主任"
     },
     {
-      "u": "lq-7类",
+      "u": "龙泉七类",
       "name": "7类班主任",
       "role": "homeroom",
       "subject": "",
@@ -571,10 +546,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "7类",
-      "cls": "7类"
+      "cls": "7类",
+      "label": "龙泉七类班主任"
     },
     {
-      "u": "lq-8类",
+      "u": "龙泉八类",
       "name": "8类班主任",
       "role": "homeroom",
       "subject": "",
@@ -587,10 +563,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "8类",
-      "cls": "8类"
+      "cls": "8类",
+      "label": "龙泉八类班主任"
     },
     {
-      "u": "lq-9类1",
+      "u": "龙泉九类一",
       "name": "9类1班主任",
       "role": "homeroom",
       "subject": "",
@@ -603,10 +580,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "9类1",
-      "cls": "9类1"
+      "cls": "9类1",
+      "label": "龙泉九类一班主任"
     },
     {
-      "u": "lq-9类2",
+      "u": "龙泉九类二",
       "name": "9类2班主任",
       "role": "homeroom",
       "subject": "",
@@ -619,10 +597,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "9类2",
-      "cls": "9类2"
+      "cls": "9类2",
+      "label": "龙泉九类二班主任"
     },
     {
-      "u": "lq-10类",
+      "u": "龙泉十类",
       "name": "10类班主任",
       "role": "homeroom",
       "subject": "",
@@ -635,10 +614,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "10类",
-      "cls": "10类"
+      "cls": "10类",
+      "label": "龙泉十类班主任"
     },
     {
-      "u": "xy-2类1",
+      "u": "星耀二类一",
       "name": "2类1班主任",
       "role": "homeroom",
       "subject": "",
@@ -651,10 +631,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "2类1",
-      "cls": "2类1"
+      "cls": "2类1",
+      "label": "星耀二类一班主任"
     },
     {
-      "u": "xy-2类2",
+      "u": "星耀二类二",
       "name": "2类2班主任",
       "role": "homeroom",
       "subject": "",
@@ -667,10 +648,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "2类2",
-      "cls": "2类2"
+      "cls": "2类2",
+      "label": "星耀二类二班主任"
     },
     {
-      "u": "xy-3类1",
+      "u": "星耀三类一",
       "name": "3类1班主任",
       "role": "homeroom",
       "subject": "",
@@ -683,10 +665,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "3类1",
-      "cls": "3类1"
+      "cls": "3类1",
+      "label": "星耀三类一班主任"
     },
     {
-      "u": "xy-3类2",
+      "u": "星耀三类二",
       "name": "3类2班主任",
       "role": "homeroom",
       "subject": "",
@@ -699,10 +682,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "3类2",
-      "cls": "3类2"
+      "cls": "3类2",
+      "label": "星耀三类二班主任"
     },
     {
-      "u": "xy-3类3",
+      "u": "星耀三类三",
       "name": "3类3班主任",
       "role": "homeroom",
       "subject": "",
@@ -715,10 +699,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "3类3",
-      "cls": "3类3"
+      "cls": "3类3",
+      "label": "星耀三类三班主任"
     },
     {
-      "u": "xy-4类",
+      "u": "星耀四类",
       "name": "4类班主任",
       "role": "homeroom",
       "subject": "",
@@ -731,10 +716,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "4类",
-      "cls": "4类"
+      "cls": "4类",
+      "label": "星耀四类班主任"
     },
     {
-      "u": "xy-5类",
+      "u": "星耀五类",
       "name": "5类班主任",
       "role": "homeroom",
       "subject": "",
@@ -747,10 +733,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "5类",
-      "cls": "5类"
+      "cls": "5类",
+      "label": "星耀五类班主任"
     },
     {
-      "u": "xy-7类",
+      "u": "星耀七类",
       "name": "7类班主任",
       "role": "homeroom",
       "subject": "",
@@ -763,10 +750,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "7类",
-      "cls": "7类"
+      "cls": "7类",
+      "label": "星耀七类班主任"
     },
     {
-      "u": "xy-9类1",
+      "u": "星耀九类一",
       "name": "9类1班主任",
       "role": "homeroom",
       "subject": "",
@@ -779,10 +767,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "9类1",
-      "cls": "9类1"
+      "cls": "9类1",
+      "label": "星耀九类一班主任"
     },
     {
-      "u": "xy-9类2",
+      "u": "星耀九类二",
       "name": "9类2班主任",
       "role": "homeroom",
       "subject": "",
@@ -795,10 +784,11 @@
       ],
       "createdAt": "预置账号",
       "alias": "9类2",
-      "cls": "9类2"
+      "cls": "9类2",
+      "label": "星耀九类二班主任"
     },
     {
-      "u": "xy-10类",
+      "u": "星耀十类",
       "name": "10类班主任",
       "role": "homeroom",
       "subject": "",
@@ -811,7 +801,8 @@
       ],
       "createdAt": "预置账号",
       "alias": "10类",
-      "cls": "10类"
+      "cls": "10类",
+      "label": "星耀十类班主任"
     }
   ],
   "ai": {
@@ -907,15 +898,91 @@
         "key": "sk-keijnslgrdiubpxkeyfibqoomgdnfguzfhgpkejsmwpprgbu",
         "share": ""
       },
+      "zhouhong": {
+        "mode": "self",
+        "key": "sk-kezvlsmsxemfpcivoxtuxycslcsgklujnbwhvbuqltafgzre",
+        "share": ""
+      },
       "caoguanghan": {
         "mode": "self",
         "key": "sk-avlwdqqkftdynkgakhlsonuworfmsimhranxnkhklxrfmdlo",
         "share": "zhoujinghui"
       },
-      "zhouhong": {
+      "龙泉周景辉": {
         "mode": "self",
-        "key": "sk-kezvlsmsxemfpcivoxtuxycslcsgklujnbwhvbuqltafgzre",
-        "share": ""
+        "key": "sk-ejgbfrnzozqljizeyrbkxnocvylgcnsvwurgfpitwxfhbqpc"
+      },
+      "龙泉颜立营": {
+        "mode": "self",
+        "key": "sk-kskxgizfmjghldmiapdelqocunrhcissbtbshjsjkosusjbc"
+      },
+      "龙泉吴恩乐": {
+        "mode": "self",
+        "key": "sk-wftfqgkuivuadcxowxbqpryuwhwdlgkkslvexgomlwczlvyg"
+      },
+      "龙泉陈莹哲": {
+        "mode": "self",
+        "key": "sk-oytokbugzvqcozzdiafhrztquxvspdytbhpwcwpcvynmhkwk"
+      },
+      "龙泉杜翠花": {
+        "mode": "self",
+        "key": "sk-itiaabkvanernjveknntbbukatnlddontsuadrtbzvhbnxrp"
+      },
+      "龙泉张迪楠": {
+        "mode": "self",
+        "key": "sk-escbustmaypsmjwsqbyycypeimzimgnblhfpxtxywghwwprg"
+      },
+      "龙泉王玄烨": {
+        "mode": "self",
+        "key": "sk-rhxbeeomnxqebbqezqvbjcvbwczakanbvvwfhgeyyeioowhm"
+      },
+      "龙泉杜得京": {
+        "mode": "self",
+        "key": "sk-gvacydisvsaculszqdgeyfsqtyjjnzksszhpbzexjyblynvh"
+      },
+      "龙泉徐静娜": {
+        "mode": "self",
+        "key": "sk-rqgjttkzdmxveqdiybnjkjrjwzuyaoebodmxhikdbabokujf"
+      },
+      "龙泉尹雅蕾": {
+        "mode": "self",
+        "key": "sk-ilxoouwobhdshqtshgbrmqwoqcecefoqmsbynsuqsonmygqx"
+      },
+      "龙泉贾晓迈": {
+        "mode": "self",
+        "key": "sk-bpzxgoekpthvkereibqohndngpjkhmmdurgzoihcqulhvfke"
+      },
+      "龙泉王敏婕": {
+        "mode": "self",
+        "key": "sk-chfpxaoslrkitriignaisjklyxnnmoqtasgdvgmnauqigsrj"
+      },
+      "龙泉李欣茹": {
+        "mode": "self",
+        "key": "sk-btfklyhfqntzdygryvreqovojgddpkmsovgnogmbtoviqyuv"
+      },
+      "龙泉张洁": {
+        "mode": "self",
+        "key": "sk-gzvvtgyeqvqcczlsonhtpljamboqmchnbigcgiecuklynutn"
+      },
+      "龙泉杜佳雯": {
+        "mode": "self",
+        "key": "sk-hltcortfuhaamszaqdcxematobxxadbgfwzrlrspgutqddvl"
+      },
+      "龙泉赵晓亚": {
+        "mode": "self",
+        "key": "sk-qcwfzyxhldxcsocrdjxffyvcdysdtybnyduoogtoolvzqjbp"
+      },
+      "龙泉丁然": {
+        "mode": "self",
+        "key": "sk-keijnslgrdiubpxkeyfibqoomgdnfguzfhgpkejsmwpprgbu"
+      },
+      "龙泉周红": {
+        "mode": "self",
+        "key": "sk-kezvlsmsxemfpcivoxtuxycslcsgklujnbwhvbuqltafgzre"
+      },
+      "龙泉曹广汉": {
+        "mode": "self",
+        "key": "sk-avlwdqqkftdynkgakhlsonuworfmsimhranxnkhklxrfmdlo"
       }
     }
   }
