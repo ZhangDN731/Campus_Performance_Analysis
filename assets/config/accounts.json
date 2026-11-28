@@ -35,7 +35,13 @@
       "pwd": "123456",
       "defaultPwd": true,
       "status": "active",
-      "classes": [],
+      "classes": [
+        "5类",
+        "6类",
+        "8类",
+        "9类1",
+        "9类2"
+      ],
       "isLeader": false,
       "mode": "self",
       "createdAt": "预置账号"
@@ -251,10 +257,10 @@
       "createdAt": "预置账号"
     },
     {
-      "u": "zhouhong",
-      "name": "周红",
+      "u": "caoguanghan",
+      "name": "曹广汉",
       "role": "teacher",
-      "subject": "数学",
+      "subject": "物理",
       "campus": "龙泉校区",
       "pwd": "123456",
       "defaultPwd": true,
@@ -265,10 +271,10 @@
       "createdAt": "2026-11-18 17:50"
     },
     {
-      "u": "caoguanghan",
-      "name": "曹广汉",
+      "u": "zhouhong",
+      "name": "周红",
       "role": "teacher",
-      "subject": "物理",
+      "subject": "数学",
       "campus": "龙泉校区",
       "pwd": "123456",
       "defaultPwd": true,
@@ -848,15 +854,15 @@
         "key": "sk-keijnslgrdiubpxkeyfibqoomgdnfguzfhgpkejsmwpprgbu",
         "share": ""
       },
-      "zhouhong": {
-        "mode": "self",
-        "key": "sk-kezvlsmsxemfpcivoxtuxycslcsgklujnbwhvbuqltafgzre",
-        "share": ""
-      },
       "caoguanghan": {
         "mode": "self",
         "key": "sk-avlwdqqkftdynkgakhlsonuworfmsimhranxnkhklxrfmdlo",
         "share": "zhoujinghui"
+      },
+      "zhouhong": {
+        "mode": "self",
+        "key": "sk-kezvlsmsxemfpcivoxtuxycslcsgklujnbwhvbuqltafgzre",
+        "share": ""
       }
     }
   }
