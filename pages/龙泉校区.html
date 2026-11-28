@@ -1494,41 +1494,43 @@ function renderGridTable(cols, rows, sortKey, wrapEl, onSort) {
 /* ============ 数据解析 ============ */
 function parseSheet(rows, className) {
   if (!rows || rows.length < 3) return;
-  const row0 = rows[0] || [], row1 = rows[1] || [];
-  const h00 = String(row0[0] ?? '').trim();
-  const h01 = String(row1[0] ?? '').trim();
-  if (h00 === '学生' && h01 === '考试') parseVertical(rows, className);
-  else parseHorizontal(rows, className);
+  const layout = (window.Roster && Roster.sheetLayout) ? Roster.sheetLayout(rows)
+    : { vertical: false, nameCol: 0, noCol: -1, startCol: 1 };
+  if (layout.vertical) parseVertical(rows, className, layout);
+  else parseHorizontal(rows, className, layout);
 }
-function parseVertical(rows, className) {
+function parseVertical(rows, className, layout) {
   const headers = (rows[0] || []).map(h => String(h ?? '').trim());
-  const rawSubjects = headers.slice(2).filter(Boolean);
+  const start = layout.startCol;
+  const rawSubjects = headers.slice(start).filter(Boolean);
   if (!rawSubjects.length) return;
   rawSubjects.forEach(registerSubject);
   const baseKeys = rawSubjects.map(normalizeSubjectKey);
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    if (!row || row.length < 3) continue;
-    const name = String(row[0] ?? '').trim();
+    if (!row || row.length < start + 1) continue;
+    const name = String(row[layout.nameCol] ?? '').trim();
     const exam = String(row[1] ?? '').trim();
     if (!name || !exam) continue;
+    const no = layout.noCol >= 0 ? String(row[layout.noCol] ?? '').trim() : '';
     registerExam(exam);
     const scores = {};
     baseKeys.forEach((baseKey, j) => {
       const rawSub = rawSubjects[j];
-      const v = toNum(row[2 + j]);
+      const v = toNum(row[start + j]);
       recordClassSubjectMark(className, exam, baseKey, rawSub);
       if (v === null) { if (!(baseKey in scores)) scores[baseKey] = null; }
       else { if (scores[baseKey] == null || v > scores[baseKey]) scores[baseKey] = v; }
     });
-    setScore(className, name, exam, scores);
+    setScore(className, name, exam, scores, no);
   }
 }
-function parseHorizontal(rows, className) {
+function parseHorizontal(rows, className, layout) {
   const row0 = rows[0] || [], row1 = rows[1] || [];
+  const startCol = layout.startCol;
   const groups = [];
   let cur = null;
-  for (let c = 1; c < row1.length; c++) {
+  for (let c = startCol; c < row1.length; c++) {
     const examName = String(row0[c] ?? '').trim();
     const subName = String(row1[c] ?? '').trim();
     if (examName) {
@@ -1543,8 +1545,9 @@ function parseHorizontal(rows, className) {
   for (let r = 2; r < rows.length; r++) {
     const row = rows[r];
     if (!row) continue;
-    const name = String(row[0] ?? '').trim();
+    const name = String(row[layout.nameCol] ?? '').trim();
     if (!name) continue;
+    const no = layout.noCol >= 0 ? String(row[layout.noCol] ?? '').trim() : '';
     groups.forEach(g => {
       registerExam(g.exam);
       const scores = {};
@@ -1555,7 +1558,7 @@ function parseHorizontal(rows, className) {
         if (v === null) { if (!(baseKey in scores)) scores[baseKey] = null; }
         else { if (scores[baseKey] == null || v > scores[baseKey]) scores[baseKey] = v; }
       });
-      setScore(className, name, g.exam, scores);
+      setScore(className, name, g.exam, scores, no);
     });
   }
 }
@@ -1575,12 +1578,14 @@ function registerClass(c) {
   if (!state.classList.includes(c)) state.classList.push(c);
   if (!state.classes[c]) state.classes[c] = { students: {} };
 }
-function setScore(cls, name, exam, scores) {
+function setScore(cls, name, exam, scores, no) {
   registerClass(cls);
-  const students = state.classes[cls].students;
+  const box = state.classes[cls];
+  const students = box.students;
   if (!students[name]) students[name] = {};
   if (!students[name][exam]) students[name][exam] = {};
   Object.assign(students[name][exam], scores);
+  if (no) { if (!box.nos) box.nos = {}; box.nos[name] = no; }
 }
 /* 科目强制排序：按指定顺序排列，未在列表中的科目放最后（按拼音） */
 const SUBJECT_FIXED_ORDER = ['总分','语文','数学','英语','物理','化学','生物','历史','地理','政治','信息技术','美术','职测总分'];
@@ -2302,13 +2307,15 @@ function drawF3a() {
       return typeof v === 'number' ? v : null;
     });
     const valid = scores.filter(s=>s!==null);
-    return {name,scores,last:valid.length?valid[valid.length-1]:-Infinity};
+    const no = (state.classes[cls].nos || {})[name] || '';
+    return {name,no,scores,last:valid.length?valid[valid.length-1]:-Infinity};
   });
   rows.sort((a,b)=>b.last-a.last);
   rows.forEach(r => { r._streaks = computeStreaks(r.scores); });
   const rankValsByCol = exams.map((_, i) => rows.map(rr => rr.scores[i]).filter(v => v != null).sort((a,b)=>b-a));
   const cols = [
     {label:'序号',width:56,sticky:true,sortable:false,render:(r,i)=>'<td style="font-weight:700">'+(i+1)+'</td>'},
+    {label:'考号',width:110,sticky:true,sortable:true,getValue:r=>r.no,render:r=>'<td style="font-family:monospace">'+esc(r.no||'—')+'</td>'},
     {label:'姓名',width:100,sticky:true,sortable:true,getValue:r=>r.name,render:r=>'<td style="font-weight:700">'+esc(r.name)+'</td>'}
   ];
   exams.forEach((ex,i) => {
@@ -5319,7 +5326,7 @@ function renderF10(root) {
 
     const rows = [];
     const push = function (n, score, tag) {
-      rows.push('<tr><td>' + esc(n) + '</td><td class="seat-sc' + (score == null ? ' is-null' : '') + '">' +
+      rows.push('<tr><td>' + esc(((state.classes[seatState.cls] || {}).nos || {})[n] || '—') + '</td><td>' + esc(n) + '</td><td class="seat-sc' + (score == null ? ' is-null' : '') + '">' +
         esc(seatScoreLine(seatState.cls, n, seatState.exam, seatState.sub)) + '</td><td>' + tag + '</td></tr>');
     };
     seatState.entries.forEach(function (e) {
@@ -5346,7 +5353,7 @@ function renderF10(root) {
         : '') +
       '<div class="seat-block"><div class="seat-block-t">将要写进座位表的成绩（' + rows.length + ' 行' +
         (absent ? '，其中缺考 ' + absent + ' 人' : '') + '）</div>' +
-        '<div class="seat-table-wrap"><table class="seat-table"><thead><tr><th>姓名</th><th>' +
+        '<div class="seat-table-wrap"><table class="seat-table"><thead><tr><th>考号</th><th>姓名</th><th>' +
         (seatState.detail === 'full' ? '本次' + esc(subjectLabel(seatState.sub)) + '（排名）-上次 及增减' : esc(subjectLabel(seatState.sub)) + '成绩 及增减') +
         '</th><th>来源</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div></div>';
   }
@@ -6136,6 +6143,65 @@ function renderGoals() {
   });
 }
 
+/* ============ 考号名单（固定参照） ============ */
+const ROSTER_LS_KEY = 'pw_lq_roster_v1';
+function getRosterStore() {
+  try { return JSON.parse(localStorage.getItem(ROSTER_LS_KEY) || '{}') || {}; } catch (e) { return {}; }
+}
+function setRosterStore(campus, roster) {
+  try {
+    const all = getRosterStore();
+    all[campus] = roster;
+    localStorage.setItem(ROSTER_LS_KEY, JSON.stringify(all));
+  } catch (e) {}
+}
+function ensureRoster() {
+  const campus = CAMPUS_CONFIG.name;
+  window.__CLASS_ROSTER__ = window.__CLASS_ROSTER__ || {};
+  if (window.__CLASS_ROSTER__[campus] && window.__CLASS_ROSTER__[campus].students) return window.__CLASS_ROSTER__[campus];
+  const saved = getRosterStore()[campus];
+  if (saved && saved.students) { window.__CLASS_ROSTER__[campus] = saved; return saved; }
+  if (window.__GRADE_XLSX_B64 && window.Roster) {
+    try {
+      const wb = XLSX.read(window.__GRADE_XLSX_B64, { type: 'base64' });
+      const roster = Roster.buildRoster(wb);
+      window.__CLASS_ROSTER__[campus] = roster;
+      return roster;
+    } catch (e) {}
+  }
+  return null;
+}
+/* 上传前按「考号+姓名」核对整份成绩表；名单为空（首次上传）时放行并保存名单 */
+function validateGradeWorkbook(wb) {
+  const campus = CAMPUS_CONFIG.name;
+  if (!window.Roster || !Roster.checkSheet) return [];
+  const roster = ensureRoster();
+  if (!roster || !roster.students || !Object.keys(roster.students).length) return [];
+  const errs = [];
+  wb.SheetNames.forEach(name => {
+    const ref = roster.students[name];
+    if (!ref) { errs.push(name + '：该班不在考号名单里'); return; }
+    const ws = wb.Sheets[name];
+    const mat = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    const chk = Roster.checkSheet(mat, ref);
+    chk.errors.forEach(e => errs.push(name + '：' + e.text));
+  });
+  return errs;
+}
+
+function buildKaohaoDownload(wb) {
+  try {
+    const sheets = (window.Roster && Roster.buildKaohaoBook) ? Roster.buildKaohaoBook(wb) : [];
+    if (!sheets.length) return;
+    const out = XLSX.utils.book_new();
+    sheets.forEach(s => {
+      const aoa = [['考号', '姓名']].concat(s.rows.map(r => [r.no, r.name]));
+      XLSX.utils.book_append_sheet(out, XLSX.utils.aoa_to_sheet(aoa), s.name);
+    });
+    XLSX.writeFile(out, '27届' + CAMPUS_CONFIG.name.replace(/校区$/, '') + '考号记录单.xlsx');
+  } catch (e) { console.error(e); }
+}
+
 /* ============ 文件上传 ============ */
 function readOneFile(file) {
   return new Promise((resolve, reject) => {
@@ -6144,6 +6210,11 @@ function readOneFile(file) {
       try {
         const data = new Uint8Array(e.target.result);
         const wb = XLSX.read(data, {type:'array'});
+        const errs = validateGradeWorkbook(wb);
+        if (errs.length) {
+          throw new Error('考号+姓名核对未通过，已拒绝上传：' +
+            errs.slice(0, 4).join('；') + (errs.length > 4 ? '；等 ' + errs.length + ' 处不一致' : ''));
+        }
         ingestPart(wb);
         LAST_WORKBOOK = wb;
         resolve();
@@ -6169,6 +6240,17 @@ async function handleFileUpload(event) {
       success++;
     }
     if (!success) { alert('未成功读取任何文件，请检查文件格式。'); return; }
+    /* 首次上传（还没有考号名单）：把这份带考号的成绩表存成该校区名单 */
+    const campusKey = CAMPUS_CONFIG.name;
+    const hasRef = !!(ensureRoster() && Object.keys(ensureRoster().students || {}).length);
+    if (!hasRef && window.Roster && LAST_WORKBOOK) {
+      const ro = Roster.buildRoster(LAST_WORKBOOK);
+      if (ro.students && Object.keys(ro.students).length) {
+        setRosterStore(campusKey, ro);
+        window.__CLASS_ROSTER__[campusKey] = ro;
+        buildKaohaoDownload(LAST_WORKBOOK);
+      }
+    }
     sortSubjects();
     snapshotRaw();
     rebuildScores();
@@ -6276,17 +6358,18 @@ function initUIAfterLoad() {
 
 function downloadTemplate() {
   const wb = XLSX.utils.book_new();
-  const h1 = ['学生','第一次考试','第一次考试','第一次考试','第一次考试','第二次考试','第二次考试','第二次考试','第二次考试'];
-  const h2 = ['学生','语文（100）','数学（100）','英语（100）','总分','语文（100）','数学（100）','英语（100）','总分'];
+  const h1 = ['考号','姓名','第一次考试','第一次考试','第一次考试','第一次考试','第二次考试','第二次考试','第二次考试','第二次考试'];
+  const h2 = ['考号','姓名','语文（100）','数学（100）','英语（100）','总分','语文（100）','数学（100）','英语（100）','总分'];
   const merges = [
     {s:{r:0,c:0},e:{r:1,c:0}},
-    {s:{r:0,c:1},e:{r:0,c:4}},
-    {s:{r:0,c:5},e:{r:0,c:8}}
+    {s:{r:0,c:1},e:{r:1,c:1}},
+    {s:{r:0,c:2},e:{r:0,c:5}},
+    {s:{r:0,c:6},e:{r:0,c:9}}
   ];
-  const s1 = [h1,h2,['张三',88,92,85,265,90,88,87,265],['李四',85,80,88,253,87,85,90,262]];
+  const s1 = [h1,h2,['27010101','张三',88,92,85,265,90,88,87,265],['27010102','李四',85,80,88,253,87,85,90,262]];
   const ws1 = XLSX.utils.aoa_to_sheet(s1); ws1['!merges'] = merges;
   XLSX.utils.book_append_sheet(wb, ws1, '1班');
-  const s2 = [h1,h2,['小明',78,82,80,240,80,84,83,247],['小红',82,76,84,242,84,79,86,249]];
+  const s2 = [h1,h2,['27020101','小明',78,82,80,240,80,84,83,247],['27020102','小红',82,76,84,242,84,79,86,249]];
   const ws2 = XLSX.utils.aoa_to_sheet(s2); ws2['!merges'] = merges;
   XLSX.utils.book_append_sheet(wb, ws2, '2班');
   XLSX.writeFile(wb, '多班级成绩横向模板.xlsx');

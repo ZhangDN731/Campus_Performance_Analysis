@@ -895,10 +895,10 @@ async function downloadHomeroomTemplate(fileName){
   /* 仓库没有该校区整表 / 还没本班：给一张只有本班工作表的空白模板 */
   const wb = XLSX.utils.book_new();
   const aoa = [
-    ['9.19周测','','','','','',''],
-    ['语文（100）','数学（100）','主科（200）','信息技术（100）','副科（100）','职测总分（100）','总分（450）'],
-    ['张三','85','92','177','88','76','82','335'],
-    ['李四','78','85','163','72','68','75','306'],
+    ['考号','姓名','9.19周测','','','','','',''],
+    ['考号','姓名','语文（100）','数学（100）','主科（200）','信息技术（100）','副科（100）','职测总分（100）','总分（450）'],
+    ['27010101','张三','85','92','177','88','76','82','335'],
+    ['27010102','李四','78','85','163','72','68','75','306'],
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), cls || '1类');
   XLSX.writeFile(wb, fileName.replace('.xlsx', '_' + (cls || '本班') + '_模板.xlsx'));
@@ -909,10 +909,10 @@ async function downloadHomeroomTemplate(fileName){
 function downloadEmptyGradeTemplate(fileName){
   const wb = XLSX.utils.book_new();
   const aoa = [
-    ['9.19周测','','','','','',''],
-    ['语文（100）','数学（100）','主科（200）','信息技术（100）','副科（100）','职测总分（100）','总分（450）'],
-    ['张三','85','92','177','88','76','82','335'],
-    ['李四','78','85','163','72','68','75','306'],
+    ['考号','姓名','9.19周测','','','','','',''],
+    ['考号','姓名','语文（100）','数学（100）','主科（200）','信息技术（100）','副科（100）','职测总分（100）','总分（450）'],
+    ['27010101','张三','85','92','177','88','76','82','335'],
+    ['27010102','李四','78','85','163','72','68','75','306'],
   ];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   XLSX.utils.book_append_sheet(wb, ws, '1类');
@@ -1094,7 +1094,14 @@ async function parseExcelPreview(file){
     const examSet = new Set();
     const studentSet = new Set();
     const subjectSet = new Set();
+    const rosterErrors = [];
     let studentTotal = 0;   /* 分班去重后求和，与分析页「学生」口径一致 */
+
+    let roster = null;
+    try {
+      const campus = (currentAccount && currentAccount.campus) || '';
+      roster = campus && window.__AUTH_ENSURE_ROSTER__ ? await window.__AUTH_ENSURE_ROSTER__(campus) : null;
+    } catch(e) {}
 
     wb.SheetNames.forEach(sheetName => {
       const className = String(sheetName).trim();
@@ -1105,25 +1112,26 @@ async function parseExcelPreview(file){
       classSet.add(className);
       const sheetNames = new Set();
 
+      const layoutFn = (window.Roster && Roster.sheetLayout)
+        ? Roster.sheetLayout : (() => ({vertical:false, nameCol:0, noCol:-1, startCol:1}));
       const row0 = json[0] || [], row1 = json[1] || [];
-      const h00 = String(row0[0] ?? '').trim();
-      const h01 = String(row1[0] ?? '').trim();
+      const layout = layoutFn(json);
 
-      if(h00 === '学生' && h01 === '考试'){
-        /* 纵向格式：第0行表头 = 学生|考试|科目... */
+      if(layout.vertical){
+        /* 纵向格式：表头 = 学生|考试|科目... */
         const headers = row0.map(h => String(h ?? '').trim());
-        headers.slice(2).filter(Boolean).forEach(s => subjectSet.add(s.replace(/[（(].*?[）)]/g,'').trim()));
+        headers.slice(layout.startCol).filter(Boolean).forEach(s => subjectSet.add(s.replace(/[（(].*?[）)]/g,'').trim()));
         for(let i = 1; i < json.length; i++){
           const row = json[i];
-          if(!row || row.length < 3) continue;
-          const name = String(row[0] ?? '').trim();
+          if(!row || row.length < layout.startCol + 1) continue;
+          const name = String(row[layout.nameCol] ?? '').trim();
           const exam = String(row[1] ?? '').trim();
           if(name) sheetNames.add(name);
           if(exam) examSet.add(exam);
         }
       } else {
         /* 横向格式：第0行考试名（合并），第1行科目名 */
-        for(let c = 1; c < row1.length; c++){
+        for(let c = layout.startCol; c < row1.length; c++){
           const examName = String(row0[c] ?? '').trim();
           const subName = String(row1[c] ?? '').trim();
           if(examName) examSet.add(examName);
@@ -1132,8 +1140,16 @@ async function parseExcelPreview(file){
         for(let r = 2; r < json.length; r++){
           const row = json[r];
           if(!row) continue;
-          const name = String(row[0] ?? '').trim();
+          const name = String(row[layout.nameCol] ?? '').trim();
           if(name) sheetNames.add(name);
+        }
+      }
+      /* 按「考号+姓名」核对名单，任何一处不一致都拒绝上传 */
+      if(window.Roster && Roster.checkSheet){
+        const ref = roster && roster.students && roster.students[className];
+        if(ref && ref.length){
+          const chk = Roster.checkSheet(json, ref);
+          chk.errors.forEach(e => rosterErrors.push(className + '：' + e.text));
         }
       }
       sheetNames.forEach(n => studentSet.add(n));
@@ -1148,8 +1164,12 @@ async function parseExcelPreview(file){
     $('pvStudent').textContent = studentTotal;
     $('pvSubject').textContent = subjectSet.size;
 
-    /* 基本校验：至少有班级和学生才算有效成绩文件 */
-    if(classSet.size === 0 || studentTotal === 0){
+    /* 基本校验：班级/学生齐全，且每班的考号+姓名都要与考号名单一致 */
+    if(rosterErrors.length){
+      showPreviewError('考号+姓名核对未通过，禁止上传：' + rosterErrors.slice(0, 4).join('；') +
+        (rosterErrors.length > 4 ? '；等 ' + rosterErrors.length + ' 处不一致' : ''));
+      $('uploadBtn').disabled = true;
+    } else if(classSet.size === 0 || studentTotal === 0){
       showPreviewError('未识别到有效班级或学生数据，请确认文件格式是否符合模板要求。');
       $('uploadBtn').disabled = true;   /* 无效文件禁止上传，避免把坏数据合进校区表 */
     } else {
@@ -1260,6 +1280,51 @@ function mergeHomeroomSheet(inputBuf, cls, existBytes){
   return XLSX.write(out, {bookType:'xlsx', type:'array'});
 }
 
+/* 上传前按「考号+姓名」核对：只校验目标班级（班主任）或整份（教务/管理员） */
+async function validateUploadBytes(bytes, campus, onlyCls){
+  if(!window.Roster || !Roster.checkSheet) return [];
+  let roster = null;
+  try { roster = window.__AUTH_ENSURE_ROSTER__ ? await window.__AUTH_ENSURE_ROSTER__(campus) : null; } catch(e) {}
+  const wb = XLSX.read(bytes, {type:'array'});
+  const errs = [];
+  const firstTime = !roster || !roster.students || !Object.keys(roster.students).length;
+  wb.SheetNames.forEach(name => {
+    if(onlyCls && name !== onlyCls) return;
+    const mat = XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, defval:null});
+    const layout = Roster.sheetLayout ? Roster.sheetLayout(mat) : {noCol:-1};
+    if(firstTime){
+      /* 首次上传：必须自带考号列，否则无法建立考号记录单 */
+      if(layout.noCol < 0){ errs.push(name + '：缺少「考号」列'); return; }
+      const start = layout.vertical ? 1 : 2;
+      for(let r = start; r < mat.length; r++){
+        const row = mat[r] || [];
+        const nm = String(row[layout.nameCol] ?? '').trim();
+        if(!nm) continue;
+        if(!String(row[layout.noCol] ?? '').trim()) errs.push(name + '：' + nm + ' 缺少考号');
+      }
+      return;
+    }
+    const ref = roster.students[name];
+    if(!ref){ errs.push(name + '：该班不在考号名单里'); return; }
+    Roster.checkSheet(mat, ref).errors.forEach(e => errs.push(name + '：' + e.text));
+  });
+  return errs;
+}
+
+/* 由带考号的成绩表生成「考号记录单」并下载 */
+function buildKaohaoFromBytes(bytes, campus){
+  if(!window.Roster || !Roster.buildKaohaoBook) return;
+  const wb = XLSX.read(bytes, {type:'array'});
+  const sheets = Roster.buildKaohaoBook(wb);
+  if(!sheets.length) return;
+  const out = XLSX.utils.book_new();
+  sheets.forEach(s => {
+    const aoa = [['考号','姓名']].concat(s.rows.map(r => [r.no, r.name]));
+    XLSX.utils.book_append_sheet(out, XLSX.utils.aoa_to_sheet(aoa), s.name);
+  });
+  XLSX.writeFile(out, '27届' + String(campus || '').replace(/校区$/, '') + '考号记录单.xlsx');
+}
+
 async function doUpload(){
   if(!selectedFile) return;
   $('uploadBtn').disabled = true;
@@ -1306,6 +1371,15 @@ async function doUpload(){
     setProgress(30, currentAccount.role === 'homeroom' ? '读取并合并本班成绩…' : '编码文件…');
     let buf = await selectedFile.arrayBuffer();
     let bytes = new Uint8Array(buf);
+    /* 上传前按考号+姓名核对，不一致直接拒绝 */
+    const hadRoster = !!(window.__CLASS_ROSTER__ && window.__CLASS_ROSTER__[campusName] &&
+      window.__CLASS_ROSTER__[campusName].students && Object.keys(window.__CLASS_ROSTER__[campusName].students).length);
+    const rosterErrs = await validateUploadBytes(bytes, campusName, currentAccount.role === 'homeroom' ? currentAccount.cls : '');
+    if(rosterErrs.length){
+      setProgress(0, '考号核对未通过');
+      throw new Error('考号+姓名核对未通过，已拒绝上传：' + rosterErrs.slice(0, 4).join('；') +
+        (rosterErrs.length > 4 ? '；等 ' + rosterErrs.length + ' 处不一致' : ''));
+    }
     if(currentAccount.role === 'homeroom'){
       let existBytes = null;
       try{
@@ -1345,6 +1419,11 @@ async function doUpload(){
 
     if(resp.ok){
       setProgress(100, '上传完成！');
+      /* 该校区第一次上传带考号的成绩表：自动生成一份考号记录单 */
+      let kaohaoNote = '';
+      if(!hadRoster && (currentAccount.role === 'dean' || currentAccount.role === 'admin')){
+        try{ buildKaohaoFromBytes(bytes, campusName); kaohaoNote = '<br>已生成「' + campusName.replace(/校区$/, '') + '考号记录单」，请保存归档。'; }catch(e){ console.warn('考号记录单生成失败：', e); }
+      }
       /* 教务 / 管理员上传整份成绩：识别工作表班级，自动补建本校区班主任账号 */
       let autoNote = '';
       if((currentAccount.role === 'dean' || currentAccount.role === 'admin') && window.Auth && Auth.ensureHomerooms){
@@ -1361,6 +1440,7 @@ async function doUpload(){
       showResult('success',
         `✅ 上传成功！<br>文件：<b>${targetFile}</b>` +
         (currentAccount.role === 'homeroom' ? `<br>已合并 <b>${currentAccount.cls}</b> 本班工作表，其他班级保持原样。` : '') +
+        kaohaoNote +
         autoNote +
         `<br>GitHub Pages 将在 1-2 分钟内自动更新。<br>访问地址：<a href="https://${GITHUB_OWNER}.github.io/${GITHUB_REPO}/" target="_blank">https://${GITHUB_OWNER}.github.io/${GITHUB_REPO}/</a>`
       );
